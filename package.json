@@ -1,0 +1,25 @@
+{
+  "name": "applyless",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "npm@11.6.2",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=packages/api",
+    "dev:web": "npm run dev --workspace=packages/web",
+    "dev:ml": "cd packages/ml-service && source venv/bin/activate && uvicorn main:app --reload --port 5001",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:ml\"",
+    "ingest:once": "npm run start --workspace=packages/ingestion",
+    "ingest:schedule": "npm run schedule --workspace=packages/ingestion",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/seed-profile.js",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
