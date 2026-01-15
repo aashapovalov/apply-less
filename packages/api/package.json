@@ -1,0 +1,25 @@
+{
+  "name": "@applyless/api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "axios": "1.13.2",
+    "dotenv": "16.4.1",
+    "express": "5.2.1",
+    "firebase-admin": "13.6.0",
+    "pg": "8.11.5",
+    "winston": "3.13.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.8",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.5"
+  }
+}
