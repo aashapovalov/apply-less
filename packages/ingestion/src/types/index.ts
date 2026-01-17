@@ -21,7 +21,7 @@ export interface SNCCompanyRaw {
     sncUrl: string;
     description?: string;
     tags?: string[];
-    foundedYear: number;
+    foundedYear: number | undefined;
 }
 
 export interface ingestionStats {
