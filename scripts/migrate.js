@@ -10,9 +10,9 @@ import {
     ensureMigrationsTable,
     applyMigration,
     sha256
-} from "./migrate-helpers";
+} from "./migrate-helpers.js";
 
-import { MIGRATIONS_DIR } from "./migrate-helpers";
+import { MIGRATIONS_DIR } from "./migrate-helpers.js";
 
 
 dotenv.config();
@@ -25,7 +25,7 @@ const { Client } = pg;
  * and executes only new migrations in order using a single DB connection.
  * Ensures migrations are applied atomically and safely.
  */
-async function main(): Promise<void> {
+async function main() {
     // Read DATABASE_URL and fail early if it is missing
     const databaseUrl = requireEnv("DATABASE_URL");
 
@@ -68,7 +68,7 @@ async function main(): Promise<void> {
 
             // If migration was already applied
             if (applied.has(filename)) {
-                const oldChecksum = applied.get(filename)!;
+                const oldChecksum = applied.get(filename);
 
                 // Detect edited migrations and fail hard
                 if (oldChecksum !== checksum) {
@@ -96,7 +96,7 @@ async function main(): Promise<void> {
     }
 }
 
-main().catch((error: unknown) => {
+main().catch((error) => {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`\n[migrate] FAILED: ${message}`);
     process.exitCode = 1;

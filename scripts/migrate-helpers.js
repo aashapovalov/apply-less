@@ -13,7 +13,7 @@ import pg from "pg";
  * - DATABASE_URL
  * - Any future required infra variables
  */
-export function requireEnv(name: string): string {
+export function requireEnv(name) {
     const variable = process.env[name];
     if (!variable) throw new Error(`Environment variable ${name} not found`);
     return variable;
@@ -45,7 +45,7 @@ export const MIGRATIONS_DIR = path.resolve(process.cwd(), "db", "migrations");
  * - checksum mismatch is detected
  * - script aborts instead of silently drifting schemas
  */
-export function sha256(str: string): string {
+export function sha256(str) {
     return crypto.createHash("sha256").update(str, "utf8").digest("hex");
 }
 
@@ -56,7 +56,7 @@ export function sha256(str: string): string {
  * - Allows ignoring non-SQL files (README, notes, temp files)
  * - Keeps migration discovery simple and explicit
  */
-export function isSqlFile(name: string): boolean {
+export function isSqlFile(name) {
     return name.toLowerCase().endsWith(".sql");
 }
 
@@ -76,7 +76,7 @@ export function isSqlFile(name: string): boolean {
  * - checksum   → file content hash at time of execution
  * - applied_at → when the migration was applied
  */
-export async function ensureMigrationsTable(client: pg.Client): Promise<void> {
+export async function ensureMigrationsTable(client) {
     await client.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
         id SERIAL PRIMARY KEY,
@@ -100,9 +100,9 @@ export async function ensureMigrationsTable(client: pg.Client): Promise<void> {
  * - Skipping migrations that already ran
  * - Detecting checksum mismatches (edited migrations)
  */
-export async function getAppliedMigrations(client: pg.Client): Promise<Map<string, string>> {
+export async function getAppliedMigrations(client) {
     const result = await client.query(`SELECT  filename, checksum FROM schema_migrations;`);
-    const map = new Map<string, string>();
+    const map = new Map();
     for (const row of result.rows) map.set(row.filename, row.checksum);
     return map;
 }
@@ -125,11 +125,7 @@ export async function getAppliedMigrations(client: pg.Client): Promise<Map<strin
  * - ROLLBACK is executed
  * - Database remains unchanged
  */
-export async function applyMigration(
-    client: pg.Client,
-    filename: string,
-    sql: string,
-): Promise<{ checksum: string }> {
+export async function applyMigration(client, filename, sql,) {
     const checksum = sha256(sql);
     await client.query("BEGIN");
     try {
