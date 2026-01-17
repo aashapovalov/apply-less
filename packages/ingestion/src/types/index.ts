@@ -17,7 +17,20 @@ export interface Company {
 
 export interface SNCCompanyRaw {
     name: string;
-    website: string;
+    website?: string;
     sncUrl: string;
+    description?: string;
     tags?: string[];
+    foundedYear: number;
+}
+
+export interface ingestionStats {
+    stage: string;
+    startTime: Date;
+    endTime?: Date;
+    totalProcessed: number;
+    updatedRecords: number;
+    skippedRecords: number;
+    failedRecords: number;
+    errors: Array< { message: string, details?: any }>;
 }
