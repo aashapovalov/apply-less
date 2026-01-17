@@ -16,8 +16,6 @@ services:
       # Persistent database data
       - postgres_data:/var/lib/postgresql/data
 
-      # SQL migrations / init scripts
-      - ./db/migrations:/docker-entrypoint-initdb.d:ro
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d applyless"]
