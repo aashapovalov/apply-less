@@ -4,7 +4,7 @@ import axios, {AxiosInstance} from "axios";
 import {SNCCompanyRaw} from "../types/index.js";
 import * as cheerio from 'cheerio';
 
-const BASE_URL = "https://www.finder.startupnationcentral.org";
+const BASE_URL = "https://finder.startupnationcentral.org";
 
 export class SNCClient {
     private httpClient: AxiosInstance;
