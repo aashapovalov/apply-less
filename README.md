@@ -1,170 +1,199 @@
-# ApplyLess — Personal Job Search Assistant for Israel Hi-Tech (B2C)
+# ApplyLess
 
-ApplyLess is a **personal, AI-assisted job-search system** designed for candidates in the **Israeli hi-tech ecosystem**.  
-It is **not a job board** and **not an ATS** — it is a **single-user, quality-focused assistant** that:
+ApplyLess is a personal job-search assistant for Israel hi-tech candidates.
 
-- builds and maintains its own database of Israeli hi-tech companies and jobs,
-- continuously ingests jobs directly from company career pages and ATS (starting with Greenhouse),
-- helps the user discover, evaluate, and prioritize **any role** (not PM-only),
-- uses **embeddings + LLMs (mandatory)** to:
-    - recommend jobs with grounded explanations,
-    - generate tailored resume versions per job,
-- tracks favorites and generated applications over time.
+The system ingests job postings directly from company career pages and ATS systems, stores them in a structured PostgreSQL database, and uses embeddings + LLMs to:
+- recommend relevant jobs
+- explain why a role matches your profile
+- generate tailored resume versions per job
 
-The project is built **ingestion-first**: data pipeline and database come before API and UI.
+This repository is structured as a **monorepo** with separate services for ingestion, API, web UI, and ML orchestration.
 
 ---
 
-## Goals & Non-Goals
+## Prerequisites
 
-### Goals
-- High-quality, explainable job recommendations
-- Direct sourcing from companies (no aggregators)
-- AI grounded in *user profile + job evidence*
-- Local development, deployable later
-- Clear separation of ingestion, API, and ML services
+Make sure the following tools are installed before starting:
 
-### Non-Goals (MVP)
-- Multi-user marketplace
-- Public job board
-- Employer-side features
-- On-device model inference
+### Required
 
----
+- **Node.js 20+**
+```bash
+  node --version
+```
 
-## MVP Scope
+- **npm**
+```bash
+  npm --version
+```
 
-### User
-- Single user (me)
-- Israel only
+- **Docker Desktop** (must be running)
+```bash
+  docker --version
+  docker compose version
+```
 
-### Roles
-- Any role (engineering, product, data, design, etc.)
-- Searchable by title, keywords, filters
+- **Git**
+```bash
+  git --version
+```
 
-### UI (after ingestion works)
-- Job list with filters + search
-- Job detail page
-- Favorites
-- Resume generation
-- Sections:
-    - All Jobs
-    - Favorites
-    - Resume Generated
+### Optional (recommended)
+
+- PostgreSQL client (e.g. DBeaver, TablePlus, pgAdmin) for database inspection
+- Python 3.11+ (required later for the ML service)
 
 ---
 
-## Tech Stack
+## Installation
 
-### Backend
-- Node.js 20+
-- TypeScript
-- REST API
-- Firebase Auth (ID token verification)
+Clone the repository and install dependencies:
+```bash
+git clone 
+cd apply-less
+npm install
+```
 
-### Ingestion
-- Node.js (TypeScript)
-- CLI + local scheduler (cron-like)
-
-### Database
-- PostgreSQL (local, Docker)
-- `pgvector` for embeddings
-
-### ML / AI
-- Python service (thin orchestrator)
-- External APIs for:
-    - embeddings
-    - LLM completions
-- No local model inference
-- Caching layer for cost + speed
-
-### Auth
-- Firebase Authentication
-- User-scoped data keyed by `user_id`
+This installs dependencies for:
+- `packages/api` — Node.js API
+- `packages/ingestion` — ingestion worker
+- `packages/web` — React frontend
+- root tooling and scripts
 
 ---
 
-## Ingestion Pipeline (Core of MVP)
+## Environment Variables
 
-### Stage A — Company Registry (Startup Nation Central)
-- Authenticated access (refresh-token capable)
-- Primary source of Israeli hi-tech companies
-- Stored fields:
-    - company_name
-    - snc_company_page_url
-    - company_website_url
-    - tags / industry
-    - last_seen_at
-- Deduplication:
-    - canonical website
-    - normalized name
+Create a root `.env` file:
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/applyless
+```
 
-> Fallback: manual export or alternative registry if SNC automation is unstable  
-> (SNC remains the intended primary source)
+> **Note**: This URL must match the credentials and port used by Docker Postgres.
 
 ---
 
-### Stage B — Career Page Discovery
-For each company website:
-- Heuristics:
-    - common paths (`/careers`, `/jobs`, `/work-with-us`)
-    - internal link scanning (limited depth)
-    - sitemap inspection (if available)
-- Persist `job_sources`:
-    - source_type: `careers_html | greenhouse`
-    - base_url
-    - detection_method
-    - confidence
-    - last_checked_at
+## Database (Postgres + pgvector)
+
+PostgreSQL runs locally via Docker and includes the `pgvector` extension.
+
+### Start Postgres
+```bash
+docker compose up -d postgres
+```
+
+Check container status:
+```bash
+docker compose ps
+```
+
+### Running Database Migrations
+
+Database schema is managed via a Node-based migration runner.
+
+Run migrations:
+```bash
+npm run db:migrate
+```
+
+**Expected behavior:**
+- All migrations in `db/migrations` are executed in order
+- Applied migrations are tracked in the `schema_migrations` table
+- Re-running the command is safe (already-applied migrations are skipped)
+
+### Verifying the Database (Optional)
+
+**List all tables:**
+```sql
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+ORDER BY table_name;
+```
+
+**Count tables:**
+```sql
+SELECT COUNT(*)
+FROM information_schema.tables
+WHERE table_schema = 'public';
+```
+
+**Verify pgvector extension:**
+```sql
+SELECT extname, extversion
+FROM pg_extension
+WHERE extname = 'vector';
+```
 
 ---
 
-### Stage C — Job Ingestion
-- Parse jobs from:
-    - native HTML career pages
-    - Greenhouse ATS (only ATS in MVP)
-- Normalize to a unified job schema
-- Deduplicate by:
-    - canonical_job_url
-    - company_id
-    - normalized_title
-    - location
-- Track:
-    - first_seen_at
-    - last_seen_at
-    - status (`active | expired`)
+## Development Workflow (Local)
+
+Typical local development flow:
+```bash
+# Start database
+docker compose up -d postgres
+
+# Apply schema
+npm run db:migrate
+
+# Run all services (API + Web + ML service)
+npm run dev
+```
+
+You can also run services individually:
+```bash
+npm run dev:api
+npm run dev:web
+npm run dev:ml
+```
 
 ---
 
-### Stage D — Scheduling
-- Manual CLI execution
-- Local scheduled runs (daily)
+## Project Structure
+```
+packages/
+  api/           # Node.js Express API
+  ingestion/     # Job ingestion worker
+  web/           # React frontend (Vite)
+  ml-service/    # Python FastAPI ML service
+  shared/        # Shared TypeScript types
+scripts/
+  migrate.ts     # Database migration runner
+db/
+  migrations/    # SQL migrations
+docs/            # Documentation
+```
 
 ---
 
-## AI Features (Mandatory)
+## Notes
 
-### Recommendations
-- Store user profile (resume / LinkedIn) as chunks
-- Store job description chunks
-- Generate embeddings (via Python ML service)
-- Vector similarity search (pgvector)
-- LLM generates:
-    - “Why this job matches you” explanation
-    - Evidence-grounded reasoning
-    - Optional structured tags
-- Persist scores, explanations, evidence
+- **Docker** is used only to run Postgres, not to manage schema changes.
+- All schema evolution happens via migrations in `db/migrations`.
+- Do not rely on Docker init scripts (`/docker-entrypoint-initdb.d`) for ongoing schema updates.
 
 ---
 
-### Resume Generation
-For a selected job:
-- Retrieve top relevant profile chunks
-- Generate:
-    - Tailored summary (3–5 lines)
-    - 5–8 tailored bullet points
-    - Keyword coverage (covered / missing)
-- Versioned, timestamped
-- Stored per `job_id + user_id`
+## Status
 
+🚧 **Active development**
 
+**Current focus:**
+- ingestion pipeline
+- database schema
+- migration stability
+
+User-facing features will be built after ingestion and storage are complete.
+
+---
+
+## Next Steps
+
+After completing Day 1 setup:
+1. **Day 2**: SNC API integration for company ingestion
+2. **Day 3**: Career page discovery
+3. **Day 4**: Job parsing and storage
+4. **Day 5**: Greenhouse ATS integration
+
+See `docs/` for detailed implementation plans.
