@@ -6,6 +6,8 @@ export interface Company {
     normalized_name: string;
     company_website_url: string;
     snc_company_page_url: string;
+    careers_page_url?: string;
+    linkedin_url?: string;
     tags?: string[];
     founded_year: number;
     source_type: "snc" | "manual";
