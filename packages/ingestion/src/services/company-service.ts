@@ -95,7 +95,20 @@ export class CompanyService {
     /**
      *  Get recent companies
      */
-    async getRecentCompanies(sourceType: string): Promise<Company[]> {
+    async getRecentCompanies(limit: number): Promise<Company[]> {
+        const result = await this.db.query(
+            `SELECT * FROM companies
+                            ORDER BY last_seen_at DESC 
+                            LIMIT $1`,
+            [limit]
+        );
+        return result.rows;
+    }
+
+    /**
+     *  Get companies by source
+     */
+    async getCompaniesBySource(sourceType: string): Promise<Company[]> {
         const result = await this.db.query(
             `SELECT * FROM companies
                             WHERE source_type = $1
