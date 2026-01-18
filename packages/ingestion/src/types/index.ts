@@ -24,11 +24,12 @@ export interface SNCCompanyRaw {
     foundedYear: number | undefined;
 }
 
-export interface ingestionStats {
+export interface IngestionStats {
     stage: string;
     startTime: Date;
     endTime?: Date;
     totalProcessed: number;
+    newRecords: number;
     updatedRecords: number;
     skippedRecords: number;
     failedRecords: number;
