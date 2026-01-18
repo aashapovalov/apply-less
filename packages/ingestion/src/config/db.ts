@@ -1,8 +1,15 @@
 import pg from "pg";
 import type { Pool as PoolType } from "pg";
 import dotenv from "dotenv";
+import {fileURLToPath} from "node:url";
+import path from "node:path";
 
-dotenv.config();
+// Load .env from project root (two levels up from this file)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '../../../../');
+const envPath = path.join(rootDir, '.env');
+dotenv.config({ path: envPath })
 
 const { Pool } = pg;
 let pool: PoolType | null = null;
