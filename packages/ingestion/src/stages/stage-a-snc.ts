@@ -1,17 +1,18 @@
 import { Pool } from 'pg';
-
 import { IngestionStats } from "../types/index.js";
 import { PlaywrightClient, SNCClient } from "../clients/index.js";
-import {CompanyService} from "../services/company-service.js";
+import { CompanyService, JobSourceService } from "../services/index.js";
+import {CompanyDetailParser} from "../parsers/company-detail-parser.js";
 
 export interface StageAOptions {
     maxPages?: number;
     dryRun?: boolean;
     delayMs?: number;
+    fetchDetails?: boolean;  // whether to fetch company details
 }
 
 /**
- *  Run Stage A: Scrape companies from SNC Finder
+ *  Run Stage A: Scrape companies from SNC Finder  + fetch company details
  */
 export async function runStageA (
     db: Pool,
@@ -21,6 +22,7 @@ export async function runStageA (
         maxPages = 200,
         dryRun = false,
         delayMs = 2000,
+        fetchDetails = true,
     } = options;
 
     const stats: IngestionStats = {
@@ -34,6 +36,11 @@ export async function runStageA (
         errors: [],
     };
 
+    // Track additional stats
+    let detailsFetched = 0;
+    let careersUrlsFound = 0;
+    let jobSourcesCreated = 0;
+
     const playwrightClient = new PlaywrightClient();
     let sncClient: SNCClient | null = null;
 
@@ -42,6 +49,7 @@ export async function runStageA (
         console.log('='.repeat(60));
         console.log(`Max pages: ${maxPages}`);
         console.log(`Dry run: ${dryRun}`);
+        console.log(`Fetch details: ${fetchDetails}`);
         console.log(`Delay: ${delayMs}ms\n`);
 
         // Step1: get authenticated cookies
@@ -49,9 +57,11 @@ export async function runStageA (
         const cookies = await playwrightClient.getCookies()
         console.log('');
 
-        // Step2: create clients;
+        // Step2: create clients and services;
         sncClient = new SNCClient(cookies);
         const companyService = new CompanyService(db);
+        const jobSourceService = new JobSourceService(db);
+        const detailParser = new CompanyDetailParser();
 
         // Step3: test connection
         console.log('🔍 Testing SNC connection...');
@@ -84,7 +94,7 @@ export async function runStageA (
                             continue;
                         }
 
-                        // Transform and upsert
+                        // Transform and upsert company
                         const company = companyService.transformSNCCompany(rawCompany);
                         const result = await companyService.upsertCompany(company);
 
@@ -92,6 +102,69 @@ export async function runStageA (
                             stats.newRecords++;
                         } else {
                             stats.updatedRecords++;
+                        }
+
+                        // Fetch company details from URL
+                        if (fetchDetails && rawCompany.sncUrl) {
+                            try {
+                                // Extract company slug from URL
+                                // Example: https://finder.startupnationcentral.org/company_page/galmobile -> galmobile
+                                const slug = extractCompanySlug(rawCompany.sncUrl);
+
+                                if (!slug) {
+                                    console.log(`   ⚠️  Could not extract slug from: ${rawCompany.sncUrl}`);
+                                    continue;
+                                }
+
+                                console.log(`   📄 Fetching details for: ${rawCompany.name} (${slug})`);
+
+                                // fetch using Playwright (bypass CloudFlare)
+                                const detailsHtml = await playwrightClient.fetchCompanyDetailPage(slug);
+                                const details = detailParser.parseCompanyDetails(detailsHtml);
+
+                                if (detailParser.isValidCompanyDetails(details)) {
+                                    // Update company with details
+                                    await companyService.updateCompanyDetails(result.id, details);
+                                    detailsFetched++;
+
+                                    console.log(`   ✅ Website: ${details.websiteUrl || 'N/A'}`);
+                                    console.log(`   ✅ Careers: ${details.careersUrl || 'N/A'}`);
+                                    console.log(`   ✅ LinkedIn: ${details.socialLinks?.linkedin || 'N/A'}`);
+
+                                    // Create job source if careers URL found
+                                    if (details.careersUrl) {
+                                        careersUrlsFound++;
+
+                                        const jobSourceResult = await jobSourceService.upsertJobSource({
+                                            company_id: result.id,
+                                            source_type: "careers_html",
+                                            base_url: details.careersUrl,
+                                            detection_method: "snc_careers_button",
+                                            confidence: 1.0,
+                                            status: "active",
+                                            last_checked_at: new Date(),
+                                        });
+
+                                        if (jobSourceResult.isNew) {
+                                            jobSourcesCreated++;
+                                            console.log(`   🎯 Created job source for careers page`);
+                                        } else {
+                                            console.log(`   ♻️  Updated existing job source`);
+                                        }
+                                    }
+                                } else {
+                                    console.log(`   ⚠️  No valid details found`);
+                                }
+
+                                // Small delay to be polite
+                                await new Promise(resolve => setTimeout(resolve, 1500));
+                            } catch (detailError: any) {
+                                console.error(`   ⚠️  Failed to fetch details: ${detailError.message}`);
+                                stats.errors.push({
+                                    message: `Failed to fetch details for: ${rawCompany.name}`,
+                                    details: detailError.message,
+                                });
+                            }
                         }
                     } catch (companyError: any) {
                         stats.failedRecords++;
@@ -137,8 +210,15 @@ export async function runStageA (
         console.log(`Updated companies: ${stats.updatedRecords}`);
         console.log(`Failed: ${stats.failedRecords}`);
         console.log(`Errors: ${stats.errors.length}`);
-        console.log(`Duration: ${durationSec}s`);
+        if (fetchDetails) {
+            console.log(`\n📄 Company Details:`);
+            console.log(`   Details fetched: ${detailsFetched}`);
+            console.log(`   Careers URLs found: ${careersUrlsFound}`);
+            console.log(`   Job sources created: ${jobSourcesCreated}`);
+        }
+        console.log(`\nDuration: ${durationSec}s`);
         console.log('='.repeat(60) + '\n');
+
 
         if (stats.errors.length > 0) {
             console.log('⚠️  Errors encountered:');
@@ -163,4 +243,13 @@ export async function runStageA (
     } finally {
         await playwrightClient.close();
     }
+}
+
+/**
+ * Extract company slug from SNC URL
+ * Example: https://finder.startupnationcentral.org/company_page/galmobile -> galmobile
+ */
+function extractCompanySlug(sncUrl: string): string | null {
+    const match = sncUrl.match(/\/company_page\/([^/?]+)/);
+    return match ? match[1] : null;
 }

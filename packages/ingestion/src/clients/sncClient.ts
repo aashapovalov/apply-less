@@ -157,13 +157,4 @@ export class SNCClient {
             throw error;
         }
     }
-
-    /**
-     * Extract company slug from SNC URL
-     * Example: https://finder.startupnationcentral.org/company_page/galmobile -> galmobile
-     */
-    extractCompanySlug(sncUrl: string): string | null {
-        const match = sncUrl.match(/\/company_page\/([^/?]+)/);
-        return match ? match[1] : null;
-    }
 }
