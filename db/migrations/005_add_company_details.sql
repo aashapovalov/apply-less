@@ -7,6 +7,6 @@ ALTER TABLE companies
 -- Add index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_companies_careers_url ON companies(careers_page_url) WHERE careers_page_url IS NOT NULL;
 
-- Add comment
+-- Add comment
 COMMENT ON COLUMN companies.careers_page_url IS 'URL to company careers/jobs page';
 COMMENT ON COLUMN companies.linkedin_url IS 'LinkedIn company profile URL';
