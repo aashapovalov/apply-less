@@ -131,4 +131,31 @@ export class SNCClient {
             return false;
         }
     }
+
+    /**
+     *  Fetch a single company detail page
+     */
+    async fetchCompanyDetailPage(companySlug: string): Promise<string> {
+        const url = `${BASE_URL}/company_page/${companySlug}`;
+
+        try {
+            const response = await this.httpClient.get(url, {
+                headers: {
+                    "Cookie": this.cookieString,
+                },
+            });
+
+            if (response.status === 403 || response.data.includes('Just a moment')) {
+                throw new Error('Cloudflare blocked request');
+            }
+
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 403) {
+                throw new Error('Authentication failed - cookies may have expired');
+            }
+            throw error;
+        }
+    }
+
 }
