@@ -24,7 +24,7 @@ export class CompanyDetailParser {
             //Extract URL from: window.open('URL', '_blank')
             const match = onclick.match(/window\.open\('([^']+)'/);
             if (match && match[1]) {
-                details.websiteUrl = match[1];
+                details.careersUrl = match[1];
             }
         }
 
