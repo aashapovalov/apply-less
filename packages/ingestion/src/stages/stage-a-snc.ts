@@ -1,8 +1,8 @@
 import { Pool } from 'pg';
 import { IngestionStats } from "../types/index.js";
-import { PlaywrightClient, SNCClient } from "../clients/index.js";
+import { PlaywrightClient, SNCClientPlaywright } from "../clients/index.js";
 import { CompanyService, JobSourceService } from "../services/index.js";
-import {CompanyDetailParser} from "../parsers/company-detail-parser.js";
+import { CompanyDetailParser } from "../parsers/company-detail-parser.js";
 
 export interface StageAOptions {
     maxPages?: number;
@@ -42,7 +42,7 @@ export async function runStageA (
     let jobSourcesCreated = 0;
 
     const playwrightClient = new PlaywrightClient();
-    let sncClient: SNCClient | null = null;
+    let sncClient: SNCClientPlaywright | null = null;
 
     try {
         console.log('\n🚀 Starting Stage A: SNC Company Ingestion');
@@ -58,7 +58,10 @@ export async function runStageA (
         console.log('');
 
         // Step2: create clients and services;
-        sncClient = new SNCClient(cookies);
+        const browser = playwrightClient.getBrowser();
+        console.log('');
+
+        sncClient = new SNCClientPlaywright(browser);
         const companyService = new CompanyService(db);
         const jobSourceService = new JobSourceService(db);
         const detailParser = new CompanyDetailParser();
