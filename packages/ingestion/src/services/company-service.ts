@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import {Company, SNCCompanyRaw} from "../types/index.js";
+import {Company, CompanyDetails, SNCCompanyRaw} from "../types/index.js";
 import {normalizeName} from "../utils/urlNormalizer.js";
 
 export class CompanyService {
@@ -83,6 +83,29 @@ export class CompanyService {
             console.error("❌ Database Error:", error.message);
             throw error;
         }
+    }
+
+    /**
+     * update company with details form SNC company page (website, careers URL, social links)
+     */
+    async updateCompanyDetails(companyId: number, details: CompanyDetails): Promise<void> {
+        const now = new Date();
+
+        await this.db.query(
+            `UPDATE companies
+            SET company_website_url = COALESCE($1, company_website_url),
+                careers_page_url = COALESCE($2, careers_page_url),
+                linkedin_url = COALESCE($3, linkedin_url),
+                updated_at = $4
+            WHERE id = $5`,
+            [
+                details.websiteUrl,
+                details.careersUrl,
+                details.socialLinks?.linkedin,
+                now,
+                companyId,
+            ]
+        );
     }
 
     /**
