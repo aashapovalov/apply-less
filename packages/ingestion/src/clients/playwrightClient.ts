@@ -65,6 +65,17 @@ export class PlaywrightClient {
     }
 
     /**
+     * Get the browser instance
+     * Useful for SNCClientPlaywright to avoid cookie size limits
+     */
+    getBrowser(): playwright.Browser {
+        if (!this.browser) {
+            throw new Error("Browser not connected. Call connect() first");
+        }
+        return this.browser;
+    }
+
+    /**
      * Fetch company detail page using the browser (bypassing CloudFlare)
      */
     async fetchCompanyDetailPage(companySlug: string): Promise<string> {
