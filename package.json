@@ -13,6 +13,8 @@
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\" \"npm run dev:ml\"",
     "ingest:once": "npm run start --workspace=packages/ingestion",
     "ingest:schedule": "npm run schedule --workspace=packages/ingestion",
+    "ingest:snc": "npm run start --workspace=packages/ingestion -- snc",
+    "ingest:snc:dry": "npm run start --workspace=packages/ingestion -- snc --dry-run --max-pages=3",
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed-profile.js",
     "build": "npm run build --workspaces",
