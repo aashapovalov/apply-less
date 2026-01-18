@@ -89,10 +89,10 @@ export class PlaywrightClient {
 
         try {
             // Navigate to company page
-            await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+            await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
 
             // Wait for the social links section to load
-            await page.waitForSelector("#social-links-container", { timeout: 10000 });
+            await page.waitForSelector("#social-links-container", { timeout: 15000 });
 
             // Get the HTML content
             const html = await page.content();
