@@ -12,7 +12,7 @@ export class CompanyService {
         return {
             company_name: raw.name,
             normalized_name: normalizeName(raw.name),
-            company_website_url: raw.website || '',  // Empty for now since we don't scrape detail pages
+            company_website_url: raw.website || raw.sncUrl,  // Use SNC URL as fallback
             snc_company_page_url: raw.sncUrl,
             tags: raw.tags || [],
             founded_year: raw.foundedYear,
@@ -46,7 +46,7 @@ export class CompanyService {
                     SET last_seen_at = $1,
                         updated_at = $1,
                         tags = COALESCE($2, tags),
-                        founded_year = COALESCE($3, founded_year),
+                        founded_year = COALESCE($3, founded_year)
                         WHERE id = $4`,
                     [now, company.tags, company.founded_year, id]
                 )
@@ -62,8 +62,9 @@ export class CompanyService {
                                         founded_year,
                                         source_type,
                                         first_seen_at,
+                                        last_seen_at,
                                         updated_at
-                                     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                                     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, $8)
                                      RETURNING id`,
                     [company.company_name,
                     normalizedName,
