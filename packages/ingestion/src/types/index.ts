@@ -35,3 +35,23 @@ export interface IngestionStats {
     failedRecords: number;
     errors: Array< { message: string, details?: any }>;
 }
+
+export interface CompanyDetails {
+    websiteUrl?: string;
+    careersUrl?: string;
+    socialLinks?: {
+        linkedin?: string;
+    };
+}
+
+export interface JobSource {
+    id?: number;
+    company_id: number;
+    source_type: "careers_html" | "greenhouse" | "lever" | "workable";
+    base_url: string;
+    detection_method?: string;
+    confidence?: number;
+    last_checked_at?: Date;
+    status: "active" | "failed" | "deprecated";
+    created_at?: Date;
+}
