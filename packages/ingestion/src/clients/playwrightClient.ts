@@ -65,6 +65,44 @@ export class PlaywrightClient {
     }
 
     /**
+     * Fetch company detail page using the browser (bypassing CloudFlare)
+     */
+    async fetchCompanyDetailPage(companySlug: string): Promise<string> {
+        if (!this.browser) {
+            throw new Error("Browser not connected. Call connect() first");
+        }
+
+        const contexts = this.browser.contexts();
+        if (contexts.length === 0) {
+            throw new Error("No browser contexts found")
+        }
+
+        const context = contexts[0];
+        const pages = context.pages();
+
+        if (pages.length === 0) {
+            throw new Error("No pages found in browser");
+        }
+
+        const page = pages[0];
+        const url = `https://finder.startupnationcentral.org/company_page/${companySlug}`;
+
+        try {
+            // Navigate to company page
+            await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+
+            // Wait for the social links section to load
+            await page.waitForSelector("#social-links-container", { timeout: 10000 });
+
+            // Get the HTML content
+            const html = await page.content();
+            return html;
+        } catch (error: any) {
+            throw new Error(`Failed to fetch company page: ${error.message}`);
+        }
+    }
+
+    /**
      * Close browser connection
      */
     async close(): Promise<void> {
