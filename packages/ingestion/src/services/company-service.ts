@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 import {Company, CompanyDetails, SNCCompanyRaw} from "../types/index.js";
-import {normalizeName} from "../utils/urlNormalizer.js";
+import {normalizeName} from "../utils/url-normalizer.js";
 
 export class CompanyService {
     constructor(private db: Pool) {}
