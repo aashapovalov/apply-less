@@ -57,3 +57,43 @@ export interface JobSource {
     status: "active" | "failed" | "deprecated";
     created_at?: Date;
 }
+
+export interface GreenHouseJob {
+    id: number;
+    title: string;
+    updated_at: string;
+    location: {
+        name: string;
+    };
+    absolute_url: string;
+    metadata: Array<{
+        id: number;
+        name: string
+        value: string;
+        value_type: string;
+    }>;
+    departments: Array<{
+        id: number;
+        name: string;
+    }>;
+    offices: Array<{
+        id: number;
+        name: string;
+        location: string;
+    }>;
+}
+
+export interface GreenHouseJobDetail {
+    id: number;
+    title: string;
+    location: {
+        name: string;
+    };
+    content: string; // HTML content
+    updated_at: string;
+    absolute_url: string;
+    departments: Array<{
+        id: number;
+        name: string;
+    }>;
+}
