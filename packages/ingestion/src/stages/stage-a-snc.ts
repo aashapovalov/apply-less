@@ -161,7 +161,7 @@ export async function runStageA (
                                 }
 
                                 // Small delay to be polite
-                                await new Promise(resolve => setTimeout(resolve, 1500));
+                                await new Promise(resolve => setTimeout(resolve, 5000));
                             } catch (detailError: any) {
                                 console.error(`   ⚠️  Failed to fetch details: ${detailError.message}`);
                                 stats.errors.push({
