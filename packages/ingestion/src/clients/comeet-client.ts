@@ -1,6 +1,7 @@
 // Comeet API client for fetching jobs
 // API Docs: https://www.comeet.com/careers-api/2.0/doc
 
+import axios, { AxiosInstance } from "axios";
 
 import {ComeetJob} from "../types/index.js";
 
