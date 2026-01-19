@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 // CLI fro running ingestion stages
 
-import {Command} from "commander";
-import {closeDb, getDb} from "./config/db.js";
-import {runStageA} from "./stages/stage-a-snc.js";
-import {runStageD} from "./stages/stage-d-greenhouse.js";
+import { Command } from "commander";
+import { closeDb, getDb } from "./config/db.js";
+import {
+    runStageA,
+    runStageD,
+    runStageE
+} from "./stages/index.js";
 
 // Create the root CLI program
 const program = new Command();
@@ -67,6 +70,37 @@ program
             const stats = await runStageD(db, {
                 dryRun: options.dryRun,
                 companySlug: options.company,
+            });
+
+            if (stats.failedRecords > 0 || stats.errors.length > 0) {
+                console.log('⚠️  Completed with errors\n');
+                process.exitCode = 1;
+            } else {
+                console.log('✅ Completed successfully\n');
+            }
+        } catch (error: any) {
+            console.error('❌ Fatal error:', error.message);
+            process.exitCode = 1;
+        } finally {
+            await closeDb();
+        }
+    });
+
+// Stage E: Comeet Jobs
+program
+    .command('comeet')
+    .description('Run Stage E: Fetch jobs from Comeet API')
+    .option('--dry-run', 'Preview without writing to database', false)
+    .option('-c, --company <uid>', 'Test with single company uid (e.g., "ai21labs")')
+    .action(async (options) => {
+        console.log('\n🚀 ApplyLess Ingestion: Stage E (Comeet)\n');
+
+        const db = getDb();
+
+        try {
+            const stats = await runStageE(db, {
+                dryRun: options.dryRun,
+                companyUid: options.company,
             });
 
             if (stats.failedRecords > 0 || stats.errors.length > 0) {
