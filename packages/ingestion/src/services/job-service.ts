@@ -31,7 +31,7 @@ export class JobService {
                 `SELECT id FROM jobs
                                 WHERE company_id = $1
                                 AND normalized_title = $2
-                                AND normalized_location = IS NOT DISTINCT FROM $3
+                                AND normalized_location IS NOT DISTINCT FROM $3
                                 AND canonical_url = $4
                                 LIMIT 1`,
                 [job.company_id, normalizedTitle, normalizedLocation, job.canonical_url],
@@ -59,7 +59,7 @@ export class JobService {
                         job.requirements,
                         job.benefits,
                         job.employment_type,
-                        job.description,
+                        job.department,
                         id
                     ]
                 );
