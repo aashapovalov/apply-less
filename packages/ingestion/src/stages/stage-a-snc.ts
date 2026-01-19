@@ -6,9 +6,9 @@ import { CompanyDetailParser } from "../parsers/company-detail-parser.js";
 
 export interface StageAOptions {
     maxPages?: number;
-    dryRun?: boolean;
-    delayMs?: number;
-    fetchDetails?: boolean;  // whether to fetch company details
+    dryRun?: boolean;       // Run without writing to DB
+    delayMs?: number;       // Delay between pages
+    fetchDetails?: boolean; // whether to fetch company details
 }
 
 /**
@@ -25,6 +25,7 @@ export async function runStageA (
         fetchDetails = true,
     } = options;
 
+    // Define stage metadata
     const stats: IngestionStats = {
         stage: "Stage A: SNC Companies",
         startTime: new Date(),
