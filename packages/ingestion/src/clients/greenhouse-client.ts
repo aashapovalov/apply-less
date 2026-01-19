@@ -1,4 +1,8 @@
+// Greenhouse API client for fetching jobs
+// API Docs: https://boards-api.greenhouse.io/v1
+
 import axios, {AxiosInstance} from "axios";
+
 import {GreenHouseJob, GreenHouseJobDetail} from "../types/index.js";
 
 const BASE_URL = "https://boards-api.greenhouse.io/v1/boards";

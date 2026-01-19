@@ -98,6 +98,37 @@ export interface GreenHouseJobDetail {
     }>;
 }
 
+export interface ComeetJob {
+    uid: string;
+    name: string;
+    location: {
+        name: string;
+        country?: string;
+        city?: string;
+    };
+    department: {
+        name: string;
+    };
+    employment_type?: string;
+    experience_level?: string;
+    description: string;
+    requirements?: string;
+    url_active_page: string;
+    url_comeet_page: string;
+    time_updated: string;
+    picture_url?: string;
+}
+
+export interface ComeetResponse {
+    positions: ComeetJob[];
+    company: {
+        uid: string;
+        name: string;
+        website_url?: string;
+        logo_url?: string;
+    };
+}
+
 export interface Job {
     id?: number;
     company_id: number;
@@ -119,3 +150,4 @@ export interface Job {
     created_at?: Date;
     updated_at?: Date;
 }
+
