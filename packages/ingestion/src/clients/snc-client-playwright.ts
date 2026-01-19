@@ -35,7 +35,7 @@ export class SNCClientPlaywright {
             await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
 
             // Wait for company list to load
-            await page.waitForSelector('.company-list-item.company', { timeout: 15000 });
+            await page.waitForSelector('.company-list-item.company', { state: "attached", timeout: 15000 });
 
             // Get HTML content
             const html = await page.content();
@@ -91,7 +91,7 @@ export class SNCClientPlaywright {
             const foundedText = $card.find('.entity-portfolio-header-container > div').filter((index, element) => {
                 return $(element).text().includes('Founded:');
             }).text();
-            const foundedMatch = foundedText.match(/Founded:\s*('d{4})/);
+            const foundedMatch = foundedText.match(/Founded:\s*(\d{4})/);
             const foundedYear = foundedMatch ? parseInt(foundedMatch[1]) : undefined;
 
             // Extract business model as tags
