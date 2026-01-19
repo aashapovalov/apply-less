@@ -4,6 +4,7 @@
 import {Command} from "commander";
 import {closeDb, getDb} from "./config/db.js";
 import {runStageA} from "./stages/stage-a-snc.js";
+import {runStageD} from "./stages/stage-d-greenhouse.js";
 
 // Create the root CLI program
 const program = new Command();
@@ -47,6 +48,37 @@ program
             process.exitCode = 1;
         } finally {
             // Always close DB connection to avoid hanging process
+            await closeDb();
+        }
+    });
+
+// Stage D: Greenhouse Jobs
+program
+    .command('greenhouse')
+    .description('Run Stage D: Fetch jobs from Greenhouse API')
+    .option('--dry-run', 'Preview without writing to database', false)
+    .option('-c, --company <slug>', 'Test with single company slug (e.g., "appsflyer")')
+    .action(async (options) => {
+        console.log('\n🚀 ApplyLess Ingestion: Stage D (Greenhouse)\n');
+
+        const db = getDb();
+
+        try {
+            const stats = await runStageD(db, {
+                dryRun: options.dryRun,
+                companySlug: options.company,
+            });
+
+            if (stats.failedRecords > 0 || stats.errors.length > 0) {
+                console.log('⚠️  Completed with errors\n');
+                process.exitCode = 1;
+            } else {
+                console.log('✅ Completed successfully\n');
+            }
+        } catch (error: any) {
+            console.error('❌ Fatal error:', error.message);
+            process.exitCode = 1;
+        } finally {
             await closeDb();
         }
     });
