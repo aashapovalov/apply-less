@@ -97,3 +97,25 @@ export interface GreenHouseJobDetail {
         name: string;
     }>;
 }
+
+export interface Job {
+    id?: number;
+    company_id: number;
+    title: string;
+    normalized_title: string;
+    location?: string;
+    normalized_location?: string;
+    department?: string;
+    employment_type?: string;
+    description: string;
+    requirements?: string;
+    benefits?: string;
+    canonical_url: string;
+    external_id?: string;
+    posted_date?: Date;
+    first_seen_at?: Date;
+    last_seen_at?: Date;
+    status: "active" | "expired";
+    created_at?: Date;
+    updated_at?: Date;
+}
