@@ -51,7 +51,7 @@ export async function runStageD(
         if (companySlug) {
             // Test single company
             companies = await db.query(
-                `SELECT c.id, c.company_name, c.career_page_url, c.normalized_name
+                `SELECT c.id, c.company_name, c.careers_page_url, c.normalized_name
                 FROM companies c
                 WHERE c.company_name = $1 OR c.normalized_name = $1
                 LIMIT 1`,
@@ -60,12 +60,12 @@ export async function runStageD(
         } else {
             // Get all Greenhouse companies
             companies = await db.query(
-                `SELECT c.id, c.company_name, c.career_page_url, c.normalized_name
-                FROM companies c
-                JOIN job_sources js ON c.id = js.company_id
-                WHERE js.source_type = "greenhouse"
-                AND js.status = "active"
-                ORDER BY c.company_name`
+                `SELECT DISTINCT c.id, c.company_name, c.careers_page_url, c.normalized_name
+                 FROM companies c
+                 JOIN job_sources js ON c.id = js.company_id
+                 WHERE js.source_type = 'greenhouse'
+                 AND js.status = 'active'
+                 ORDER BY c.company_name`
             );
         }
 
@@ -85,7 +85,7 @@ export async function runStageD(
                 // Try to extract slug from careers URL
                 let slug = companySlug;
                 if (!slug && company.career_page_url) {
-                    slug = greenhouseClient.extractSlugFromUrl(company.career_page_url) || undefined;
+                    slug = greenhouseClient.extractSlugFromUrl(company.careers_page_url) ?? undefined;
                 }
 
                 // If no slug, try normalized company name
