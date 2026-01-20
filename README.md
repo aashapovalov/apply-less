@@ -1,199 +1,256 @@
 # ApplyLess
 
-ApplyLess is a personal job-search assistant for Israel hi-tech candidates.
+**AI-powered job search assistant for Israel hi-tech candidates.**
 
-The system ingests job postings directly from company career pages and ATS systems, stores them in a structured PostgreSQL database, and uses embeddings + LLMs to:
-- recommend relevant jobs
-- explain why a role matches your profile
-- generate tailored resume versions per job
-
-This repository is structured as a **monorepo** with separate services for ingestion, API, web UI, and ML orchestration.
+ApplyLess automatically ingests job postings from company career pages and ATS systems, and uses semantic matching to recommend relevant jobs based on your profile.
 
 ---
 
-## Prerequisites
+## 🎯 Current Status
 
-Make sure the following tools are installed before starting:
+**Phase: Data Collection Complete → Moving to Embeddings**
 
-### Required
-
-- **Node.js 20+**
-```bash
-  node --version
-```
-
-- **npm**
-```bash
-  npm --version
-```
-
-- **Docker Desktop** (must be running)
-```bash
-  docker --version
-  docker compose version
-```
-
-- **Git**
-```bash
-  git --version
-```
-
-### Optional (recommended)
-
-- PostgreSQL client (e.g. DBeaver, TablePlus, pgAdmin) for database inspection
-- Python 3.11+ (required later for the ML service)
+| Component | Status | Details |
+|-----------|--------|---------|
+| Database | ✅ Deployed | Railway PostgreSQL + pgvector |
+| Companies | ✅ 1007 | Scraped from SNC |
+| Job Sources | ✅ 176 | Career pages detected |
+| Jobs | ✅ 111 | From Greenhouse API |
+| Embeddings | 🔄 Next | Generate vectors for matching |
+| Matching API | ⏳ Planned | Vector similarity search |
+| Frontend | ⏳ Planned | Job browser + recommendations |
 
 ---
 
-## Installation
+## 🏗️ Architecture
 
-Clone the repository and install dependencies:
-```bash
-git clone 
-cd apply-less
-npm install
 ```
+┌─────────────────────────────────────────────────────────────┐
+│                         APPLY-LESS                          │
+└─────────────────────────────────────────────────────────────┘
 
-This installs dependencies for:
-- `packages/api` — Node.js API
-- `packages/ingestion` — ingestion worker
-- `packages/web` — React frontend
-- root tooling and scripts
+┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│   Ingestion      │     │   API Service    │     │   Frontend       │
+│   (Node.js)      │     │   (Node.js)      │     │   (React)        │
+│                  │     │                  │     │                  │
+│ • SNC Scraping   │     │ • Job search     │     │ • Job browser    │
+│ • Greenhouse API │     │ • Matching       │     │ • Recommendations│
+│ • Comeet API     │     │ • Favorites      │     │ • Favorites      │
+└────────┬─────────┘     └────────┬─────────┘     └──────────────────┘
+         │                        │
+         │         ┌──────────────┴──────────────┐
+         │         │                             │
+         ▼         ▼                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│  PostgreSQL + pgvector (Railway)                            │
+│                                                             │
+│  Tables: companies, job_sources, jobs, job_embeddings,      │
+│          users, user_profiles, favorites, generated_resumes │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Environment Variables
+## 📦 Project Structure
 
-Create a root `.env` file:
+```
+apply-less/
+├── packages/
+│   ├── ingestion/          # Job scraping & ingestion
+│   │   ├── src/
+│   │   │   ├── cli.ts      # CLI entry point
+│   │   │   ├── stages/     # Ingestion stages
+│   │   │   │   ├── stage-a-snc.ts        # SNC company scraping
+│   │   │   │   ├── stage-d-greenhouse.ts # Greenhouse jobs
+│   │   │   │   ├── stage-e-comeet.ts     # Comeet API jobs
+│   │   │   │   └── stage-comeet-unified.ts # Comeet widget scraping
+│   │   │   ├── clients/    # API clients
+│   │   │   ├── services/   # Database services
+│   │   │   └── parsers/    # HTML parsers
+│   │   └── package.json
+│   │
+│   ├── api/                # Backend API (planned)
+│   ├── web/                # React frontend (planned)
+│   └── ml-service/         # Python ML service (planned)
+│
+├── db/
+│   └── migrations/         # SQL migrations
+│       ├── 001_initial_schema.sql
+│       ├── 002_add_embeddings.sql
+│       ├── 003_add_user_tables.sql
+│       ├── 004_add_indexes.sql
+│       ├── 005_add_company_details.sql
+│       └── 006_increase_location_length.sql
+│
+├── docs/                   # Documentation
+├── scripts/                # Utility scripts
+└── docker-compose.yml      # Local development (optional)
+```
+
+---
+
+## 🚀 Deployment
+
+The project is deployed on **Railway**:
+
+- **Database**: PostgreSQL 17 with pgvector extension
+- **Ingestion**: Node.js service (on-demand)
+- **API**: (planned)
+- **Frontend**: (planned)
+
+### Environment Variables
+
 ```env
+DATABASE_URL=postgresql://user:pass@host:port/database
+NODE_ENV=production
+```
+
+---
+
+## 💻 Local Development
+
+### Prerequisites
+
+- Node.js 20+
+- npm
+- Railway CLI (`npm install -g @railway/cli`)
+
+### Setup
+
+```bash
+# Clone repository
+git clone https://github.com/aashapovalov/apply-less.git
+cd apply-less
+
+# Install dependencies
+npm install
+
+# Login to Railway (connects to production database)
+railway login
+railway link
+
+# Run commands using Railway's environment
+railway run npm run start --workspace=packages/ingestion -- greenhouse
+```
+
+### Using Local Database (Optional)
+
+If you prefer local development with Docker:
+
+```bash
+# Start PostgreSQL with pgvector
+docker compose up -d postgres
+
+# Set local DATABASE_URL in .env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/applyless
-```
 
-> **Note**: This URL must match the credentials and port used by Docker Postgres.
-
----
-
-## Database (Postgres + pgvector)
-
-PostgreSQL runs locally via Docker and includes the `pgvector` extension.
-
-### Start Postgres
-```bash
-docker compose up -d postgres
-```
-
-Check container status:
-```bash
-docker compose ps
-```
-
-### Running Database Migrations
-
-Database schema is managed via a Node-based migration runner.
-
-Run migrations:
-```bash
+# Run migrations
 npm run db:migrate
 ```
 
-**Expected behavior:**
-- All migrations in `db/migrations` are executed in order
-- Applied migrations are tracked in the `schema_migrations` table
-- Re-running the command is safe (already-applied migrations are skipped)
+---
 
-### Verifying the Database (Optional)
+## 📊 Data Sources
 
-**List all tables:**
-```sql
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'public'
-ORDER BY table_name;
-```
+### Currently Working
 
-**Count tables:**
-```sql
-SELECT COUNT(*)
-FROM information_schema.tables
-WHERE table_schema = 'public';
-```
+| Source | Type | Companies | Jobs |
+|--------|------|-----------|------|
+| Greenhouse API | Public API | 4 | ~111 |
+| Comeet API | Token-based | 2 | ~20-50 |
 
-**Verify pgvector extension:**
-```sql
-SELECT extname, extversion
-FROM pg_extension
-WHERE extname = 'vector';
-```
+### Partially Working
+
+| Source | Issue | Fix |
+|--------|-------|-----|
+| SNC Scraping | 429 Rate Limit | Wait or use VPN |
+| Comeet Widget | Needs Playwright | Stage F implementation |
+
+### ATS Detection
+
+Companies are categorized by their career page type:
+- `greenhouse` - Greenhouse boards API
+- `comeet` - Comeet careers API
+- `careers_html` - Custom HTML career pages
+- `linkedin` - LinkedIn jobs (not scrapeable)
 
 ---
 
-## Development Workflow (Local)
+## 🔧 CLI Commands
 
-Typical local development flow:
 ```bash
-# Start database
-docker compose up -d postgres
+# SNC company scraping (Stage A)
+railway run npm run start --workspace=packages/ingestion -- snc --delay 15000
 
-# Apply schema
-npm run db:migrate
+# Greenhouse job ingestion (Stage D)
+railway run npm run start --workspace=packages/ingestion -- greenhouse
 
-# Run all services (API + Web + ML service)
-npm run dev
-```
+# Comeet job ingestion (Stage E)
+railway run npm run start --workspace=packages/ingestion -- comeet
 
-You can also run services individually:
-```bash
-npm run dev:api
-npm run dev:web
-npm run dev:ml
+# Dry run (preview without writing to DB)
+railway run npm run start --workspace=packages/ingestion -- greenhouse --dry-run
 ```
 
 ---
 
-## Project Structure
-```
-packages/
-  api/           # Node.js Express API
-  ingestion/     # Job ingestion worker
-  web/           # React frontend (Vite)
-  ml-service/    # Python FastAPI ML service
-  shared/        # Shared TypeScript types
-scripts/
-  migrate.ts     # Database migration runner
-db/
-  migrations/    # SQL migrations
-docs/            # Documentation
-```
+## 📈 Progress
+
+### ✅ Completed
+
+- [x] Project setup & monorepo structure
+- [x] Database schema with pgvector
+- [x] Railway deployment (PostgreSQL + pgvector)
+- [x] SNC company scraping (1007 companies)
+- [x] Career page detection (176 sources)
+- [x] Greenhouse API integration (111 jobs)
+- [x] Comeet API integration (partial)
+- [x] Data migration to Railway
+
+### 🔄 In Progress
+
+- [ ] **Embeddings generation** ← Current focus
+- [ ] Vector similarity matching
+
+### ⏳ Planned
+
+- [ ] Matching API endpoints
+- [ ] User profile & preferences
+- [ ] React frontend
+- [ ] Resume generation
 
 ---
 
-## Notes
+## 📚 Documentation
 
-- **Docker** is used only to run Postgres, not to manage schema changes.
-- All schema evolution happens via migrations in `db/migrations`.
-- Do not rely on Docker init scripts (`/docker-entrypoint-initdb.d`) for ongoing schema updates.
-
----
-
-## Status
-
-🚧 **Active development**
-
-**Current focus:**
-- ingestion pipeline
-- database schema
-- migration stability
-
-User-facing features will be built after ingestion and storage are complete.
+- [Architecture](docs/architecture.md) - System design
+- [Monorepo Structure](docs/monorepo-structure.md) - Package layout
+- [Implementation Plan](docs/plan.md) - Original 14-day plan
 
 ---
 
-## Next Steps
+## 🛠️ Tech Stack
 
-After completing Day 1 setup:
-1. **Day 2**: SNC API integration for company ingestion
-2. **Day 3**: Career page discovery
-3. **Day 4**: Job parsing and storage
-4. **Day 5**: Greenhouse ATS integration
+**Backend:**
+- Node.js + TypeScript
+- PostgreSQL + pgvector
+- Playwright (for scraping)
 
-See `docs/` for detailed implementation plans.
+**Frontend (planned):**
+- React + Vite
+- TailwindCSS
+
+**ML (planned):**
+- Python + FastAPI
+- Sentence Transformers
+- OpenAI API (for explanations)
+
+**Infrastructure:**
+- Railway (hosting)
+- GitHub (CI/CD)
+
+---
+
+## 📝 License
+
+MIT
