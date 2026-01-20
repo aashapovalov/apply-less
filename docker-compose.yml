@@ -1,6 +1,8 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
+    tmpfs:
+      - /var/run/postgresql:rw,noexec,nosuid,size=1m
     container_name: applyless-postgres
     restart: unless-stopped
 
