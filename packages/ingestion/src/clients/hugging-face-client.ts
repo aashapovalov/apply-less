@@ -1,6 +1,6 @@
 import axios, {AxiosInstance} from "axios";
 
-const HF_API_URL = "https://api-inference.huggingface.co/models/intfloat/e5-base-v2";
+const HF_API_URL = "https://router.huggingface.co/hf-inference/models/BAAI/bge-base-en-v1.5";
 
 export interface EmbeddingResponse {
     embedding: number[];
