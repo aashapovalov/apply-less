@@ -57,12 +57,12 @@ export async function runStageG(
 
         // Get jobs that don't have embeddings yet
         let query = `
-        SELECT j.id, j.title, j,description, c.company_name, j.location
-         FROM jobs j
-         JOIN companies ON j.company_id = c.id
-         LEFT JOIN job_embeddings je ON j.id = je.job_id
-         WHERE je.id IS NULL 
-         `;
+            SELECT j.id, j.title, j.description, c.company_name, j.location
+            FROM jobs j
+                     JOIN companies c ON j.company_id = c.id
+                     LEFT JOIN job_embeddings_simple je ON j.id = je.job_id
+            WHERE je.id IS NULL
+        `;
         const params: any[] = [];
 
         if (companyName) {
@@ -110,7 +110,7 @@ export async function runStageG(
 
                 // Generate embeddings
                 console.log(`  🧠 Generating embeddings...`);
-                const embeddings = await hfClient.embedBatch(texts);
+                const embeddings = await hfClient!.embedBatch(texts);
 
                 // Store embeddings in database
                 for (let j = 0; j < batch.length; j++) {
@@ -125,9 +125,9 @@ export async function runStageG(
 
                         // Insert embedding
                         await db.query(
-                            `INSERT INTO job_embeddings (job_id, chunk_index, section_type, embedding, created_at)
-                                            VALUES ($1, $2, $3, $4, NOW())`,
-                                            [job.id, 0, "full", `[${embedding.join(",")}]`]
+                            `INSERT INTO job_embeddings_simple (job_id, embedding, created_at)
+                                            VALUES ($1, $2, NOW())`,
+                                            [job.id, `[${embedding.join(",")}]`]
                         );
 
                         stats.newRecords++;
@@ -212,10 +212,10 @@ export async function verifyEmbeddings(db: Pool): Promise<void> {
 
     // Count jobs and embeddings
     const jobCount = await db.query("SELECT COUNT(*) FROM jobs");
-    const embeddingCount = await db.query("SELECT COUNT(*) FROM job_embeddings");
+    const embeddingCount = await db.query("SELECT COUNT(*) FROM job_embeddings_simple");
     const missingCount = await db.query(`
     SELECT COUNT(*) FROM jobs j
-    LEFT JOIN job_embedding je ON j.id = je.job_id
+    LEFT JOIN job_embeddings_simple je ON j.id = je.job_id
     WHERE je.id IS NULL 
     `);
 
@@ -228,11 +228,11 @@ export async function verifyEmbeddings(db: Pool): Promise<void> {
 
     const testResult = await db.query(`
     SELECT j.title, c.company_name,
-        1 - (je.embedding <=> (SELECT embedding FROM job_embeddings LIMIT 1)) AS similarity
+        1 - (je.embedding <=> (SELECT embedding FROM job_embeddings_simple LIMIT 1)) AS similarity
         FROM jobs j 
         JOIN companies c ON j.company_id = c.id
-        JOIN job_embeddings je ON j.id = je.job_id
-        ORDER BY je.embedding <=> (SELECT embedding FROM job_embeddings LIMIT 1)
+        JOIN job_embeddings_simple je ON j.id = je.job_id
+        ORDER BY je.embedding <=> (SELECT embedding FROM job_embeddings_simple LIMIT 1)
         LIMIT 5
         `);
 
