@@ -2,12 +2,14 @@
 // CLI fro running ingestion stages
 
 import { Command } from "commander";
+
 import { closeDb, getDb } from "./config/db.js";
 import {
     runStageA,
     runStageD,
-    runStageE
+    runStageE, runStageG
 } from "./stages/index.js";
+import {verifyEmbeddings} from "./stages/stage-g-embeddings.js";
 
 // Create the root CLI program
 const program = new Command();
@@ -102,6 +104,46 @@ program
                 dryRun: options.dryRun,
                 companyUid: options.company,
             });
+
+            if (stats.failedRecords > 0 || stats.errors.length > 0) {
+                console.log('⚠️  Completed with errors\n');
+                process.exitCode = 1;
+            } else {
+                console.log('✅ Completed successfully\n');
+            }
+        } catch (error: any) {
+            console.error('❌ Fatal error:', error.message);
+            process.exitCode = 1;
+        } finally {
+            await closeDb();
+        }
+    });
+
+// Stage G: Embeddings Generation
+program
+    .command('embeddings')
+    .description('Run Stage G: Generate embeddings for jobs using E5-base-v2')
+    .option('--dry-run', 'Preview without generating embeddings', false)
+    .option('-b, --batch-size <number>', 'Number of jobs per batch', '10')
+    .option('-c, --company <name>', 'Filter by company name')
+    .option('-l, --limit <number>', 'Limit number of jobs to process')
+    .option('--verify', 'Verify embeddings after generation', false)
+    .action(async (options) => {
+        console.log('\n🚀 ApplyLess Ingestion: Stage G (Embeddings)\n');
+
+        const db = getDb();
+
+        try {
+            const stats = await runStageG(db, {
+                dryRun: options.dryRun,
+                batchSize: parseInt(options.batchSize),
+                companyName: options.company,
+                limit: options.limit ? parseInt(options.limit) : undefined,
+            });
+
+            if (options.verify && !options.dryRun) {
+                await verifyEmbeddings(db);
+            }
 
             if (stats.failedRecords > 0 || stats.errors.length > 0) {
                 console.log('⚠️  Completed with errors\n');
