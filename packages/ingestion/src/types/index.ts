@@ -151,3 +151,11 @@ export interface Job {
     updated_at?: Date;
 }
 
+export interface JobForEmbedding {
+    id: number;
+    title: string;
+    description: string;
+    company_name: string;
+    location: string;
+}
+
