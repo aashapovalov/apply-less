@@ -83,7 +83,7 @@ const shutdown = async (signal: string) => {
             clearTimeout(forceExitTimout);
             process.exitCode = 0;
         } catch (error) {
-            console.error("❌ Error during shutdown", err);
+            console.error("❌ Error during shutdown", error);
             process.exitCode = 1;
         }
     })
