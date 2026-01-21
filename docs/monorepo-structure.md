@@ -11,24 +11,27 @@ apply-less/
 │   │   ├── tsconfig.json
 │   │   ├── src/
 │   │   │   ├── index.ts              # Server entry
+│   │   │   ├── clients/
+│   │   │   │   └── hugging-face-client.ts             
 │   │   │   ├── config/
 │   │   │   │   ├── firebase.ts       # Firebase Admin SDK
 │   │   │   │   └── db.ts             # Postgres connection pool
 │   │   │   ├── middleware/
 │   │   │   │   └── auth.ts           # Firebase token verification
 │   │   │   ├── routes/
-│   │   │   │   ├── jobs.ts
+│   │   │   │   ├── jobs-router.ts
 │   │   │   │   ├── favorites.ts
+│   │   │   │   ├── match-router.ts
 │   │   │   │   ├── resumes.ts
 │   │   │   │   └── recommendations.ts
 │   │   │   ├── services/
 │   │   │   │   ├── mlService.ts      # HTTP client for Python ML
-│   │   │   │   ├── jobService.ts
+│   │   │   │   ├── job-service.ts
 │   │   │   │   ├── favoriteService.ts
+│   │   │   │   ├── match-service.ts
 │   │   │   │   └── resumeService.ts
 │   │   │   └── types/
 │   │   │       └── index.ts
-│   │   └── .env
 │   │
 │   ├── ingestion/                    # Node.js ingestion worker
 │   │   ├── package.json
@@ -39,7 +42,7 @@ apply-less/
 │   │   │   ├── stages/
 │   │   │   │   ├── stageA-snc.ts     # SNC company ingestion
 │   │   │   │   ├── stageB-careers.ts # Career page discovery
-│   │   │   │   ├── stageC-jobs.ts    # Job parsing from careers
+│   │   │   │   ├── stageC-jobs-router.ts    # Job parsing from careers
 │   │   │   │   └── stageD-greenhouse.ts # Greenhouse ATS
 │   │   │   ├── parsers/
 │   │   │   │   ├── careerPageParser.ts
@@ -61,7 +64,6 @@ apply-less/
 │   │   │   │   └── url-normalizer.ts
 │   │   │   └── types/
 │   │   │       └── index.ts
-│   │   └── .env
 │   │
 │   ├── ml-service/                   # Python FastAPI service
 │   │   ├── requirements.txt
