@@ -33,3 +33,16 @@ export interface MatchParams {
     offset?: number;
     threshold?: number;
 }
+
+export interface MatchRequest {
+    profile: string;
+    limit?: number;
+    offset?: number;
+    threshold?: number;
+}
+
+export interface MatchResponse {
+    matches: JobMatch[];
+    total: number;
+    has_more: boolean;
+}
