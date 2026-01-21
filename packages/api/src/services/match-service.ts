@@ -1,17 +1,21 @@
-import {Pool} from "pg";
+import pg from "pg";
 
 import {JobService} from "./job-service.js";
 import {MatchRequest, MatchResponse} from "../types/index.js";
 import {getHfClient, HuggingFaceClient} from "../clients/hugging-face-client.js";
 
+const { Pool } = pg;
+type PoolType = InstanceType<typeof Pool>;
+
 export class MatchService {
     private jobService: JobService;
 
-    constructor(private db: Pool) {
+    constructor(private db: PoolType) {
         this.jobService = new JobService(db);
     }
 
     /**
+     * POST /api/match
      * Match a user profile against all jobs
      */
     async matchProfile(request: MatchRequest): Promise<MatchResponse> {
