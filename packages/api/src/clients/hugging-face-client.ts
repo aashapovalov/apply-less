@@ -1,6 +1,19 @@
-import axios, {AxiosInstance} from "axios";
+import path from "node:path";
+import dotenv from "dotenv";
+
+import axios, { AxiosInstance } from "axios";
+import { fileURLToPath } from "node:url";
+
 
 const HF_API_URL = "https://router.huggingface.co/hf-inference/models/BAAI/bge-base-en-v1.5";
+
+// Load .env from project root (two levels up from this file)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '../../../../');
+const envPath = path.join(rootDir, '.env');
+dotenv.config({ path: envPath });
+
 
 export class HuggingFaceClient {
     private httpClient: AxiosInstance;
@@ -9,7 +22,7 @@ export class HuggingFaceClient {
     constructor(token?: string) {
         this.token = token || process.env.HF_TOKEN || "";
 
-        if (!token) {
+        if (!this.token) {
             throw new Error("HF_TOKEN environment variable is not set");
         }
 
