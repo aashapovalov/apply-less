@@ -1,8 +1,11 @@
-import {Pool} from "pg";
-import {Job, JobDetail, JobListParams, JobMatch, MatchParams} from "../types/index.js";
+import pg from "pg";
+import { Job, JobDetail, JobListParams, JobMatch, MatchParams } from "../types/index.js";
+
+const { Pool } = pg;
+type PoolType = InstanceType<typeof Pool>;
 
 export class JobService {
-    constructor(private db: Pool) {}
+    constructor(private db: PoolType) {}
 
     /**
      * Get paginated list of jobs with optional filters
@@ -62,18 +65,18 @@ export class JobService {
         // Get paginated results
         const query = `
             SELECT
-                j.id ad job_id,
+                j.id as job_id,
                 j.title,
                 c.company_name,
                 j.location,
-                COAlESCE(c.tags, '{}') as tags,
+                COALESCE(c.tags, ARRAY[]::text[]) as tags,
                 j.canonical_url as url,
                 j.posted_date
             FROM jobs j
-            JOIN companies c ON j.company_id = c.id
-            ${whereClause}
+                     JOIN companies c ON j.company_id = c.id
+                ${whereClause}
             ORDER BY ${sortColumn}
-            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+                LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
         `;
 
         const result = await this.db.query(query, [...queryParams, limit, offset]);
@@ -88,18 +91,19 @@ export class JobService {
      */
     async getJobById(jobId: number): Promise<JobDetail | null> {
         const query = `
-            SELECT 
+            SELECT
                 j.id as job_id,
                 j.title,
                 c.company_name,
-                COALSCE(c.tags, '{}') as tags,
+                j.location,
+                COALESCE(c.tags, ARRAY[]::text[]) as tags,
                 j.canonical_url as url,
                 j.description,
                 j.requirements,
                 j.department,
                 j.posted_date
             FROM jobs j
-            JOIN companies c ON j.company_id = c.id
+                     JOIN companies c ON j.company_id = c.id
             WHERE j.id = $1
         `;
 
@@ -120,7 +124,7 @@ export class JobService {
             embedding,
             limit = 20,
             offset = 0,
-            threshold = 0,0,
+            threshold = 0.0
         } = params;
 
         const embeddingStr = `[${embedding.join(",")}]`;
@@ -143,9 +147,9 @@ export class JobService {
                 j.title,
                 c.company_name,
                 j.location,
-                COALSCE(c.tags, '{}') as tags,
+                COALESCE(c.tags, '{}') as tags,
                 j.canonical_url as url,
-                j.posted_date
+                j.posted_date,
                 1 - (je.embedding <=> $1::vector) as score
             FROM jobs j
             JOIN companies c ON j.company_id = c.id
