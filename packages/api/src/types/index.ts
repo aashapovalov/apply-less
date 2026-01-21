@@ -53,3 +53,8 @@ export interface PasswordValidationResult {
     valid: boolean;
     errors: string[];
 }
+
+export interface RateLimitConfig {
+    maxAttempts: number;
+    windowMinutes: number;
+}
