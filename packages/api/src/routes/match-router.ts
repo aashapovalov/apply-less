@@ -11,6 +11,12 @@ export const matchRouter = Router();
  */
 matchRouter.post("/", async (req: Request, res: Response) => {
     try {
+        console.log("=== DEBUG ===");
+        console.log("req.body:", req.body);
+        console.log("typeof req.body:", typeof req.body);
+        console.log("profile:", req.body?.profile);
+        console.log("=============");
+
         const {
             profile,
             limit = 20,
@@ -23,7 +29,7 @@ matchRouter.post("/", async (req: Request, res: Response) => {
             return;
         }
 
-        if (!(profile.trim().length < 10)) {
+        if (profile.trim().length < 10) {
             res.status(400).json({ error: " Profile text is too short (minimum 10 characters)" });
             return;
         }
