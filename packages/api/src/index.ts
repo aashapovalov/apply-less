@@ -69,22 +69,24 @@ const server = app.listen(PORT, () => {
 });
 
 // Graceful shutdown
-process.on("SIGTERM", async () => {
-    console.log("\n⏳ Shutting down gracefully...");
-    server.close(() => {
-        closeDb().then(() => {
-            console.log("✅ Server closed");
-            process.exitCode = 0;
-        });
-    });
-});
+const shutdown = async (signal: string) => {
+    console.log(`\n⏳ Received ${signal}. Shutting down gracefully...`);
+    const forceExitTimout = setTimeout(() => {
+        console.error("❌ Force shutdown");
+        process.exitCode = 1;
+    }, 10000); // 10 seconds to close
 
-process.on("SIGINT", async () => {
-    console.log("\n⏳ Shutting down gracefully...");
-    server.close(() => {
-        closeDb().then(() => {
+    server.close(async () => {
+        try {
+            await closeDb();
             console.log("✅ Server closed");
-            process.exit(0);
-        });
-    });
-});
+            clearTimeout(forceExitTimout);
+            process.exitCode = 0;
+        } catch (error) {
+            console.error("❌ Error during shutdown", err);
+            process.exitCode = 1;
+        }
+    })
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
