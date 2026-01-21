@@ -1,3 +1,4 @@
+// JOBS AND MATCHES ROUTES TYPES
 export interface Job {
     jobId: number;
     title: string;
@@ -45,4 +46,10 @@ export interface MatchResponse {
     matches: JobMatch[];
     total: number;
     has_more: boolean;
+}
+
+// AUTH ROUTES TYPES
+export interface PasswordValidationResult {
+    valid: boolean;
+    errors: string[];
 }
