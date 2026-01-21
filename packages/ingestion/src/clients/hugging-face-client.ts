@@ -43,16 +43,12 @@ export class HuggingFaceClient {
                 },
             });
 
-            // HuggingFace returns array directly for single input
-            if (Array.isArray(response.data) && response.data.length > 0) {
-                // Response is [[...embedding...]] for feature extraction
-                if (Array.isArray(response.data[0])) {
-                    return response.data[0];
-                }
+            if (Array.isArray(response.data) && response.data.length === 768) {
                 return response.data;
             }
 
             throw new Error("Unexpected response format from HuggingFace API");
+
         } catch (error: any) {
             if (error.response?.status === 503) {
                 console.log("  ⏳ Model is loading, waiting...");
