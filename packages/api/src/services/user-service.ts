@@ -26,7 +26,7 @@ export class UserService {
     /**
      * Find user by ID
      */
-    async findById(userId: string): Promise<User | null> {
+    async findById(userId: number): Promise<User | null> {
         const result = await this.db.query(
             `SELECT id, email, display_name, password_hash, email_verified
                             FROM users
