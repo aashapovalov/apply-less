@@ -14,7 +14,7 @@ dotenv.config({ path: envPath });
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_EMAIL = process.env.FROM_EMAIL || "Applyless <noreply@applyless.com";
+const FROM_EMAIL = process.env.FROM_EMAIL || "onboarding@resend.dev";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 export class EmailService {
