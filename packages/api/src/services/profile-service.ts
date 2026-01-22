@@ -18,16 +18,16 @@ export class ProfileService {
      */
     async getProfile(userId: number): Promise<Profile | null> {
         const result = await this.db.query(
-            `SELECT id as user_id, profile_text, updated_at
+            `SELECT id, profile_text, updated_at
                             FROM users
-                            WHERE user_id = $1`,
+                            WHERE id = $1`,
             [userId]
         );
 
         if (result.rows.length === 0) return null;
 
         return {
-            userId: result.rows[0].user_id,
+            userId: result.rows[0].id,
             profileText: result.rows[0].profile_text,
             updatedAt: result.rows[0].updated_at,
         };
