@@ -86,3 +86,15 @@ export interface JwtPayload {
     iat: number;
     exp: number;
 }
+
+export interface FavoriteJob {
+    favoriteId: number;
+    jobId: number;
+    title: string;
+    companyName: string;
+    location: string | null;
+    tags: string[];
+    url: string;
+    postedDate: string | null;
+    savedAt: Date;
+}
