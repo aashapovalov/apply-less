@@ -58,3 +58,8 @@ export interface RateLimitConfig {
     maxAttempts: number;
     windowMinutes: number;
 }
+
+export interface TokenPair {
+    accessToken: string;
+    refreshToken: string;
+}
