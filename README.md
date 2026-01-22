@@ -8,7 +8,7 @@ ApplyLess automatically ingests job postings from company career pages and ATS s
 
 ## 🎯 Current Status
 
-**Phase: Data Collection Complete → Moving to Embeddings**
+**Phase: API Complete → Moving to Python ML & Frontend**
 
 | Component | Status | Details |
 |-----------|--------|---------|
@@ -16,8 +16,12 @@ ApplyLess automatically ingests job postings from company career pages and ATS s
 | Companies | ✅ 1007 | Scraped from SNC |
 | Job Sources | ✅ 176 | Career pages detected |
 | Jobs | ✅ 111 | From Greenhouse API |
-| Embeddings | 🔄 Next | Generate vectors for matching |
-| Matching API | ⏳ Planned | Vector similarity search |
+| Embeddings | ✅ 111 | BGE-base-en via HuggingFace API |
+| Auth API | ✅ Working | JWT + email verification |
+| Jobs API | ✅ Working | List, search, details |
+| Match API | ✅ Working | Vector similarity search |
+| Profile API | ✅ Working | Save/retrieve profile text |
+| Favorites API | ✅ Working | Add/remove saved jobs |
 | Frontend | ⏳ Planned | Job browser + recommendations |
 
 ---
@@ -25,17 +29,15 @@ ApplyLess automatically ingests job postings from company career pages and ATS s
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         APPLY-LESS                          │
-└─────────────────────────────────────────────────────────────┘
-
 ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
 │   Ingestion      │     │   API Service    │     │   Frontend       │
-│   (Node.js)      │     │   (Node.js)      │     │   (React)        │
+│   (Node.js)      │     │   (Express)      │     │   (React)        │
 │                  │     │                  │     │                  │
-│ • SNC Scraping   │     │ • Job search     │     │ • Job browser    │
-│ • Greenhouse API │     │ • Matching       │     │ • Recommendations│
-│ • Comeet API     │     │ • Favorites      │     │ • Favorites      │
+│ • SNC Scraping   │     │ • /auth/* ✅     │     │ 🔲 Scaffolded    │
+│ • Greenhouse ✅  │     │ • /jobs ✅       │     │                  │
+│ • Comeet ✅      │     │ • /match ✅      │     │                  │
+│ • Embeddings ✅  │     │ • /profile ✅    │     │                  │
+│                  │     │ • /favorites ✅  │     │                  │
 └────────┬─────────┘     └────────┬─────────┘     └──────────────────┘
          │                        │
          │         ┌──────────────┴──────────────┐
@@ -45,7 +47,7 @@ ApplyLess automatically ingests job postings from company career pages and ATS s
 │  PostgreSQL + pgvector (Railway)                            │
 │                                                             │
 │  Tables: companies, job_sources, jobs, job_embeddings,      │
-│          users, user_profiles, favorites, generated_resumes │
+│          users, favorites, auth tokens, rate_limits         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -57,30 +59,24 @@ ApplyLess automatically ingests job postings from company career pages and ATS s
 apply-less/
 ├── packages/
 │   ├── ingestion/          # Job scraping & ingestion
-│   │   ├── src/
-│   │   │   ├── cli.ts      # CLI entry point
-│   │   │   ├── stages/     # Ingestion stages
-│   │   │   │   ├── stage-a-snc.ts        # SNC company scraping
-│   │   │   │   ├── stage-d-greenhouse.ts # Greenhouse jobs
-│   │   │   │   ├── stage-e-comeet.ts     # Comeet API jobs
-│   │   │   │   └── stage-comeet-unified.ts # Comeet widget scraping
-│   │   │   ├── clients/    # API clients
-│   │   │   ├── services/   # Database services
-│   │   │   └── parsers/    # HTML parsers
-│   │   └── package.json
+│   │   └── src/
+│   │       ├── cli.ts      # CLI entry point
+│   │       ├── stages/     # Ingestion stages
+│   │       ├── clients/    # API clients
+│   │       └── services/   # Database services
 │   │
-│   ├── api/                # Backend API (planned)
-│   ├── web/                # React frontend (planned)
-│   └── ml-service/         # Python ML service (planned)
+│   ├── api/                # Express API ✅
+│   │   └── src/
+│   │       ├── routes/     # auth, jobs, match, profile, favorites
+│   │       ├── services/   # Business logic
+│   │       ├── middleware/ # JWT auth
+│   │       └── index.ts    # Server entry
+│   │
+│   ├── web/                # React frontend (scaffolded)
+│   └── ml-service/         # Python ML service (scaffolded)
 │
 ├── db/
-│   └── migrations/         # SQL migrations
-│       ├── 001_initial_schema.sql
-│       ├── 002_add_embeddings.sql
-│       ├── 003_add_user_tables.sql
-│       ├── 004_add_indexes.sql
-│       ├── 005_add_company_details.sql
-│       └── 006_increase_location_length.sql
+│   └── migrations/         # SQL migrations (001-009)
 │
 ├── docs/                   # Documentation
 ├── scripts/                # Utility scripts
@@ -89,31 +85,12 @@ apply-less/
 
 ---
 
-## 🚀 Deployment
-
-The project is deployed on **Railway**:
-
-- **Database**: PostgreSQL 17 with pgvector extension
-- **Ingestion**: Node.js service (on-demand)
-- **API**: (planned)
-- **Frontend**: (planned)
-
-### Environment Variables
-
-```env
-DATABASE_URL=postgresql://user:pass@host:port/database
-NODE_ENV=production
-```
-
----
-
-## 💻 Local Development
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Node.js 20+
 - npm
-- Railway CLI (`npm install -g @railway/cli`)
 
 ### Setup
 
@@ -125,71 +102,54 @@ cd apply-less
 # Install dependencies
 npm install
 
-# Login to Railway (connects to production database)
-railway login
-railway link
-
-# Run commands using Railway's environment
-railway run npm run start --workspace=packages/ingestion -- greenhouse
-```
-
-### Using Local Database (Optional)
-
-If you prefer local development with Docker:
-
-```bash
-# Start PostgreSQL with pgvector
-docker compose up -d postgres
-
-# Set local DATABASE_URL in .env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/applyless
+# Copy environment variables
+cp .env.example .env
+# Edit .env with your DATABASE_URL and other secrets
 
 # Run migrations
 npm run db:migrate
+
+# Start API server
+npm run dev:api
 ```
 
----
+### Test the API
 
-## 📊 Data Sources
+```bash
+# Health check
+curl http://localhost:3001/health
 
-### Currently Working
+# Get jobs
+curl http://localhost:3001/api/jobs
 
-| Source | Type | Companies | Jobs |
-|--------|------|-----------|------|
-| Greenhouse API | Public API | 4 | ~111 |
-| Comeet API | Token-based | 2 | ~20-50 |
+# Register
+curl -X POST http://localhost:3001/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "password": "SecurePass1!"}'
 
-### Partially Working
-
-| Source | Issue | Fix |
-|--------|-------|-----|
-| SNC Scraping | 429 Rate Limit | Wait or use VPN |
-| Comeet Widget | Needs Playwright | Stage F implementation |
-
-### ATS Detection
-
-Companies are categorized by their career page type:
-- `greenhouse` - Greenhouse boards API
-- `comeet` - Comeet careers API
-- `careers_html` - Custom HTML career pages
-- `linkedin` - LinkedIn jobs (not scrapeable)
+# Login (after email verification)
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "password": "SecurePass1!"}'
+```
 
 ---
 
 ## 🔧 CLI Commands
 
 ```bash
-# SNC company scraping (Stage A)
-railway run npm run start --workspace=packages/ingestion -- snc --delay 15000
+# Development
+npm run dev:api           # Start API server (port 3001)
+npm run dev:web           # Start frontend (port 5173)
 
-# Greenhouse job ingestion (Stage D)
-railway run npm run start --workspace=packages/ingestion -- greenhouse
+# Database
+npm run db:migrate        # Run SQL migrations
 
-# Comeet job ingestion (Stage E)
-railway run npm run start --workspace=packages/ingestion -- comeet
-
-# Dry run (preview without writing to DB)
-railway run npm run start --workspace=packages/ingestion -- greenhouse --dry-run
+# Ingestion
+npm run start --workspace=packages/ingestion -- snc        # SNC companies
+npm run start --workspace=packages/ingestion -- greenhouse # Greenhouse jobs
+npm run start --workspace=packages/ingestion -- comeet     # Comeet jobs
+npm run start --workspace=packages/ingestion -- embeddings # Generate embeddings
 ```
 
 ---
@@ -204,37 +164,38 @@ railway run npm run start --workspace=packages/ingestion -- greenhouse --dry-run
 - [x] SNC company scraping (1007 companies)
 - [x] Career page detection (176 sources)
 - [x] Greenhouse API integration (111 jobs)
-- [x] Comeet API integration (partial)
-- [x] Data migration to Railway
-
-### 🔄 In Progress
-
-- [ ] **Embeddings generation** ← Current focus
-- [ ] Vector similarity matching
+- [x] Comeet API integration
+- [x] Embeddings generation (BGE-base-en-v1.5)
+- [x] JWT authentication with email verification
+- [x] Jobs API (list, search, details)
+- [x] Match API (vector similarity)
+- [x] Profile API (save/retrieve)
+- [x] Favorites API (CRUD)
 
 ### ⏳ Planned
 
-- [ ] Matching API endpoints
-- [ ] User profile & preferences
+- [ ] Python ML service (local embeddings)
+- [ ] CV generation
 - [ ] React frontend
-- [ ] Resume generation
+- [ ] Production deployment
 
 ---
 
 ## 📚 Documentation
 
-- [Architecture](docs/architecture.md) - System design
+- [Architecture](docs/architecture.md) - System design & API endpoints
 - [Monorepo Structure](docs/monorepo-structure.md) - Package layout
-- [Implementation Plan](docs/plan.md) - Original 14-day plan
+- [Implementation Plan](docs/plan.md) - Development roadmap
 
 ---
 
 ## 🛠️ Tech Stack
 
 **Backend:**
-- Node.js + TypeScript
+- Node.js + TypeScript + Express
 - PostgreSQL + pgvector
-- Playwright (for scraping)
+- JWT + bcrypt (auth)
+- Resend (email)
 
 **Frontend (planned):**
 - React + Vite
@@ -243,14 +204,7 @@ railway run npm run start --workspace=packages/ingestion -- greenhouse --dry-run
 **ML (planned):**
 - Python + FastAPI
 - Sentence Transformers
-- OpenAI API (for explanations)
 
 **Infrastructure:**
 - Railway (hosting)
-- GitHub (CI/CD)
-
----
-
-## 📝 License
-
-MIT
+- GitHub
