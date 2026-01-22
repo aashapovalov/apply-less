@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS verification_tokens (
 
 CREATE INDEX IF NOT EXISTS idx_verification_tokens_user ON verification_tokens(user_id);
 
-- Password reset tokens
+-- Password reset tokens
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
