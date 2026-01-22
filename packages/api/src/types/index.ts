@@ -79,3 +79,10 @@ export interface AuthResult {
     user: User;
     tokens: TokenPair;
 }
+
+export interface JwtPayload {
+    userId: number;
+    type: string;
+    iat: number;
+    exp: number;
+}
