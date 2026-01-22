@@ -6,6 +6,9 @@ import { EmailService } from "./email-service.js";
 import { AuthService } from "./auth-service.js";
 import { AuthError } from "./auth-service.js";
 import { RateLimitService } from "./rate-limit-service.js";
+import { FavoritesService } from "./favorites-service.js";
+import { FavoritesError } from "./favorites-service.js";
+import { ProfileService } from "./profile-service.js";
 
 export {
     JobService,
@@ -16,4 +19,7 @@ export {
     AuthService,
     AuthError,
     RateLimitService,
+    FavoritesService,
+    FavoritesError,
+    ProfileService,
 };
