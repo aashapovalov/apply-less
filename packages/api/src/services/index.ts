@@ -4,6 +4,7 @@ import { UserService } from "./user-service.js";
 import { TokenService } from "./token-service.js";
 import { EmailService } from "./email-service.js";
 import { AuthService } from "./auth-service.js";
+import { AuthError } from "./auth-service.js";
 import { RateLimitService } from "./rate-limit-service.js";
 
 export {
@@ -13,5 +14,6 @@ export {
     TokenService,
     EmailService,
     AuthService,
+    AuthError,
     RateLimitService,
 };
