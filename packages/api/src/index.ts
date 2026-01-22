@@ -4,7 +4,7 @@ import express from "express";
 
 import { fileURLToPath } from "node:url";
 
-import {jobsRouter, matchRouter} from "./routes/index.js";
+import {jobsRouter, matchRouter, authRouter} from "./routes/index.js";
 import { getDb, closeDb } from "./config/db.js";
 
 // Load .env from project root (two levels up from this file)
@@ -19,6 +19,9 @@ const PORT = process.env.PORT || 3001;
 
 //Middleware
 app.use(express.json({ limit: "1mb"}));
+
+// Trust proxy for correct IP detection (required for rate limiting behind reverse proxy)
+app.set("trust proxy", 1);
 
 // CORS (allow all for now, restrict in prod)
 app.use((req, res, next) => {
@@ -38,6 +41,7 @@ app.get("/health", (req, res) => {
 });
 
 // API routes
+app.use("/api/auth", authRouter);
 app.use("/api/jobs", jobsRouter);
 app.use("/api/match", matchRouter);
 
@@ -88,5 +92,6 @@ const shutdown = async (signal: string) => {
         }
     })
 }
+
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
