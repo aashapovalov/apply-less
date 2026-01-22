@@ -28,7 +28,7 @@ export class UserService {
      */
     async findById(userId: number): Promise<User | null> {
         const result = await this.db.query(
-            `SELECT id, email, display_name, password_hash, email_verified
+            `SELECT id, email, display_name, email_verified
                             FROM users
                             WHERE id = $1`,
             [userId]
@@ -56,7 +56,8 @@ export class UserService {
 
         const result = await this.db.query(
             `INSERT into users (email, password_hash, email_verified, created_at, updated_at)
-                            VALUES ($1, $2, FALSE, NOW(), NOW())`,
+                            VALUES ($1, $2, FALSE, NOW(), NOW())
+                            RETURNING id`,
             [email.toLowerCase(), passwordHashed]
         );
 
