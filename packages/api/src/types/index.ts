@@ -63,3 +63,14 @@ export interface TokenPair {
     accessToken: string;
     refreshToken: string;
 }
+
+export interface User {
+    id: number;
+    email: string;
+    display_name: string  | null;
+    email_verified: string;
+}
+
+export interface UserWithPassword extends User {
+    password_hash: string | null;
+}
