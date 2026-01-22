@@ -68,17 +68,17 @@ export class RateLimitService {
 
         // Upsert: increment if within the window, reset if window expired
         await this.db.query(
-            `INSERT INTO rate_limits rl (key, attempts, window_start)
+            `INSERT INTO rate_limits (key, attempts, window_start)
                             VALUES ($1, 1, NOW())
                             ON CONFLICT (key) DO UPDATE SET 
-                            attempts = CASE
-                                WHEN rl.window_start < $2 THEN 1
-                                ELSE rl.attempts + 1
-                            END
-                            window_start CASE
-                                WHEN rl.window_start < $2 THEN NOW()
-                                ELSE rl.window_start
-                            END`,
+                                attempts = CASE
+                                    WHEN rate_limits.window_start < $2 THEN 1
+                                    ELSE rate_limits.attempts + 1
+                                 END,
+                                 window_start = CASE
+                                    WHEN rate_limits.window_start < $2 THEN NOW()
+                                    ELSE rate_limits.window_start
+                                 END`,
             [key, windowStart]
         );
     }
@@ -97,7 +97,7 @@ export class RateLimitService {
     async cleanUp(): Promise<number> {
         // Delete records older than the longest window (60 minutes)
         const result = await this.db.query(
-            `DELETE FROM rate_limits WHERE window_start < INTERVAL '60 minutes'`
+            `DELETE FROM rate_limits WHERE window_start < NOW() - INTERVAL '60 minutes'`
         );
         return result.rowCount || 0;
     }
