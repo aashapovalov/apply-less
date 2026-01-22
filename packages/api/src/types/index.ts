@@ -98,3 +98,9 @@ export interface FavoriteJob {
     postedDate: string | null;
     savedAt: Date;
 }
+
+export interface Profile {
+    userId: number;
+    profileText: string | null;
+    updatedAt: Date;
+}
