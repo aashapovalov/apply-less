@@ -28,7 +28,7 @@ export class FavoritesService {
                 c.company_name,
                 j.location,
                 COALESCE(c.tags, ARRAY[]::text[]) as tags,
-                f.canonical_url as url,
+                j.canonical_url as url,
                 j.posted_date,
                 f.created_at as saved_at
             FROM favorites f
