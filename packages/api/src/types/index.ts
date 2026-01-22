@@ -74,3 +74,8 @@ export interface User {
 export interface UserWithPassword extends User {
     password_hash: string | null;
 }
+
+export interface AuthResult {
+    user: User;
+    tokens: TokenPair;
+}
