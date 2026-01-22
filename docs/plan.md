@@ -34,6 +34,8 @@ Build a job matching platform that:
 | API - Jobs | ✅ | GET /jobs, GET /jobs/:id |
 | API - Match | ✅ | POST /match (protected) |
 | **Auth** | ✅ | Full JWT auth system |
+| **Profile** | ✅ | GET/POST/DELETE /profile |
+| **Favorites** | ✅ | CRUD /favorites |
 
 ### Auth Features Completed (Day 7)
 
@@ -55,12 +57,25 @@ Build a job matching platform that:
 | Rate limiting | ✅ |
 | Password validation | ✅ |
 
+### Profile & Favorites Features Completed (Day 8)
+
+| Feature | Status |
+|---------|--------|
+| GET /profile | ✅ |
+| POST /profile | ✅ |
+| DELETE /profile | ✅ |
+| GET /favorites | ✅ |
+| GET /favorites/:jobId | ✅ |
+| POST /favorites/:jobId | ✅ |
+| DELETE /favorites/:jobId | ✅ |
+
 ### 🎯 Goals for Demo
 
 | Goal | Target | Status |
 |------|--------|--------|
 | Jobs in database | 2000+ | 🔲 111 |
 | Auth | JWT with refresh tokens | ✅ |
+| Profile & Favorites | CRUD APIs | ✅ |
 | ML Service | Python + HuggingFace local | 🔲 |
 | Matching accuracy | High (chunked embeddings) | 🔲 |
 | CV generation | Working for favorites | 🔲 |
@@ -87,18 +102,15 @@ Build a job matching platform that:
 
 ---
 
-#### Day 8 (Jan 23): Profile & Favorites API
+#### ✅ Day 8 (Jan 22): Profile & Favorites API
 
-**Tasks:**
-- [ ] Implement GET /api/profile
-- [ ] Implement POST /api/profile (save profile text)
-- [ ] Implement GET /api/favorites
-- [ ] Implement POST /api/favorites/:jobId
-- [ ] Implement DELETE /api/favorites/:jobId
-
-**Definition of Done:**
-- User can save profile text
-- User can add/remove favorites
+- [x] Implement GET /api/profile
+- [x] Implement POST /api/profile (save profile text)
+- [x] Implement DELETE /api/profile
+- [x] Implement GET /api/favorites
+- [x] Implement GET /api/favorites/:jobId
+- [x] Implement POST /api/favorites/:jobId
+- [x] Implement DELETE /api/favorites/:jobId
 
 ---
 
@@ -236,9 +248,9 @@ Build a job matching platform that:
 - `verification_tokens` - email verification
 - `password_reset_tokens` - password reset
 - `rate_limits` - rate limiting
+- `favorites` - user saved jobs
 
 ### To Create
-- `favorites` - user saved jobs
 - `generated_cvs` - tailored CVs
 
 ---
@@ -271,9 +283,9 @@ SNC_AUTH_TOKEN=...
 ## Success Criteria for Demo
 
 - [x] Custom JWT auth working
+- [x] Profile & favorites API
 - [ ] 2000+ jobs in database
 - [ ] Python ML service with local model
-- [ ] Profile & favorites API
 - [ ] CV generation for favorites
 - [ ] Simple functional UI
 - [ ] Deployed to production

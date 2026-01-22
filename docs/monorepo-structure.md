@@ -30,7 +30,9 @@ apply-less/
 │   │       │   ├── index.ts          # Route exports
 │   │       │   ├── auth-router.ts    # /api/auth/* endpoints
 │   │       │   ├── jobs-router.ts    # /api/jobs endpoints
-│   │       │   └── match-router.ts   # /api/match endpoint
+│   │       │   ├── match-router.ts   # /api/match endpoint
+│   │       │   ├── profile-router.ts # /api/profile endpoints
+│   │       │   └── favorites-router.ts # /api/favorites endpoints
 │   │       ├── services/
 │   │       │   ├── index.ts
 │   │       │   ├── auth-service.ts   # Auth orchestration
@@ -39,7 +41,9 @@ apply-less/
 │   │       │   ├── email-service.ts  # Resend email client
 │   │       │   ├── rate-limit-service.ts
 │   │       │   ├── job-service.ts    # Job queries
-│   │       │   └── match-service.ts  # Profile matching
+│   │       │   ├── match-service.ts  # Profile matching
+│   │       │   ├── profile-service.ts # Profile CRUD
+│   │       │   └── favorites-service.ts # Favorites CRUD
 │   │       ├── types/
 │   │       │   └── index.ts          # TypeScript interfaces
 │   │       └── utils/
@@ -141,7 +145,7 @@ apply-less/
 
 | Package | Status | Description |
 |---------|--------|-------------|
-| `api` | ✅ Working | Express API with auth, jobs, match |
+| `api` | ✅ Working | Express API with auth, jobs, match, profile, favorites |
 | `ingestion` | ✅ Working | CLI for SNC, Greenhouse, Comeet, embeddings |
 | `ml-service` | 🔲 Scaffolded | Python FastAPI (empty) |
 | `web` | 🔲 Scaffolded | React + Vite template |
@@ -162,6 +166,8 @@ apply-less/
 | `rate-limit-service.ts` | ~100 | Rate limiting logic |
 | `job-service.ts` | ~150 | Job queries, vector search |
 | `match-service.ts` | ~60 | Profile embedding + matching |
+| `profile-service.ts` | ~60 | Profile text CRUD |
+| `favorites-service.ts` | ~100 | Favorites CRUD with job details |
 
 ### Routes
 
@@ -170,6 +176,8 @@ apply-less/
 | `auth-router.ts` | register, login, refresh, logout, verify-email, forgot-password, reset-password, resend-verification, me |
 | `jobs-router.ts` | GET /, GET /:id |
 | `match-router.ts` | POST / (protected) |
+| `profile-router.ts` | GET /, POST /, DELETE / (protected) |
+| `favorites-router.ts` | GET /, GET /:jobId, POST /:jobId, DELETE /:jobId (protected) |
 
 ### Middleware
 

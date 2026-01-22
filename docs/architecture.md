@@ -11,7 +11,8 @@
 │ • snc ✅        │     │ • /auth/* ✅    │     │ 🔲 Scaffolded   │
 │ • greenhouse ✅ │     │ • /jobs ✅      │     │                 │
 │ • comeet ✅     │     │ • /match ✅     │     │                 │
-│ • embeddings ✅ │     │                 │     │                 │
+│ • embeddings ✅ │     │ • /profile ✅   │     │                 │
+│                 │     │ • /favorites ✅ │     │                 │
 └────────┬────────┘     └────────┬────────┘     └─────────────────┘
          │                       │
          └───────────┬───────────┘
@@ -26,6 +27,7 @@
          │  • job_embeddings: 111  │
          │  • users ✅             │
          │  • auth tokens ✅       │
+         │  • favorites ✅         │
          └─────────────────────────┘
                      │
          ┌───────────┴───────────┐
@@ -68,6 +70,23 @@
 |----------|--------|------|-------------|
 | `/` | POST | Yes | Match profile text → ranked jobs |
 
+### Profile Endpoints (`/api/profile`)
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/` | GET | Yes | Get user profile text |
+| `/` | POST | Yes | Save/update profile text |
+| `/` | DELETE | Yes | Delete profile text |
+
+### Favorites Endpoints (`/api/favorites`)
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/` | GET | Yes | Get all favorites with job details |
+| `/:jobId` | GET | Yes | Check if job is favorited |
+| `/:jobId` | POST | Yes | Add job to favorites |
+| `/:jobId` | DELETE | Yes | Remove job from favorites |
+
 ---
 
 ## Database Schema
@@ -86,11 +105,12 @@ job_embeddings_simple (id, job_id, embedding vector(768), ...)
 ### Auth Tables
 
 ```sql
-users (id, firebase_uid, email, display_name, password_hash, email_verified, ...)
+users (id, firebase_uid, email, display_name, profile_text, password_hash, email_verified, ...)
 refresh_tokens (id, user_id, token_hash, expires_at, revoked_at, ...)
 verification_tokens (id, user_id, token_hash, expires_at, used_at, ...)
 password_reset_tokens (id, user_id, token_hash, expires_at, used_at, ...)
 rate_limits (id, key, attempts, window_start)
+favorites (id, user_id, job_id, created_at)
 ```
 
 ### Future Tables (schema exists)
@@ -98,7 +118,6 @@ rate_limits (id, key, attempts, window_start)
 ```sql
 profile_chunks (id, user_id, chunk_index, section_type, content, ...)
 profile_embeddings (id, profile_chunk_id, embedding vector(768), ...)
-favorites (id, user_id, job_id, ...)
 generated_resumes (id, user_id, job_id, content, ...)
 ```
 
