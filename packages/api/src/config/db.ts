@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
 import path from "node:path";
-
 import pg from "pg";
 import { fileURLToPath } from "node:url";
 
