@@ -1,12 +1,12 @@
-# ApplyLess Implementation Plan v2
+# ApplyLess Implementation Plan v3
 
 ## Timeline Overview
 
 **Demo Day: February 3, 2026**
-**Today: January 21, 2026**
-**Days remaining: 13 days**
+**Today: January 22, 2026**
+**Days remaining: 12 days**
 **Video prep buffer: 2 days (Feb 1-2)**
-**Working days for development: 11 days**
+**Working days for development: 10 days**
 
 ---
 
@@ -20,7 +20,7 @@ Build a job matching platform that:
 
 ---
 
-## Current Status (Jan 21)
+## Current Status (Jan 22)
 
 ### ✅ Completed
 
@@ -31,222 +31,128 @@ Build a job matching platform that:
 | Job Sources | ✅ | 176 detected |
 | Jobs | ✅ | 111 from Greenhouse |
 | Embeddings | ✅ | 111 jobs (single, BGE 768d via API) |
-| API | ✅ | GET /jobs, POST /match |
+| API - Jobs | ✅ | GET /jobs, GET /jobs/:id |
+| API - Match | ✅ | POST /match (protected) |
+| **Auth** | ✅ | Full JWT auth system |
+
+### Auth Features Completed (Day 7)
+
+| Feature | Status |
+|---------|--------|
+| POST /auth/register | ✅ |
+| POST /auth/login | ✅ |
+| POST /auth/refresh | ✅ |
+| POST /auth/logout | ✅ |
+| GET /auth/verify-email | ✅ |
+| POST /auth/forgot-password | ✅ |
+| POST /auth/reset-password | ✅ |
+| POST /auth/resend-verification | ✅ |
+| GET /auth/me | ✅ |
+| JWT access tokens (1h) | ✅ |
+| Refresh tokens (30d) | ✅ |
+| Email verification (Resend) | ✅ |
+| Password reset (Resend) | ✅ |
+| Rate limiting | ✅ |
+| Password validation | ✅ |
 
 ### 🎯 Goals for Demo
 
-| Goal | Target |
-|------|--------|
-| Jobs in database | 2000+ |
-| ML Service | Python + HuggingFace local |
-| Matching accuracy | High (chunked embeddings) |
-| CV generation | Working for favorites |
-| Auth | JWT with refresh tokens |
-| UI | Simple, functional |
-
----
-
-## Technical Architecture (Final)
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Frontend      │     │   Node.js API   │     │   Python ML     │
-│   (React)       │────▶│   (Express)     │────▶│   (FastAPI)     │
-│   Vercel        │     │   Railway       │     │   Railway/Modal │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-        │                       │                       │
-        │                       │                       │
-        │                       ▼                       ▼
-        │               ┌─────────────────┐     ┌─────────────────┐
-        │               │   PostgreSQL    │     │   HuggingFace   │
-        │               │   + pgvector    │     │   Transformers  │
-        │               │   Railway       │     │   (Local Model) │
-        │               └─────────────────┘     └─────────────────┘
-        │
-        └──────────────────────┐
-                               ▼
-                        ┌─────────────────┐
-                        │   Ingestion     │
-                        │   (Node.js)     │
-                        │   Scheduler     │
-                        └─────────────────┘
-```
-
-### Python ML Service Responsibilities
-
-```
-packages/ml-service/
-├── main.py                 # FastAPI app
-├── api/
-│   ├── embed.py           # POST /embed - generate embeddings
-│   ├── chunk.py           # POST /chunk - chunk text into sections
-│   └── generate.py        # POST /generate-cv - generate CV
-├── services/
-│   ├── embedding_service.py    # HuggingFace sentence-transformers
-│   ├── chunking_service.py     # Text chunking logic
-│   └── cv_generator.py         # LLM-based CV generation
-├── models/
-│   └── e5_model.py        # Load & cache E5/BGE model
-└── requirements.txt
-```
-
-### ML Service Endpoints
-
-```
-POST /embed
-  Body: { texts: ["text1", "text2"], prefix: "passage" }
-  Returns: { embeddings: [[0.1, ...], [0.2, ...]] }
-
-POST /chunk
-  Body: { text: "Full job description...", type: "job" }
-  Returns: { chunks: [{ type: "requirements", content: "..." }, ...] }
-
-POST /generate-cv
-  Body: { profile: "...", job: "...", style: "professional" }
-  Returns: { cv: "Generated CV content..." }
-
-GET /health
-  Returns: { status: "ok", model_loaded: true }
-```
+| Goal | Target | Status |
+|------|--------|--------|
+| Jobs in database | 2000+ | 🔲 111 |
+| Auth | JWT with refresh tokens | ✅ |
+| ML Service | Python + HuggingFace local | 🔲 |
+| Matching accuracy | High (chunked embeddings) | 🔲 |
+| CV generation | Working for favorites | 🔲 |
+| UI | Simple, functional | 🔲 |
 
 ---
 
 ## Revised Roadmap
 
-### Phase 1: Backend Foundation (Days 7-9)
+### ✅ Phase 1: Backend Foundation (Days 7-9)
 
-#### Day 7 (Jan 22): JWT Authentication + Python ML Setup
+#### ✅ Day 7 (Jan 22): JWT Authentication
 
-**Morning: JWT Auth**
-- [ ] Create auth tables (users, refresh_tokens)
-- [ ] Implement POST /api/auth/register
-- [ ] Implement POST /api/auth/login → access + refresh tokens
-- [ ] Implement POST /api/auth/refresh
-- [ ] Create auth middleware
+- [x] Create auth tables (users, refresh_tokens, verification_tokens, etc.)
+- [x] Implement POST /api/auth/register
+- [x] Implement POST /api/auth/login → access + refresh tokens
+- [x] Implement POST /api/auth/refresh
+- [x] Implement POST /api/auth/logout
+- [x] Implement email verification flow
+- [x] Implement password reset flow
+- [x] Create auth middleware
+- [x] Rate limiting
+- [x] Resend email integration
 
-**Afternoon: Python ML Service**
-- [ ] Set up FastAPI project structure
-- [ ] Implement /health endpoint
-- [ ] Load BGE/E5 model with sentence-transformers
-- [ ] Implement POST /embed endpoint
-- [ ] Test embedding generation locally
+---
+
+#### Day 8 (Jan 23): Profile & Favorites API
+
+**Tasks:**
+- [ ] Implement GET /api/profile
+- [ ] Implement POST /api/profile (save profile text)
+- [ ] Implement GET /api/favorites
+- [ ] Implement POST /api/favorites/:jobId
+- [ ] Implement DELETE /api/favorites/:jobId
 
 **Definition of Done:**
-- JWT auth working
+- User can save profile text
+- User can add/remove favorites
+
+---
+
+#### Day 9 (Jan 24): Python ML Service Setup
+
+**Tasks:**
+- [ ] Set up FastAPI project structure
+- [ ] Implement /health endpoint
+- [ ] Load BGE model with sentence-transformers
+- [ ] Implement POST /embed endpoint
+- [ ] Test embedding generation locally
+- [ ] Connect Node.js API to Python ML service
+
+**Definition of Done:**
 - Python ML service running locally
 - Can generate embeddings via Python
 
 ---
 
-#### Day 8 (Jan 23): Profile API + Text Chunking
-
-**Morning: Profile & Favorites API**
-- [ ] Implement POST /api/profile
-- [ ] Implement GET /api/profile
-- [ ] Implement favorites CRUD
-
-**Afternoon: Text Chunking Service**
-- [ ] Implement POST /chunk in Python ML service
-- [ ] Job chunking: title, requirements, responsibilities, benefits
-- [ ] Profile chunking: summary, experience, skills, education
-- [ ] Use regex + heuristics (or small LLM)
-
-**Definition of Done:**
-- Profile API working
-- Text chunking working for jobs and profiles
-
----
-
-#### Day 9 (Jan 24): Chunked Embeddings Pipeline
-
-**Goal:** Better matching using chunked embeddings
-
-**Tasks:**
-- [ ] Create job_chunks table
-- [ ] Create profile_chunks table  
-- [ ] Batch process existing 111 jobs → chunks → embeddings
-- [ ] Update Node.js API to call Python ML service
-- [ ] Implement improved matching algorithm
-- [ ] Test matching quality
-
-**Improved Matching:**
-```python
-def match_profile_to_job(profile_chunks, job_chunks):
-    scores = []
-    for p_chunk in profile_chunks:
-        for j_chunk in job_chunks:
-            similarity = cosine_similarity(p_chunk.embedding, j_chunk.embedding)
-            weight = get_weight(p_chunk.type, j_chunk.type)
-            scores.append(similarity * weight)
-    return aggregate_score(scores)
-```
-
-**Definition of Done:**
-- All jobs have chunked embeddings
-- Matching uses chunk-level similarity
-- Better match quality than single embeddings
-
----
-
 ### Phase 2: Scaled Ingestion (Days 10-11)
 
-#### Day 10 (Jan 25): Ingestion Infrastructure
-
-**Tasks:**
-- [ ] Create ingestion scheduler (cron or Railway scheduled job)
-- [ ] Implement SNC incremental scraper (50 companies/day)
-- [ ] Implement ATS detector:
-  - Fetch company careers page
-  - Detect Greenhouse/Comeet/Lever patterns
-  - Update job_sources
-- [ ] Integrate with Python ML for embeddings
-
-**Definition of Done:**
-- ATS detection working
-- New job sources discovered automatically
-
----
-
-#### Day 11 (Jan 26): Mass Job Ingestion
+#### Day 10 (Jan 25): More Job Sources
 
 **Tasks:**
 - [ ] Run Greenhouse for all detected companies
-- [ ] Implement Comeet scraper (Playwright)
-- [ ] Chunk all new jobs
-- [ ] Generate embeddings via Python ML service
-- [ ] Target: 2000+ jobs
+- [ ] Implement Comeet scraper improvements
+- [ ] Generate embeddings for new jobs
+- [ ] Target: 500+ jobs
 
-**Definition of Done:**
-- 2000+ jobs in database
-- All jobs have chunked embeddings
+---
+
+#### Day 11 (Jan 26): Mass Ingestion
+
+**Tasks:**
+- [ ] Run full ingestion pipeline
+- [ ] Chunk all jobs
+- [ ] Generate embeddings
+- [ ] Target: 2000+ jobs
 
 ---
 
 ### Phase 3: CV Generation (Day 12)
 
-#### Day 12 (Jan 27): CV Generation in Python
+#### Day 12 (Jan 27): CV Generation
 
 **Tasks:**
 - [ ] Implement POST /generate-cv in Python ML service
-- [ ] Use OpenAI API or local LLM (Mistral/Llama)
-- [ ] CV generation prompt engineering
+- [ ] Use OpenAI API for CV generation
 - [ ] Implement /api/cv endpoints in Node.js
 - [ ] Store generated CVs
 
-**CV Generation Options:**
-```
-Option A: OpenAI GPT-4 (~$0.01/CV) - Best quality
-Option B: Mistral API (~$0.001/CV) - Good quality, cheaper
-Option C: Local Llama 3 (free) - Requires GPU
-```
-
-**Definition of Done:**
-- Can generate tailored CV for any job
-- CV uses profile + job description
-
 ---
 
-### Phase 4: Simple Frontend (Days 13-14)
+### Phase 4: Frontend (Days 13-14)
 
 #### Day 13 (Jan 28): Core UI
 
@@ -255,10 +161,6 @@ Option C: Local Llama 3 (free) - Requires GPU
 - [ ] Jobs list (paginated)
 - [ ] Match page (paste profile → results)
 - [ ] Basic navigation
-
-**Definition of Done:**
-- Core pages working
-- API integration complete
 
 ---
 
@@ -271,9 +173,6 @@ Option C: Local Llama 3 (free) - Requires GPU
 - [ ] Loading states
 - [ ] Basic styling
 
-**Definition of Done:**
-- Full flow: Register → Match → Favorite → Generate CV
-
 ---
 
 ### Phase 5: Deploy & Demo (Days 15-17)
@@ -282,9 +181,8 @@ Option C: Local Llama 3 (free) - Requires GPU
 
 **Tasks:**
 - [ ] Deploy Node.js API to Railway
-- [ ] Deploy Python ML to Railway (or Modal for GPU)
+- [ ] Deploy Python ML to Railway
 - [ ] Deploy Frontend to Vercel
-- [ ] Run final ingestion
 
 ---
 
@@ -301,136 +199,81 @@ Option C: Local Llama 3 (free) - Requires GPU
 
 ---
 
-## Python ML Service Details
-
-### Model Selection
-
-| Model | Dimensions | Quality | Speed |
-|-------|-----------|---------|-------|
-| BAAI/bge-base-en-v1.5 | 768 | Excellent | Fast |
-| intfloat/e5-base-v2 | 768 | Excellent | Fast |
-| sentence-transformers/all-mpnet-base-v2 | 768 | Good | Fast |
-
-**Recommendation:** Stick with BGE-base for consistency
-
-### Deployment Options
-
-| Option | GPU | Cost | Latency |
-|--------|-----|------|---------|
-| Railway (CPU) | No | $5-10/mo | ~500ms |
-| Modal (GPU) | Yes | Pay per use | ~100ms |
-| Replicate | Yes | Pay per use | ~200ms |
-| Local (demo) | MPS/CPU | Free | ~200ms |
-
-**Recommendation:** Start local, deploy to Railway CPU (fast enough for embeddings)
-
-### requirements.txt
+## Technical Architecture
 
 ```
-fastapi==0.109.0
-uvicorn==0.27.0
-sentence-transformers==2.3.1
-torch==2.1.2
-numpy==1.26.3
-pydantic==2.5.3
-python-dotenv==1.0.0
-openai==1.10.0  # for CV generation
-psycopg2-binary==2.9.9  # if direct DB access needed
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Frontend      │     │   Node.js API   │     │   Python ML     │
+│   (React)       │────▶│   (Express)     │────▶│   (FastAPI)     │
+│   Vercel        │     │   Railway       │     │   Railway       │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+        │                       │                       │
+        │                       ▼                       ▼
+        │               ┌─────────────────┐     ┌─────────────────┐
+        │               │   PostgreSQL    │     │   HuggingFace   │
+        │               │   + pgvector    │     │   Transformers  │
+        │               │   Railway       │     │   (Local Model) │
+        │               └─────────────────┘     └─────────────────┘
+        │                       │
+        │                       ▼
+        │               ┌─────────────────┐
+        │               │     Resend      │
+        │               │   (Email API)   │
+        └──────────────▶└─────────────────┘
 ```
 
 ---
 
-## Database Schema Updates
+## Database Tables
 
-```sql
--- New tables for chunking
-CREATE TABLE job_chunks (
-    id SERIAL PRIMARY KEY,
-    job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
-    chunk_type VARCHAR(50) NOT NULL,  -- 'title', 'requirements', 'responsibilities', 'benefits'
-    content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
+### Existing
+- `companies` - 1007 records
+- `job_sources` - 176 records
+- `jobs` - 111 records
+- `job_embeddings_simple` - 111 records
+- `users` - auth users
+- `refresh_tokens` - JWT refresh tokens
+- `verification_tokens` - email verification
+- `password_reset_tokens` - password reset
+- `rate_limits` - rate limiting
 
-CREATE TABLE job_chunk_embeddings (
-    id SERIAL PRIMARY KEY,
-    job_chunk_id INTEGER REFERENCES job_chunks(id) ON DELETE CASCADE,
-    embedding vector(768) NOT NULL,
-    model_name VARCHAR(100) DEFAULT 'bge-base-en-v1.5',
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE profile_chunks (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    chunk_type VARCHAR(50) NOT NULL,  -- 'summary', 'experience', 'skills', 'education'
-    content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE profile_chunk_embeddings (
-    id SERIAL PRIMARY KEY,
-    profile_chunk_id INTEGER REFERENCES profile_chunks(id) ON DELETE CASCADE,
-    embedding vector(768) NOT NULL,
-    model_name VARCHAR(100) DEFAULT 'bge-base-en-v1.5',
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE generated_cvs (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
+### To Create
+- `favorites` - user saved jobs
+- `generated_cvs` - tailored CVs
 
 ---
 
-## API Flow
+## Environment Variables
 
-### Matching Flow (with Python ML)
+```env
+# Database
+DATABASE_URL=postgresql://...
 
+# Auth
+JWT_SECRET=<32+ chars>
+JWT_REFRESH_SECRET=<32+ chars>
+
+# Email
+RESEND_API_KEY=re_xxxxx
+FROM_EMAIL=onboarding@resend.dev
+FRONTEND_URL=http://localhost:5173
+
+# Embeddings
+HF_TOKEN=hf_xxxxx
+
+# SNC (ingestion)
+SNC_BASE_URL=...
+SNC_AUTH_TOKEN=...
 ```
-1. User pastes profile
-2. Node.js API → Python ML: POST /chunk { text, type: "profile" }
-3. Python ML → chunks
-4. Node.js API → Python ML: POST /embed { texts: chunks }
-5. Python ML → embeddings
-6. Node.js API → PostgreSQL: vector similarity search
-7. Return ranked jobs
-```
-
-### CV Generation Flow
-
-```
-1. User clicks "Generate CV" on favorite job
-2. Node.js API → Python ML: POST /generate-cv { profile, job }
-3. Python ML → OpenAI/LLM → Generated CV
-4. Node.js API → PostgreSQL: Store CV
-5. Return CV to user
-```
-
----
-
-## Budget Estimate
-
-| Service | Cost |
-|---------|------|
-| Railway (DB + API + ML) | $5-15/month |
-| Vercel (Frontend) | $0 |
-| OpenAI (CV Gen, ~100 CVs) | $1-5 |
-| **Total** | **$10-20** |
 
 ---
 
 ## Success Criteria for Demo
 
+- [x] Custom JWT auth working
 - [ ] 2000+ jobs in database
-- [ ] Custom JWT auth working
 - [ ] Python ML service with local model
-- [ ] Chunked embeddings for jobs + profiles
-- [ ] Improved matching quality
+- [ ] Profile & favorites API
 - [ ] CV generation for favorites
 - [ ] Simple functional UI
 - [ ] Deployed to production
