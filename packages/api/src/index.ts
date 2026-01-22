@@ -4,7 +4,13 @@ import express from "express";
 
 import { fileURLToPath } from "node:url";
 
-import {jobsRouter, matchRouter, authRouter} from "./routes/index.js";
+import {
+    jobsRouter,
+    matchRouter,
+    authRouter,
+    profileRouter,
+    favoritesRouter
+} from "./routes/index.js";
 import { getDb, closeDb } from "./config/db.js";
 
 // Load .env from project root (two levels up from this file)
@@ -44,6 +50,8 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/jobs", jobsRouter);
 app.use("/api/match", matchRouter);
+app.use("/api/profile", profileRouter);
+app.use("/api/favorites", favoritesRouter);
 
 // 404 handler
 
@@ -60,9 +68,12 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Start server
 const server = app.listen(PORT, () => {
     console.log(`\n🚀 ApplyLess API running on port ${PORT}`);
-    console.log(`   Health: http://localhost:${PORT}/health`);
-    console.log(`   Jobs:   http://localhost:${PORT}/api/jobs`);
-    console.log(`   Match:  POST http://localhost:${PORT}/api/match\n`);
+    console.log(`   Health:    http://localhost:${PORT}/health`);
+    console.log(`   Auth:      http://localhost:${PORT}/api/auth/*`);
+    console.log(`   Jobs:      http://localhost:${PORT}/api/jobs`);
+    console.log(`   Match:     POST http://localhost:${PORT}/api/match`);
+    console.log(`   Profile:   http://localhost:${PORT}/api/profile`);
+    console.log(`   Favorites: http://localhost:${PORT}/api/favorites\n`);
 
     // Test database connection
     getDb().query("SELECT 1").then(() => {
