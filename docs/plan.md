@@ -36,6 +36,7 @@ Build a job matching platform that:
 | **Auth** | ✅ | Full JWT auth system |
 | **Profile** | ✅ | GET/POST/DELETE /profile |
 | **Favorites** | ✅ | CRUD /favorites |
+| **ML Service** | ✅ | Python FastAPI with BGE model |
 
 ### Auth Features Completed (Day 7)
 
@@ -69,6 +70,17 @@ Build a job matching platform that:
 | POST /favorites/:jobId | ✅ |
 | DELETE /favorites/:jobId | ✅ |
 
+### ML Service Features Completed (Day 9)
+
+| Feature | Status |
+|---------|--------|
+| GET /health | ✅ |
+| POST /api/embed | ✅ |
+| POST /api/embed/single | ✅ |
+| BGE-base-en-v1.5 model | ✅ |
+| Query prefixes (text_type) | ✅ |
+| Dockerfile + Railway config | ✅ |
+
 ### 🎯 Goals for Demo
 
 | Goal | Target | Status |
@@ -76,7 +88,7 @@ Build a job matching platform that:
 | Jobs in database | 2000+ | 🔲 111 |
 | Auth | JWT with refresh tokens | ✅ |
 | Profile & Favorites | CRUD APIs | ✅ |
-| ML Service | Python + HuggingFace local | 🔲 |
+| ML Service | Python + local model | ✅ |
 | Matching accuracy | High (chunked embeddings) | 🔲 |
 | CV generation | Working for favorites | 🔲 |
 | UI | Simple, functional | 🔲 |
@@ -114,19 +126,16 @@ Build a job matching platform that:
 
 ---
 
-#### Day 9 (Jan 24): Python ML Service Setup
+#### ✅ Day 9 (Jan 23): Python ML Service Setup
 
-**Tasks:**
-- [ ] Set up FastAPI project structure
-- [ ] Implement /health endpoint
-- [ ] Load BGE model with sentence-transformers
-- [ ] Implement POST /embed endpoint
-- [ ] Test embedding generation locally
-- [ ] Connect Node.js API to Python ML service
-
-**Definition of Done:**
-- Python ML service running locally
-- Can generate embeddings via Python
+- [x] Set up FastAPI project structure
+- [x] Implement /health endpoint
+- [x] Load BGE model with sentence-transformers
+- [x] Implement POST /api/embed endpoint
+- [x] Implement POST /api/embed/single endpoint
+- [x] Query prefixes (text_type: query/passage)
+- [x] Dockerfile + Railway deployment config
+- [ ] Connect Node.js API to Python ML service (optional)
 
 ---
 
@@ -222,9 +231,9 @@ Build a job matching platform that:
         │                       │                       │
         │                       ▼                       ▼
         │               ┌─────────────────┐     ┌─────────────────┐
-        │               │   PostgreSQL    │     │   HuggingFace   │
-        │               │   + pgvector    │     │   Transformers  │
-        │               │   Railway       │     │   (Local Model) │
+        │               │   PostgreSQL    │     │   BGE-base-en   │
+        │               │   + pgvector    │     │   768 dimensions│
+        │               │   Railway       │     │   (in memory)   │
         │               └─────────────────┘     └─────────────────┘
         │                       │
         │                       ▼
@@ -284,8 +293,8 @@ SNC_AUTH_TOKEN=...
 
 - [x] Custom JWT auth working
 - [x] Profile & favorites API
+- [x] Python ML service with local model
 - [ ] 2000+ jobs in database
-- [ ] Python ML service with local model
 - [ ] CV generation for favorites
 - [ ] Simple functional UI
 - [ ] Deployed to production

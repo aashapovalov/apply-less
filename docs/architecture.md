@@ -4,18 +4,18 @@
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Ingestion     │     │   API Service   │     │   Frontend      │
-│   (Node.js)     │     │   (Express)     │     │   (React)       │
+│   Ingestion     │     │   API Service   │     │   Python ML     │
+│   (Node.js)     │     │   (Express)     │     │   (FastAPI)     │
 │                 │     │                 │     │                 │
-│ CLI commands:   │     │ Endpoints:      │     │ Status:         │
-│ • snc ✅        │     │ • /auth/* ✅    │     │ 🔲 Scaffolded   │
-│ • greenhouse ✅ │     │ • /jobs ✅      │     │                 │
+│ CLI commands:   │     │ Endpoints:      │     │ Endpoints:      │
+│ • snc ✅        │     │ • /auth/* ✅    │     │ • /health ✅    │
+│ • greenhouse ✅ │     │ • /jobs ✅      │     │ • /api/embed ✅ │
 │ • comeet ✅     │     │ • /match ✅     │     │                 │
-│ • embeddings ✅ │     │ • /profile ✅   │     │                 │
-│                 │     │ • /favorites ✅ │     │                 │
-└────────┬────────┘     └────────┬────────┘     └─────────────────┘
-         │                       │
-         └───────────┬───────────┘
+│ • embeddings ✅ │     │ • /profile ✅   │     │ Model:          │
+│                 │     │ • /favorites ✅ │     │ BGE-base-en-v1.5│
+└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
+         │                       │                       │
+         └───────────┬───────────┴───────────────────────┘
                      ▼
          ┌─────────────────────────┐
          │  PostgreSQL + pgvector  │
@@ -30,13 +30,11 @@
          │  • favorites ✅         │
          └─────────────────────────┘
                      │
-         ┌───────────┴───────────┐
-         ▼                       ▼
-┌─────────────────┐     ┌─────────────────┐
-│  HuggingFace    │     │     Resend      │
-│  BGE-base-en    │     │  (Email API)    │
-│  768 dimensions │     │                 │
-└─────────────────┘     └─────────────────┘
+                     ▼
+         ┌─────────────────────────┐
+         │        Resend           │
+         │      (Email API)        │
+         └─────────────────────────┘
 ```
 
 ---
@@ -86,6 +84,33 @@
 | `/:jobId` | GET | Yes | Check if job is favorited |
 | `/:jobId` | POST | Yes | Add job to favorites |
 | `/:jobId` | DELETE | Yes | Remove job from favorites |
+
+---
+
+## Python ML Service Endpoints (port 8000)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check + model info |
+| `/api/embed` | POST | Embed multiple texts (batch) |
+| `/api/embed/single` | POST | Embed single text |
+
+### Embed Request
+
+```json
+{
+  "texts": ["Python developer...", "Java engineer..."],
+  "text_type": "passage",
+  "normalize": true
+}
+```
+
+### Text Types (Important for BGE)
+
+| text_type | Use for | Prefix added |
+|-----------|---------|--------------|
+| `passage` | Job descriptions, stored in DB | None |
+| `query` | User profile at search time | "Represent this sentence..." |
 
 ---
 
@@ -185,31 +210,34 @@ User → Request + Authorization: Bearer <access_token>
 | Layer | Technology |
 |-------|------------|
 | API | Express 5, TypeScript |
+| ML Service | FastAPI, Python 3.11 |
 | Auth | JWT (jsonwebtoken), bcrypt |
+| Embeddings | sentence-transformers, BGE-base-en-v1.5 |
 | Database | PostgreSQL 17, pgvector |
 | Email | Resend API |
-| Embeddings | HuggingFace API (BGE-base-en-v1.5) |
 | Scraping | Playwright |
 | Frontend | React 19, Vite (scaffolded) |
-| Hosting | Railway (DB + API) |
+| Hosting | Railway (DB + API + ML) |
 
 ---
 
 ## Environment Variables
 
+### Node.js API
 ```env
-# Database
 DATABASE_URL=postgresql://...
-
-# Auth
 JWT_SECRET=<32+ char secret>
 JWT_REFRESH_SECRET=<32+ char secret>
-
-# Email
 RESEND_API_KEY=re_xxxxx
 FROM_EMAIL=onboarding@resend.dev
 FRONTEND_URL=http://localhost:5173
-
-# Embeddings
 HF_TOKEN=hf_xxxxx
+```
+
+### Python ML Service
+```env
+MODEL_NAME=BAAI/bge-base-en-v1.5
+MODEL_CACHE_DIR=./model_cache
+HOST=0.0.0.0
+PORT=8000
 ```

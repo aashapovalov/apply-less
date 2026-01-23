@@ -81,15 +81,24 @@ apply-less/
 │   │       │   └── index.ts
 │   │       └── utils/
 │   │
-│   ├── ml-service/                   # Python FastAPI 🔲 scaffolded
-│   │   ├── requirements.txt
-│   │   ├── .env
+│   ├── ml-service/                   # Python FastAPI ✅
+│   │   ├── main.py                   # FastAPI entry point
+│   │   ├── requirements.txt          # Python dependencies
+│   │   ├── Dockerfile                # Production container
+│   │   ├── railway.json              # Railway deployment config
+│   │   ├── .dockerignore
+│   │   ├── .env.example
 │   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── health.py             # GET /health
+│   │   │   └── embed.py              # POST /api/embed
 │   │   ├── config/
-│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   └── settings.py           # Pydantic settings
 │   │   ├── services/
-│   │   ├── utils/
-│   │   └── venv/
+│   │   │   ├── __init__.py
+│   │   │   └── embedding_service.py  # Model loading & inference
+│   │   └── venv/                     # Virtual environment (local)
 │   │
 │   ├── web/                          # React frontend 🔲 scaffolded
 │   │   ├── package.json
@@ -147,7 +156,7 @@ apply-less/
 |---------|--------|-------------|
 | `api` | ✅ Working | Express API with auth, jobs, match, profile, favorites |
 | `ingestion` | ✅ Working | CLI for SNC, Greenhouse, Comeet, embeddings |
-| `ml-service` | 🔲 Scaffolded | Python FastAPI (empty) |
+| `ml-service` | ✅ Working | Python FastAPI with BGE embeddings |
 | `web` | 🔲 Scaffolded | React + Vite template |
 | `shared` | 🔲 Empty | Shared TypeScript types |
 
@@ -187,6 +196,31 @@ apply-less/
 
 ---
 
+## ML Service Package Details
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check + model info |
+| `/api/embed` | POST | Embed batch of texts (max 100) |
+| `/api/embed/single` | POST | Embed single text |
+
+### Services
+
+| Service | Responsibility |
+|---------|----------------|
+| `embedding_service.py` | Model loading, inference, query prefixes |
+
+### Model
+
+- **Name:** BAAI/bge-base-en-v1.5
+- **Dimensions:** 768
+- **Size:** ~400MB
+- **Inference:** ~50-200ms per text (CPU)
+
+---
+
 ## NPM Scripts (root)
 
 ```bash
@@ -203,27 +237,41 @@ npm run ingest:snc:dry    # Dry run (3 pages)
 npm run db:migrate   # Run SQL migrations
 ```
 
+## Python ML Service
+
+```bash
+cd packages/ml-service
+source venv/bin/activate
+python main.py       # Start ML service (port 8000)
+```
+
 ---
 
 ## Environment Variables
 
+### Node.js API
 ```env
-# Database
 DATABASE_URL=postgresql://...
-
-# Auth
 JWT_SECRET=<32+ char secret>
 JWT_REFRESH_SECRET=<32+ char secret>
-
-# Email
 RESEND_API_KEY=re_xxxxx
 FROM_EMAIL=onboarding@resend.dev
 FRONTEND_URL=http://localhost:5173
-
-# Embeddings
 HF_TOKEN=hf_xxxxx
+```
 
-# SNC (ingestion)
+### Python ML Service
+```env
+MODEL_NAME=BAAI/bge-base-en-v1.5
+MODEL_CACHE_DIR=./model_cache
+HOST=0.0.0.0
+PORT=8000
+```
+
+### Ingestion
+```env
+DATABASE_URL=postgresql://...
+HF_TOKEN=hf_xxxxx
 SNC_BASE_URL=https://finder.startupnationcentral.org
 SNC_AUTH_TOKEN=...
 SNC_REFRESH_TOKEN=...

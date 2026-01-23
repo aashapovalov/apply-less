@@ -8,7 +8,7 @@ ApplyLess automatically ingests job postings from company career pages and ATS s
 
 ## 🎯 Current Status
 
-**Phase: API Complete → Moving to Python ML & Frontend**
+**Phase: Backend Complete → Moving to Ingestion & Frontend**
 
 | Component | Status | Details |
 |-----------|--------|---------|
@@ -22,6 +22,7 @@ ApplyLess automatically ingests job postings from company career pages and ATS s
 | Match API | ✅ Working | Vector similarity search |
 | Profile API | ✅ Working | Save/retrieve profile text |
 | Favorites API | ✅ Working | Add/remove saved jobs |
+| ML Service | ✅ Working | Python FastAPI + BGE model |
 | Frontend | ⏳ Planned | Job browser + recommendations |
 
 ---
@@ -30,25 +31,22 @@ ApplyLess automatically ingests job postings from company career pages and ATS s
 
 ```
 ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│   Ingestion      │     │   API Service    │     │   Frontend       │
-│   (Node.js)      │     │   (Express)      │     │   (React)        │
+│   Ingestion      │     │   API Service    │     │   Python ML      │
+│   (Node.js)      │     │   (Express)      │     │   (FastAPI)      │
 │                  │     │                  │     │                  │
-│ • SNC Scraping   │     │ • /auth/* ✅     │     │ 🔲 Scaffolded    │
-│ • Greenhouse ✅  │     │ • /jobs ✅       │     │                  │
+│ • SNC Scraping   │     │ • /auth/* ✅     │     │ • /health ✅     │
+│ • Greenhouse ✅  │     │ • /jobs ✅       │     │ • /api/embed ✅  │
 │ • Comeet ✅      │     │ • /match ✅      │     │                  │
-│ • Embeddings ✅  │     │ • /profile ✅    │     │                  │
-│                  │     │ • /favorites ✅  │     │                  │
-└────────┬─────────┘     └────────┬─────────┘     └──────────────────┘
-         │                        │
-         │         ┌──────────────┴──────────────┐
-         │         │                             │
-         ▼         ▼                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│  PostgreSQL + pgvector (Railway)                            │
-│                                                             │
-│  Tables: companies, job_sources, jobs, job_embeddings,      │
-│          users, favorites, auth tokens, rate_limits         │
-└─────────────────────────────────────────────────────────────┘
+│ • Embeddings ✅  │     │ • /profile ✅    │     │ BGE-base-en-v1.5 │
+│                  │     │ • /favorites ✅  │     │ 768 dimensions   │
+└────────┬─────────┘     └────────┬─────────┘     └────────┬─────────┘
+         │                        │                        │
+         └────────────────────────┼────────────────────────┘
+                                  ▼
+                  ┌───────────────────────────────┐
+                  │  PostgreSQL + pgvector        │
+                  │  Railway                      │
+                  └───────────────────────────────┘
 ```
 
 ---
@@ -59,28 +57,13 @@ ApplyLess automatically ingests job postings from company career pages and ATS s
 apply-less/
 ├── packages/
 │   ├── ingestion/          # Job scraping & ingestion
-│   │   └── src/
-│   │       ├── cli.ts      # CLI entry point
-│   │       ├── stages/     # Ingestion stages
-│   │       ├── clients/    # API clients
-│   │       └── services/   # Database services
-│   │
 │   ├── api/                # Express API ✅
-│   │   └── src/
-│   │       ├── routes/     # auth, jobs, match, profile, favorites
-│   │       ├── services/   # Business logic
-│   │       ├── middleware/ # JWT auth
-│   │       └── index.ts    # Server entry
-│   │
-│   ├── web/                # React frontend (scaffolded)
-│   └── ml-service/         # Python ML service (scaffolded)
+│   ├── ml-service/         # Python ML service ✅
+│   └── web/                # React frontend (scaffolded)
 │
-├── db/
-│   └── migrations/         # SQL migrations (001-009)
-│
+├── db/migrations/          # SQL migrations (001-009)
 ├── docs/                   # Documentation
-├── scripts/                # Utility scripts
-└── docker-compose.yml      # Local development (optional)
+└── scripts/                # Utility scripts
 ```
 
 ---
@@ -90,6 +73,7 @@ apply-less/
 ### Prerequisites
 
 - Node.js 20+
+- Python 3.11+
 - npm
 
 ### Setup
@@ -111,26 +95,27 @@ npm run db:migrate
 
 # Start API server
 npm run dev:api
+
+# Start ML service (separate terminal)
+cd packages/ml-service
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python main.py
 ```
 
-### Test the API
+### Test the APIs
 
 ```bash
-# Health check
+# Node.js API
 curl http://localhost:3001/health
-
-# Get jobs
 curl http://localhost:3001/api/jobs
 
-# Register
-curl -X POST http://localhost:3001/api/auth/register \
+# Python ML Service
+curl http://localhost:8000/health
+curl -X POST http://localhost:8000/api/embed/single \
   -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "password": "SecurePass1!"}'
-
-# Login (after email verification)
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@example.com", "password": "SecurePass1!"}'
+  -d '{"text": "Python developer", "text_type": "query"}'
 ```
 
 ---
@@ -171,10 +156,11 @@ npm run start --workspace=packages/ingestion -- embeddings # Generate embeddings
 - [x] Match API (vector similarity)
 - [x] Profile API (save/retrieve)
 - [x] Favorites API (CRUD)
+- [x] Python ML service (local embeddings)
 
 ### ⏳ Planned
 
-- [ ] Python ML service (local embeddings)
+- [ ] More job ingestion (2000+ target)
 - [ ] CV generation
 - [ ] React frontend
 - [ ] Production deployment
@@ -197,13 +183,14 @@ npm run start --workspace=packages/ingestion -- embeddings # Generate embeddings
 - JWT + bcrypt (auth)
 - Resend (email)
 
+**ML Service:**
+- Python + FastAPI
+- sentence-transformers
+- BGE-base-en-v1.5 (768d embeddings)
+
 **Frontend (planned):**
 - React + Vite
 - TailwindCSS
-
-**ML (planned):**
-- Python + FastAPI
-- Sentence Transformers
 
 **Infrastructure:**
 - Railway (hosting)
