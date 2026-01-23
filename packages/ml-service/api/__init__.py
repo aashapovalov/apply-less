@@ -8,5 +8,6 @@ Exports:
 """
 
 from .health import router as health_router
+from .embed import router as embed_router
 
-__all__ = ["health_router"]
+__all__ = ["health_router", "embed_router"]
