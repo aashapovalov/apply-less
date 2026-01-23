@@ -78,6 +78,88 @@ class EmbeddingService:
         print(f"✅ Model loaded in {self._load_time:.2f}s")
         print(f"   Embedding dimension: {self.embedding_dim}")
 
+    def embed(
+        self,
+        texts: list[str],
+        normalize: bool = True,
+        text_type: str = "passage",
+        ) -> list[list[float]]:
+        """
+                Generate embeddings for a list of texts.
+
+                Takes a list of text strings and returns their vector representations.
+                Each text is converted to a fixed-size vector (768 dimensions for BGE-base)
+                that captures its semantic meaning.
+
+                Args:
+                    texts: List of texts to embed. Each text can be a word, sentence,
+                        paragraph, or document.
+                    normalize: Whether to L2-normalize embeddings. Defaults to True.
+                    text_type: Type of text being embedded. Affects prefix used.
+
+                Returns:
+                    List of embedding vectors. Each vector is a list of floats
+                    with length equal to embedding_dim.
+
+                Raises:
+                    RuntimeError: If model is not loaded.
+                    ValueError: If text_type is not "query" or "passage".
+        """
+        if self.model is None:
+            raise RuntimeError("Model not loaded. Call load_model() first.")
+
+        if not texts:
+            return []
+
+        if text_type not in ["query", "passage"]:
+            raise ValueError(f"text_type must be 'query' or 'passage', not {text_type}")
+
+        # Add prefix for queries (improves BGE retrieval quality)
+        prefix = QUERY_PREFIX if text_type == "query" else PASSAGE_PREFIX
+        if prefix:
+            texts = [prefix + text for text in texts]
+
+        # Generate embeddings using sentence-transformers
+        # - normalize_embeddings: L2-normalize for cosine similarity
+        # - show_progress_bar: only show for large bathes to avoid clutter
+        embeddings = self.model.encode(
+            texts,
+            normalize_embeddings=normalize,
+            show_progress_bar=True,
+        )
+
+        # Convert numpy arrays to Python lists for JSON serialization
+        # FastAPI/Pydantic can't serialize numpy arrays directly
+        if isinstance(embeddings, np.ndarray):
+            return embeddings.tolist()
+
+        return [emb.tolist() for emb in embeddings]
+
+    def embed_single(
+        self,
+        text: str,
+        normalize: bool = True,
+        text_type: str = "passage",
+    ) -> list[float]:
+
+        """
+        Generate embedding for a single text.
+
+        Convenience method for embedding a single text string.
+        Equivalent to embed([text], text_type=text_type)[0].
+
+        Args:
+            text: The text to embed. Can be a word, sentence, paragraph, or document.
+            normalize: Whether to L2-normalize the embedding. Defaults to True.
+            text_type: Type of text being embedded.
+
+        Returns:
+            Embedding vector as a list of floats with 768 dimensions (for BGE-base).
+            Returns empty list if input text is empty.
+            """
+        embeddings = self.embed([text], normalize=normalize, text_type=text_type)
+        return embeddings[0] if embeddings else []
+
     @property
     def is_loaded(self) -> bool:
         return self.model is not None
