@@ -45,6 +45,7 @@ venv/
 ENV/
 pip-wheel-metadata/
 .python-version
+model_cache/
 
 # ===============================
 # Jupyter / ML
