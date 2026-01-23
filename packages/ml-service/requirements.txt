@@ -2,5 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
-requests
 python-dotenv
+sentence-transformers
+torch
+numpy
