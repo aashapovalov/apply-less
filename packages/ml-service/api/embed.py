@@ -144,10 +144,10 @@ async def embed_texts(request: Request, body: EmbedRequest) -> EmbedResponse:
         HTTPException 503: If model is not loaded (service starting up).
     """
     # Get embedding service from app state
-    embeddings_service = request.app.state.embeddings_service
+    embedding_service = request.app.state.embedding_service
 
     # Check if model is loaded (may not be during start up)
-    if not embeddings_service.is_loaded:
+    if not embedding_service.is_loaded:
         raise HTTPException(
             status_code=503,
             detail="Model not loaded. Service is starting up",
@@ -155,7 +155,7 @@ async def embed_texts(request: Request, body: EmbedRequest) -> EmbedResponse:
 
     # Generate embeddings and measure time
     start_time = time.time()
-    embeddings = embeddings_service.embed(
+    embeddings = embedding_service.embed(
         body.texts,
         normalize=body.normalize,
         text_type=body.text_type,
@@ -164,8 +164,8 @@ async def embed_texts(request: Request, body: EmbedRequest) -> EmbedResponse:
 
     return EmbedResponse(
         embeddings=embeddings,
-        model=embeddings_service.model_name,
-        dimension=embeddings_service.embedding_dim,
+        model=embedding_service.model_name,
+        dimension=embedding_service.embedding_dim,
         count=len(embeddings),
         time_ms=elapsed_time,
     )
@@ -194,10 +194,10 @@ async def embed_single_text(request: Request, body: EmbedSingleRequest) -> Embed
         HTTPException 503: If model is not loaded.
     """
     # Get embedding service from app state
-    embeddings_service = request.app.state.embeddings_service
+    embedding_service = request.app.state.embedding_service
 
     # Check if model is loaded
-    if not embeddings_service.is_loaded:
+    if not embedding_service.is_loaded:
         raise HTTPException(
             status_code=503,
             detail="Model not loaded. Service is starting up",
@@ -205,7 +205,7 @@ async def embed_single_text(request: Request, body: EmbedSingleRequest) -> Embed
 
     # Generate embedding and measure time
     start_time = time.time()
-    embedding = embeddings_service.embed_single(
+    embedding = embedding_service.embed_single(
         body.text,
         normalize=body.normalize,
         text_type=body.text_type,
@@ -214,8 +214,8 @@ async def embed_single_text(request: Request, body: EmbedSingleRequest) -> Embed
 
     return EmbedSingleResponse(
         embedding=embedding,
-        model=embeddings_service.model_name,
-        dimension=embeddings_service.embedding_dim,
+        model=embedding_service.model_name,
+        dimension=embedding_service.embedding_dim,
         time_ms=elapsed_time,
     )
 
