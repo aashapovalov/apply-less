@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 
 # Path to project root (3 levels higher than this folder)
-PROJECT_ROOT = Path(__file__).resolve().parent[3]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 """
 Application Settings Module defines configuration settings for the 
