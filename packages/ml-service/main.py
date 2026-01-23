@@ -27,6 +27,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from services.embedding_service import EmbeddingService
 from api.health import router as health_router
+from api.embed import router as embed_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -100,6 +101,8 @@ app.add_middleware(
 # Register routers
 # Health check at root level (/health)
 app.include_router(health_router)
+# Embedding endpoints under /api prefix (/api/embed, /api/embed/single)
+app.include_router(embed_router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
