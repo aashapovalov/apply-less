@@ -2,8 +2,11 @@
 // API Docs: https://www.comeet.com/careers-api/2.0/doc
 
 import axios, { AxiosInstance } from "axios";
+import * as cheerio from "cheerio";
 
-import {ComeetJob} from "../types/index.js";
+import type { Page } from "playwright";
+
+import { ComeetJob } from "../types/index.js";
 
 const BASE_URL = "https://www.comeet.com/careers-api/2.0";
 
@@ -21,90 +24,143 @@ export class ComeetClient {
     }
 
     /**
-     * Extract company UID from Comeet URL
-     * Examples:
-     *   https://www.comeet.com/jobs/ai21labs/12.345 -> ai21labs
-     *   https://careers.ai21.com -> need to check page for UID
+     * Fetch positions from API (with optional token)
      */
-    extractUidFromUrl(url: string): string | null {
-        // Direct Comeet URL
-        const comeetMatch = url.match(/comeet\.com\/jobs\/([^/?]+)/);
-        if (comeetMatch) {
-            return comeetMatch[1];
+    async fetchPositions(companyUid: string, token?: string): Promise<ComeetJob[]> {
+        let url = `${BASE_URL}/company/${companyUid}/positions`;
+        if (token) {
+            url += `?token=${token}`;
         }
-
-        // Try to extract from careers subdomain
-        const domainMatch = url.match(/careers\.([^.]+)\./);
-        if (domainMatch) {
-            return domainMatch[1];
-        }
-
-        return null;
-    }
-
-    /**
-     * Fetch all positions for a company
-     */
-    async fetchPositions(companyUid: string): Promise<ComeetJob[]> {
-        const url = `${BASE_URL}/company/${companyUid}/positions`;
 
         try {
-            console.log(`  📥 Fetching Comeet jobs for: ${companyUid}`);
-
+            console.log(`  📥 Fetching Comeet API: ${companyUid}`);
             const response = await this.httpClient.get(url);
 
-            if (response.data && response.data.positions) {
-                console.log(`  ✅ Found ${response.data.positions.length} jobs`);
-                return response.data.positions;
-            }
-
-            return [];
+            const positions = response.data?.positions ||
+                (Array.isArray(response.data)) ? response.data : [];
+            console.log(`  ✅ API returned ${positions.length} jobs`);
+            return positions;
         } catch (error: any) {
             if (error.response?.status === 404) {
-                console.log(`  ⚠️  Company not found: ${companyUid}`);
-                return [];
+                console.log(`  ⚠️  API 404 for: ${companyUid}`);
             }
-            throw new Error(`Failed to fetch Comeet jobs: ${error.message}`);
+            return [];
         }
     }
 
     /**
-     * Test if a company has a Comeet page
+     * Scrape positions from page HTML
      */
-    async testCompany(companyUid: string): Promise<boolean> {
-        try {
-            const positions = await this.fetchPositions(companyUid);
-            return positions.length > 0;
-        } catch (error) {
-            return false;
-        }
+    scrapeFromHTML(html: string, baseUrl: string): ComeetJob[]{
+        const $ = cheerio.load(html);
+        const jobs: ComeetJob[] = [];
+
+        $('.comeet-position').each((_, elem) => {
+            const $elem = $(elem);
+            const name = $elem.find('.comeet-position-name').text().trim();
+            let url = $elem.attr('href') || "";
+
+            // Fix relative URLs
+            if (url.startsWith('//')) {
+                url = 'https:' + url;
+            } else if (url.startsWith('/')) {
+                const base = new URL(baseUrl);
+                url = `${base.origin}${url}`;
+            }
+
+            const location = $elem.find('.comeet-position-meta').text().trim();
+            const uidMatch = url.match(/\/([A-Z0-9]{2,3}\.[A-Z0-9]{3})\//i);
+
+            if (name) {
+                jobs.push({
+                    uid: uidMatch?.[1] || "",
+                    name,
+                    location: { name: location },
+                    department: { name: ""},
+                    description: "",
+                    url_active_page: url,
+                    url_comeet_page: url,
+                    time_updated: new Date().toISOString(),
+                });
+            }
+        });
+
+        return jobs;
     }
 
     /**
-     * Try to find company UID by trying common variations
+     * Scrape positions form iframe content (Pattern2: widget)
      */
-    async findCompanyUid(companyName: string): Promise<string | null> {
-        // Try normalized name (lowercase, no spaces)
-        const normalized = companyName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    async  scrapeFromIFrame(page: Page): Promise<ComeetJob[]> {
+        const jobs: ComeetJob[] = [];
 
-        const variations = [
-            normalized,
-            companyName.toLowerCase().replace(/\s+/g, ''),
-            companyName.toLowerCase().replace(/\s+/g, '-'),
-            companyName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-        ];
+        const frame = page.frames().find(f => f.url().includes('comeet'));
+        if (!frame) return jobs;
 
-        for (const uid of variations) {
-            try {
-                const positions = await this.fetchPositions(uid);
-                if (positions.length > 0) {
-                    console.log(`  ✅ Found UID: ${uid}`);
-                    return uid;
-                }
-            } catch (error) {
-                // Continue trying
+        await frame.waitForTimeout(2000);
+        const frameContent = await frame.content();
+        const $ = cheerio.load(frameContent);
+
+        $('.comeet-position, [class*="position-item"]').each((_, elem) => {
+            const $elem = $(elem);
+            const name = $elem.find('[class*="title"], [class*="name').text().trim() ||
+                $elem.text().substring(100).trim();
+            const location = $elem.find('[class*="location"]').text().trim();
+            const url = $elem.attr('href') || "";
+
+            if (name && name.length > 5) {
+                jobs.push({
+                    uid: "",
+                    name,
+                    location: { name: location },
+                    department: { name: ""},
+                    description: "",
+                    url_active_page: url,
+                    url_comeet_page: url,
+                    time_updated: new Date().toISOString(),
+                });
+            }
+        });
+
+        return jobs;
+    }
+
+    extractCredentialsFromHTML(html: string): { uid?: string; token?: string } {
+        // From comeet.init (company UID with hyphen)
+        let uidMatch = html.match(/"company-uid"\s*:\s*"([^"]+)"/);
+        let tokenMatch = html.match(/"token"\s*:\s*"([^"]+)"/);
+
+        if (uidMatch) {
+            return { uid: uidMatch[1], token: tokenMatch?.[1] }
+        }
+
+        // From comeetvar (comeet_uid with underscore)
+        uidMatch = html.match(/"comeet_uid"\s*:\s*"([^"]+)"/);
+        tokenMatch = html.match(/"comeet_token"\s*:\s*"([^"]+)"/);
+
+        if (uidMatch) {
+            return { uid: uidMatch[1], token: tokenMatch?.[1] };
+        }
+
+        // From iframe src
+        const iframeSrcMatch = html.match(/iframe[^>]*src=["']([^"']*comeet\.co[^"']*)["']/i);
+        if (iframeSrcMatch) {
+            const src = iframeSrcMatch[1];
+            const pathUid = src.match(/\/jobs\/([^/?]+)/);
+            const paramToken = src.match(/token=([^&]+)/);
+            if (pathUid) {
+                return { uid: pathUid[1], token: paramToken?.[1] };
             }
         }
-        return null;
+
+        return {};
+    }
+
+    /**
+     * Extract UID from URL
+     */
+    extractUidFromUrl(url: string): string | null {
+        const match = url.match(/comeet\.co?m?\/jobs\/([^/?]+)/);
+        return match ? match[1] : null;
     }
 }
