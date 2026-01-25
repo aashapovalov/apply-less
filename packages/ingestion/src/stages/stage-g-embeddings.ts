@@ -1,7 +1,7 @@
 import {Pool} from "pg";
-import {IngestionStats, JobForEmbedding} from "../types/index.js";
-import {HuggingFaceClient} from "../clients/index.js";
-import {prepareJobText} from "../utils/prepare-job-text.js";
+import { IngestionStats, JobForEmbedding } from "../types/index.js";
+import { EmbeddingClient } from "../clients/index.js";
+import { prepareJobText } from "../utils/prepare-job-text.js";
 
 export interface StageGOptions {
     dryRun?: boolean;
@@ -35,7 +35,7 @@ export async function runStageG(
         errors: [],
     };
 
-    let hfClient: HuggingFaceClient;
+    let hfClient: EmbeddingClient;
 
     try {
         console.log("\n🚀 Starting Stage G: Embeddings Generation");
@@ -48,7 +48,7 @@ export async function runStageG(
 
         // Initialize HuggingFace client
         if (!dryRun) {
-            hfClient = new HuggingFaceClient();
+            hfClient = new EmbeddingClient();
             const connected = await hfClient.testConnection();
             if (!connected) {
                 throw new Error("Failed to connect to HuggingFace API");

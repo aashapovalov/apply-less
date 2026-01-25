@@ -153,12 +153,28 @@ export interface Job {
     updated_at?: Date;
 }
 
+// Embeddings
 export interface JobForEmbedding {
     id: number;
     title: string;
     description: string;
     company_name: string;
     location: string;
+}
+
+export interface EmbedResponse {
+    embeddings: number[][];
+    model: string;
+    dimension: number;
+    count: number;
+    time_ms: number;
+}
+
+export interface EmbedSingleResponse {
+    embedding: number[];
+    model: string;
+    dimension: number;
+    time_ms: number;
 }
 
 // Types for ATS detection
