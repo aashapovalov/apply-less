@@ -23,11 +23,15 @@ program
 // Define the "snc" subcommand
 program
     .command('snc')                             // Usage: applyless-ingest snc
-    .description('Run Stage A: Scrape companies fron SNC Finder')
+    .description('Run Stage A: Scrape companies from SNC Finder')
     .option('-p, --max-pages <number>', 'Maximum pages to scrape', '200')
+    .option('-s, --start-page <number>', 'Start from page number (for resuming)', '1')
     .option('--dry-run', 'Preview without writing to database', false)
-    .option('-d, --delay <ms>', 'Delay between pages in milliseconds', '2000')
-    .action(async (options) => {          // Command execution handler
+    .option('-d, --delay <ms>', 'Delay between pages in milliseconds', '90000')
+    .option('--company-delay <ms>', 'Delay between company detail fetches', '25000')
+    .option('--skip-recent <days>', 'Skip companies updated within N days', '30')
+    .option('--no-details', 'Skip fetching company details')
+    .action(async (options) => {
         console.log('\n🚀 ApplyLess Ingestion: Stage A (SNC)\n');
 
         // Open database connection once for the entire stage
@@ -37,8 +41,12 @@ program
             // Run Stage A with parsed and normalized options
             const stats = await runStageA(db, {
                 maxPages: parseInt(options.maxPages),
+                startPage: parseInt(options.startPage),
                 dryRun: options.dryRun,
                 delayMs: parseInt(options.delay),
+                companyDelayMs: parseInt(options.companyDelay),
+                skipRecentDays: parseInt(options.skipRecent),
+                fetchDetails: options.details, // --no-details sets this to false
             });
 
             // Mark process as failed if there were partial or hard errors
