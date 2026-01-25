@@ -3,11 +3,11 @@ import { Pool } from "pg";
 import { IngestionStats } from "../types/index.js";
 import { ComeetClient } from "../clients/index.js";
 import { JobService } from "../services/index.js";
-import {normalizeText} from "../utils/index.js";
+import { normalizeText } from "../utils/index.js";
 
 export interface StageEOptions {
-    dryRun?: boolean;       // Run without writing to DB
-    companyUid?: string;   // Optional, test single company
+    dryRun?: boolean;
+    companyUid?: string;   // Optional, test single company by name
 }
 
 /**
@@ -22,7 +22,6 @@ export async function runStageE(
         companyUid = undefined
     } = options;
 
-    // Define stage metadata
     const stats: IngestionStats = {
         stage: "Stage E: Comeet jobs",
         startTime: new Date(),
@@ -43,22 +42,26 @@ export async function runStageE(
         console.log(`Dry run: ${dryRun}`);
         console.log(`Single company: ${companyUid || 'All'}\n`);
 
-        //Get companies with Comeet job sources from DB
+        // Get companies with Comeet job sources from DB
+        // Includes ats_identifier (the Comeet UID) and api_token from job_sources
         let companies;
 
         if (companyUid) {
-            // Test single company by UID
+            // Test single company by name
             companies = await db.query(
-                `SELECT c.id, c.company_name, c.careers_page_url, c.normalized_name
-                FROM companies c
-                WHERE c.company_name = $1 OR c.normalized_name = $1
-                LIMIT 1`,
-                [companyUid]
+                `SELECT c.id, c.company_name, c.careers_page_url, c.normalized_name,
+                        js.ats_identifier, js.api_token
+                 FROM companies c
+                 LEFT JOIN job_sources js ON c.id = js.company_id AND js.source_type = 'comeet'
+                 WHERE c.company_name ILIKE $1 OR c.normalized_name ILIKE $1
+                 LIMIT 1`,
+                [`%${companyUid}%`]
             );
         } else {
-            // Get all Comeet companies
+            // Get all Comeet companies with their detected UIDs
             companies = await db.query(
-                `SELECT DISTINCT c.id, c.company_name, c.careers_page_url, c.normalized_name
+                `SELECT DISTINCT c.id, c.company_name, c.careers_page_url, c.normalized_name,
+                        js.ats_identifier, js.api_token
                  FROM companies c
                  JOIN job_sources js ON c.id = js.company_id
                  WHERE js.source_type = 'comeet'
@@ -68,8 +71,8 @@ export async function runStageE(
         }
 
         if (companies.rows.length === 0) {
-            console.log('⚠️  No  companies found');
-            console.log('Run ATS detection first or specify a company slug\n');
+            console.log('⚠️  No Comeet companies found');
+            console.log('Run ATS detection first: npm run start --workspace=packages/ingestion -- detect\n');
             return stats;
         }
 
@@ -80,29 +83,23 @@ export async function runStageE(
             try {
                 console.log(`\n🏢 Processing: ${company.company_name}`);
 
-                // Try to extract uid from careers URL or use normalized name
-                let uid = companyUid;
-
-                if (!uid && company.career_page_url) {
-                    uid = comeetClient.extractUidFromUrl(company.careers_page_url) ?? undefined;
-                }
-
-                // If no UID, try to find it by company name
-                if (!uid) {
-                    console.log(`  🔍 Searching for Comeet UID...`);
-                    uid = await comeetClient.findCompanyUid(company.company_name) ?? undefined;
-                }
+                // Use the detected UID from job_sources
+                const uid = company.ats_identifier;
+                const token = company.api_token;
 
                 if (!uid) {
-                    console.log(`  ⚠️  Could not determine Comeet UID, skipping`);
+                    console.log(`  ⚠️  No Comeet UID saved, run detection first. Skipping.`);
                     stats.skippedRecords++;
                     continue;
                 }
 
-                console.log(`  🔍 Using UID: ${uid}`);
+                console.log(`  🔑 Using UID: ${uid}`);
+                if (token) {
+                    console.log(`  🔑 Using token: ${token.substring(0, 15)}...`);
+                }
 
-                // Fetch jobs from Comeet
-                const positions = await comeetClient.fetchPositions(uid);
+                // Fetch jobs from Comeet API
+                const positions = await comeetClient.fetchPositions(uid, token);
 
                 if (positions.length === 0) {
                     console.log(`  ⚠️  No jobs found`);
@@ -110,20 +107,21 @@ export async function runStageE(
                     continue;
                 }
 
-                stats.totalProcessed+= positions.length;
+                console.log(`  📋 Found ${positions.length} positions`);
+                stats.totalProcessed += positions.length;
 
-                //Process each job
+                // Process each job
                 for (const position of positions) {
                     try {
                         if (dryRun) {
-                            console.log(`    [DRY RUN] Would insert: ${position.name} - ${position.location.name}`);
+                            console.log(`    [DRY RUN] ${position.name} - ${position.location?.name || 'No location'}`);
                             continue;
                         }
 
                         // Extract location
-                        const location = position.location.city
+                        const location = position.location?.city
                             ? `${position.location.city}, ${position.location.country || ''}`
-                            : position.location.name;
+                            : position.location?.name || '';
 
                         // Create job object
                         const job = {
@@ -133,12 +131,12 @@ export async function runStageE(
                             location: location.trim(),
                             department: position.department?.name,
                             employment_type: position.employment_type,
-                            description: position.description,
+                            description: position.description || '',
                             requirements: position.requirements,
                             benefits: undefined,
                             canonical_url: position.url_active_page || position.url_comeet_page,
-                            external_id: `comeet${position.uid}`,
-                            posted_date: new Date(position.time_updated),
+                            external_id: `comeet_${position.uid}`,
+                            posted_date: position.time_updated ? new Date(position.time_updated) : undefined,
                             status: "active" as const
                         };
 
@@ -154,7 +152,7 @@ export async function runStageE(
                         }
 
                         // Small delay to be polite
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                        await new Promise(resolve => setTimeout(resolve, 100));
 
                     } catch (jobError: any) {
                         stats.failedRecords++;
@@ -167,7 +165,7 @@ export async function runStageE(
                 }
 
                 // Delay between companies
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                await new Promise(resolve => setTimeout(resolve, 1000));
 
             } catch (companyError: any) {
                 stats.errors.push({
@@ -179,7 +177,7 @@ export async function runStageE(
         }
 
         stats.endTime = new Date();
-        const durationSec = ((stats.endTime.getTime() - stats.endTime.getTime()) / 1000).toFixed(2);
+        const durationSec = ((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2);
 
         // Print summary
         console.log('\n' + '='.repeat(60));
@@ -191,7 +189,6 @@ export async function runStageE(
         console.log(`Updated jobs: ${stats.updatedRecords}`);
         console.log(`Skipped: ${stats.skippedRecords}`);
         console.log(`Failed: ${stats.failedRecords}`);
-        console.log(`Errors: ${stats.errors.length}`);
         console.log(`Duration: ${durationSec}s`);
         console.log('='.repeat(60) + '\n');
 
@@ -210,7 +207,7 @@ export async function runStageE(
     } catch (error: any) {
         stats.endTime = new Date();
         stats.errors.push({
-            message: 'Fatal error in Stage D',
+            message: 'Fatal error in Stage E',
             details: error.message,
         });
         console.error('\n❌ Fatal error:', error.message);
