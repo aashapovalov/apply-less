@@ -15,6 +15,7 @@
     "ingest:schedule": "npm run schedule --workspace=packages/ingestion",
     "ingest:snc": "npm run start --workspace=packages/ingestion -- snc",
     "ingest:snc:dry": "npm run start --workspace=packages/ingestion -- snc --dry-run --max-pages=3",
+    "ingest:detect": "npm run start --workspace=packages/ingestion -- detect",
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed-profile.js",
     "build": "npm run build --workspaces",
