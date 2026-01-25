@@ -17,6 +17,7 @@ export class JobService {
 
     /**
      * Upsert a job (create or update)
+     * First checks by external_id (most reliable), then falls back to title+location+url
      */
     async upsertJob(job: Omit<Job, "id" | "created_at" | "updated_at">): Promise<{ id: number, isNew: boolean }> {
         const now = new Date();
@@ -26,16 +27,28 @@ export class JobService {
         const normalizedLocation = job.location ? this.normalize(job.location) : null;
 
         try {
-            // Check if job exists by company + title + location + canonical_url
-            const existing  = await this.db.query(
-                `SELECT id FROM jobs
-                                WHERE company_id = $1
-                                AND normalized_title = $2
-                                AND normalized_location IS NOT DISTINCT FROM $3
-                                AND canonical_url = $4
-                                LIMIT 1`,
-                [job.company_id, normalizedTitle, normalizedLocation, job.canonical_url],
-            );
+            // First, check by external_id (most reliable for ATS jobs)
+            let existing = null;
+            if (job.external_id) {
+                existing = await this.db.query(
+                    `SELECT id FROM jobs
+                     WHERE external_id = $1
+                     LIMIT 1`,
+                    [job.external_id]
+                );
+            }
+
+            // Fallback: check by company + title + location
+            if (!existing || existing.rows.length === 0) {
+                existing = await this.db.query(
+                    `SELECT id FROM jobs
+                     WHERE company_id = $1
+                     AND normalized_title = $2
+                     AND normalized_location IS NOT DISTINCT FROM $3
+                     LIMIT 1`,
+                    [job.company_id, normalizedTitle, normalizedLocation]
+                );
+            }
 
             if (existing.rows.length > 0) {
                 //update existing job
@@ -46,15 +59,17 @@ export class JobService {
                     SET last_seen_at = $1,
                     updated_at = $1,
                     status = $2,
-                    description = COALESCE($3, description),
-                    requirements = COALESCE($4, requirements),
-                    benefits = COALESCE($5, benefits),
-                    employment_type = COALESCE($6, employment_type),
-                    department = COALESCE($7, department)
-                    WHERE id = $8`,
+                    canonical_url = COALESCE($3, canonical_url),
+                    description = COALESCE($4, description),
+                    requirements = COALESCE($5, requirements),
+                    benefits = COALESCE($6, benefits),
+                    employment_type = COALESCE($7, employment_type),
+                    department = COALESCE($8, department)
+                    WHERE id = $9`,
                     [
                         now,
                         job.status || "active",
+                        job.canonical_url,
                         job.description,
                         job.requirements,
                         job.benefits,
