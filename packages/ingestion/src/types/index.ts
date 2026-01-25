@@ -159,3 +159,25 @@ export interface JobForEmbedding {
     location: string;
 }
 
+// Types for ATS detection
+export type ATSType =
+    | 'greenhouse' | 'lever' | 'workable' | 'comeet'
+    | 'ashby' | 'bamboohr' | 'careers_html' | 'unknown';
+
+export interface ATSDetectionResult {
+    atsType: ATSType;
+    confidence: number;             //  0-1
+    detectionMethod: string;
+    extractedSlug?: string;         // greenhouse slug or comeet UID
+    extractedToken?: string;        // for Comeet widget pattern
+    careersUrl: string;
+}
+
+export interface ATSPattern {
+    type: ATSType;
+    urlPatterns?: RegExp[];
+    htmlPatterns?: RegExp[];
+    selectors?: string[];
+    scriptPatterns?: RegExp[];
+    slugExtractor?: (html: string, url: string) => { slug?: string, token?: string } | null;
+}
