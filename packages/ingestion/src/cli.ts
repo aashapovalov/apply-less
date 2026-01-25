@@ -5,7 +5,7 @@ import { Command } from "commander";
 
 import { closeDb, getDb } from "./config/db.js";
 import {
-    runStageA,
+    runStageA, runStageB,
     runStageD,
     runStageE, runStageG
 } from "./stages/index.js";
@@ -56,6 +56,43 @@ program
             await closeDb();
         }
     });
+
+// Stage B: ATS Detection
+program
+    .command('detect')
+    .description('Run Stage B: Detect ATS (Greenhouse/Comeet/etc) from careers pages')
+    .option('--dry-run', 'Preview without writing to database', false)
+    .option('-l, --limit <number>', 'Limit number of companies')
+    .option('-c, --company <name>', 'Test single company by name')
+    .option('-f, --force', 'Re-detect even if job_source exists', false)
+    .action(async (options) => {
+        console.log('\n🚀 ApplyLess Ingestion: Stage B (ATS Detection)\n');
+
+        const db = getDb();
+
+        try {
+            const stats = await runStageB(db, {
+                dryRun: options.dryRun,
+                limit: options.limit ? parseInt(options.limit) : undefined,
+                companyName: options.company,
+                force: options.force,
+            });
+
+            // Mark process as failed if there were partial or hard errors
+            if (stats.failedRecords > 0 || stats.errors.length > 0) {
+                console.log('⚠️  Completed with errors\n');
+                process.exitCode = 1;
+            } else {
+                console.log('✅ Completed successfully\n');
+            }
+        } catch (error: any) {
+            console.error('❌ Fatal error:', error.message);
+            process.exitCode = 1;
+        } finally {
+            // Always close DB connection to avoid hanging process
+            await closeDb();
+        }
+    })
 
 // Stage D: Greenhouse Jobs
 program
