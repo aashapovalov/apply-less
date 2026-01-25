@@ -15,7 +15,15 @@
 │                 │     │ • /favorites ✅ │     │ BGE-base-en-v1.5│
 └────────┬────────┘     └────────┬────────┘     └────────┬────────┘
          │                       │                       │
-         └───────────┬───────────┴───────────────────────┘
+         │                       │    ┌──────────────────┘
+         │                       │    │
+         │                       ▼    ▼
+         │              ┌─────────────────┐
+         │              │  ML Service     │
+         │              │  (embeddings)   │
+         │              └────────┬────────┘
+         │                       │
+         └───────────┬───────────┘
                      ▼
          ┌─────────────────────────┐
          │  PostgreSQL + pgvector  │
@@ -35,6 +43,40 @@
          │        Resend           │
          │      (Email API)        │
          └─────────────────────────┘
+```
+
+---
+
+## Data Flow
+
+### Embedding Generation (Ingestion → ML Service → DB)
+```
+Ingestion CLI → embedding-client.ts → POST /api/embed → ML Service
+                                                            │
+                                                            ▼
+                                                     BGE-base-en-v1.5
+                                                            │
+                                                            ▼
+                                                     768d vectors
+                                                            │
+                     ┌──────────────────────────────────────┘
+                     ▼
+              job_embeddings_simple table
+```
+
+### Profile Matching (API → ML Service → DB)
+```
+User profile text → POST /api/match → match-service.ts → ML Service
+                                                             │
+                                                             ▼
+                                                      768d query vector
+                                                             │
+                     ┌───────────────────────────────────────┘
+                     ▼
+              pgvector cosine similarity search
+                     │
+                     ▼
+              Ranked job results
 ```
 
 ---

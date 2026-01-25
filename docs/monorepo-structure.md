@@ -19,7 +19,7 @@ apply-less/
 │   │   └── src/
 │   │       ├── index.ts              # Express server entry
 │   │       ├── clients/
-│   │       │   └── hugging-face-client.ts   # HF API for embeddings
+│   │       │   └── hugging-face-client.ts # HF API for embeddings
 │   │       ├── config/
 │   │       │   └── db.ts             # PostgreSQL connection pool
 │   │       ├── global/
@@ -55,12 +55,13 @@ apply-less/
 │   │   ├── .env
 │   │   └── src/
 │   │       ├── cli.ts                # Commander CLI entry
+│   │       ├── test-embedding.ts     # ML service connection test
 │   │       ├── clients/
 │   │       │   ├── index.ts
 │   │       │   ├── snc-client-playwright.ts
 │   │       │   ├── greenhouse-client.ts
 │   │       │   ├── comeet-client.ts
-│   │       │   ├── hugging-face-client.ts
+│   │       │   ├── embedding-client.ts  # ML service client
 │   │       │   └── playwright-client.ts
 │   │       ├── config/
 │   │       │   └── db.ts

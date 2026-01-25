@@ -3,10 +3,10 @@
 ## Timeline Overview
 
 **Demo Day: February 3, 2026**
-**Today: January 22, 2026**
-**Days remaining: 12 days**
+**Today: January 25, 2026**
+**Days remaining: 9 days**
 **Video prep buffer: 2 days (Feb 1-2)**
-**Working days for development: 10 days**
+**Working days for development: 7 days**
 
 ---
 
@@ -20,7 +20,7 @@ Build a job matching platform that:
 
 ---
 
-## Current Status (Jan 22)
+## Current Status (Jan 25)
 
 ### ✅ Completed
 
@@ -135,7 +135,7 @@ Build a job matching platform that:
 - [x] Implement POST /api/embed/single endpoint
 - [x] Query prefixes (text_type: query/passage)
 - [x] Dockerfile + Railway deployment config
-- [ ] Connect Node.js API to Python ML service (optional)
+- [x] Connect Node.js API to Python ML service
 
 ---
 
