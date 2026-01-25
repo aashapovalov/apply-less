@@ -51,6 +51,8 @@ export interface JobSource {
     company_id: number;
     source_type: "careers_html" | "greenhouse" | "lever" | "workable";
     base_url: string;
+    ats_identifier?: string;
+    api_token?: string;
     detection_method?: string;
     confidence?: number;
     last_checked_at?: Date;
