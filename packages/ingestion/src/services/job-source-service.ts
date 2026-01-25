@@ -1,67 +1,55 @@
 import { Pool } from "pg";
-import {JobSource} from "../types/index.js";
+import { JobSource } from "../types/index.js";
 
 export class JobSourceService {
     constructor(private db: Pool) {}
 
     /**
      *  Create or update a job source
-      */
+     */
     async upsertJobSource(jobSource: Omit<JobSource, "id" | "created_at">): Promise<{ id: number, isNew: boolean }> {
         const now = new Date();
 
         try {
-            // Check if job source already exists
-            const existing = await this.db.query(
-                `SELECT id FROM job_sources 
-                                  WHERE company_id = $1
-                                  AND source_type = $2
-                                  AND base_url = $3
-                                  LIMIT 1`,
-                [jobSource.company_id, jobSource.source_type, jobSource.base_url]
+            // Use ON CONFLICT to handle upsert properly
+            const result = await this.db.query(
+                `INSERT INTO job_sources (
+                     company_id,
+                     source_type,
+                     base_url,
+                     ats_identifier,
+                     api_token,
+                     detection_method,
+                     confidence,
+                     status,
+                     last_checked_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ON CONFLICT (company_id, source_type, base_url) 
+                DO UPDATE SET
+                    ats_identifier = COALESCE(EXCLUDED.ats_identifier, job_sources.ats_identifier),
+                    api_token = COALESCE(EXCLUDED.api_token, job_sources.api_token),
+                    detection_method = COALESCE(EXCLUDED.detection_method, job_sources.detection_method),
+                    confidence = COALESCE(EXCLUDED.confidence, job_sources.confidence),
+                    status = COALESCE(EXCLUDED.status, job_sources.status),
+                    last_checked_at = $9
+                RETURNING id, (xmax = 0) as is_new`,
+                [
+                    jobSource.company_id,
+                    jobSource.source_type,
+                    jobSource.base_url,
+                    jobSource.ats_identifier || null,
+                    jobSource.api_token || null,
+                    jobSource.detection_method || null,
+                    jobSource.confidence || null,
+                    jobSource.status || "active",
+                    now
+                ]
             );
 
-            if (existing.rows.length > 0) {
-                // Update existing job source
-                const id = existing.rows[0].id;
-
-                await this.db.query(
-                    `UPDATE job_sources 
-                    SET last_checked_at = $1,
-                        status = COALESCE($2, status),
-                        confidence = COALESCE($3, confidence),
-                        detection_method = COALESCE($4, detection_method)
-                        WHERE id = $5`,
-                    [now, jobSource.status, jobSource.confidence, jobSource.detection_method, id]
-                );
-
-                return { id, isNew: false };
-            } else {
-                //Insert new job source
-                const result = await this.db.query(
-                    `INSERT INTO job_sources (
-                         company_id,
-                         source_type,
-                         base_url,
-                         detection_method,
-                         confidence,
-                         status,
-                         last_checked_at
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-                    RETURNING id`,
-                    [
-                        jobSource.company_id,
-                        jobSource.source_type,
-                        jobSource.base_url,
-                        jobSource.detection_method || null,
-                        jobSource.confidence || null,
-                        jobSource.status || "active",
-                        jobSource.last_checked_at || now
-                    ]
-                );
-
-                return { id: result.rows[0].id, isNew: true };
-            }
+            return { 
+                id: result.rows[0].id, 
+                isNew: result.rows[0].is_new 
+            };
         } catch (error: any) {
             console.error("❌ Database Error (JobSource):", error.message);
             throw error;
