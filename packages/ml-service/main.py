@@ -26,8 +26,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from services.embedding_service import EmbeddingService
+from services.skill_extractor_service import SkillExtractorService
 from api.health import router as health_router
 from api.embed import router as embed_router
+from api.chunk import router as chunk_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -57,8 +59,13 @@ async def lifespan(app: FastAPI):
     embedding_service = EmbeddingService()
     embedding_service.load_model()
 
+    # Load skill extraction model
+    skills_extraction_service = SkillExtractorService()
+    skills_extraction_service.load_model()
+
     # Store in app.state so routes can access it via request.app.state
     app.state.embedding_service = embedding_service
+    app.state.skills_extraction_service = skills_extraction_service
 
     print("✅ ML Service ready!")
 
@@ -103,6 +110,7 @@ app.add_middleware(
 app.include_router(health_router)
 # Embedding endpoints under /api prefix (/api/embed, /api/embed/single)
 app.include_router(embed_router, prefix="/api")
+app.include_router(chunk_router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
