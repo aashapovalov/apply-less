@@ -49,18 +49,21 @@ export async function runStageD(
         let companies;
 
         if (companySlug) {
-            // Test single company
+            // Test single company - look up by ats_identifier OR company name
             companies = await db.query(
-                `SELECT c.id, c.company_name, c.careers_page_url, c.normalized_name
+                `SELECT DISTINCT c.id, c.company_name, c.careers_page_url, c.normalized_name, js.ats_identifier
                 FROM companies c
-                WHERE c.company_name = $1 OR c.normalized_name = $1
+                JOIN job_sources js ON c.id = js.company_id
+                WHERE js.source_type = 'greenhouse'
+                AND js.status = 'active'
+                AND (js.ats_identifier = $1 OR c.company_name ILIKE $2 OR c.normalized_name = $1)
                 LIMIT 1`,
-                [companySlug]
+                [companySlug, `%${companySlug}%`]
             );
         } else {
             // Get all Greenhouse companies
             companies = await db.query(
-                `SELECT DISTINCT c.id, c.company_name, c.careers_page_url, c.normalized_name
+                `SELECT DISTINCT c.id, c.company_name, c.careers_page_url, c.normalized_name, js.ats_identifier
                  FROM companies c
                  JOIN job_sources js ON c.id = js.company_id
                  WHERE js.source_type = 'greenhouse'
@@ -82,15 +85,24 @@ export async function runStageD(
             try {
                 console.log(`\n🏢 Processing: ${company.company_name}`);
 
-                // Try to extract slug from careers URL
-                let slug = companySlug;
-                if (!slug && company.career_page_url) {
+                // Use ats_identifier from job_sources (most reliable)
+                let slug = company.ats_identifier;
+                
+                // Skip invalid slugs like 'embed'
+                if (slug === 'embed') {
+                    console.log(`  ⚠️  Invalid slug 'embed' - re-run detection for this company`);
+                    stats.skippedRecords++;
+                    continue;
+                }
+                
+                // Fallback: try to extract from careers URL
+                if (!slug && company.careers_page_url) {
                     slug = greenhouseClient.extractSlugFromUrl(company.careers_page_url) ?? undefined;
                 }
 
-                // If no slug, try normalized company name
+                // Fallback: try normalized company name
                 if (!slug) {
-                    slug = company.normalized_name
+                    slug = company.normalized_name;
                 }
 
                 console.log(`  🔍 Using slug: ${slug}`);
