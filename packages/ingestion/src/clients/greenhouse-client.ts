@@ -21,16 +21,23 @@ export class GreenhouseClient {
     }
 
     /**
-     * Extract compeny slug from Greenhouse URL
-     *  * Examples:
-     *      *   https://boards.greenhouse.io/appsflyer -> appsflyer
-     *      *   https://www.appsflyer.com/careers -> try to detect from page
-      */
+     * Extract company slug from Greenhouse URL
+     * Examples:
+     *   https://boards.greenhouse.io/appsflyer -> appsflyer
+     *   https://job-boards.greenhouse.io/similarweb/jobs/123 -> similarweb
+     *   https://www.appsflyer.com/careers -> try to detect from page
+     */
     extractSlugFromUrl(url: string): string | null {
         // Direct Greenhouse board URL
         const boardMatch = url.match(/boards\.greenhouse\.io\/([^/?]+)/);
         if (boardMatch) {
             return boardMatch[1];
+        }
+
+        // job-boards.greenhouse.io pattern (custom career pages)
+        const jobBoardMatch = url.match(/job-boards\.greenhouse\.io\/([^/?]+)/);
+        if (jobBoardMatch) {
+            return jobBoardMatch[1];
         }
 
         // Try embedded board
