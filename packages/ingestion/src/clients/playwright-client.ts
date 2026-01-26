@@ -25,13 +25,13 @@ export class PlaywrightClient {
     /**
      * Launch a new browser (no auth needed)
      */
-    async launch(): Promise<void> {
-        console.log("Launching Playwright browser...");
+    async launch(options?: { headless?: boolean }): Promise<void> {
+        const headless = options?.headless ?? true;
+        console.log(`Launching Playwright browser (headless: ${headless})...`);
         this.browser = await playwright.chromium.launch({
-            headless: true,
+            headless,
         });
         console.log("✅ Browser launched");
-
     }
     /**
      *  Get cookies from the authenticated browser session
