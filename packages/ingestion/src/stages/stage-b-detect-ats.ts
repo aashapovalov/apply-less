@@ -51,7 +51,7 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
         console.log('\n🔍 Starting Stage B: ATS Detection');
         console.log('='.repeat(60));
 
-        await playwrightClient.launch();
+        await playwrightClient.launch({ headless: false });  // Headed mode to avoid bot detection
         const browser = playwrightClient.getBrowser();
         const page = await browser.newPage();
 
