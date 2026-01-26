@@ -74,12 +74,23 @@ export function detectATSFromHTML(html: string, url: string): ATSDetectionResult
  */
 export async function detectATSFromPage(page: Page, url: string): Promise<ATSDetectionResult> {
     try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        await page.waitForTimeout(8000);
+        console.log(`   🔍 Loading page...`);
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        
+        // Wait for JS to render content
+        console.log(`   🔍 Waiting for content...`);
+        await page.waitForTimeout(5000);
+        
+        // Scroll to trigger lazy loading
+        console.log(`   🔍 Scrolling...`);
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(3000);
 
         const html = await page.content();
+        console.log(`   🔍 HTML length: ${html.length}, greenhouse.io found: ${/greenhouse\.io/i.test(html)}`);
         return detectATSFromHTML(html, page.url());
     } catch (error: any) {
+        console.log(`   ❌ Error: ${error.message}`);
         return { atsType: 'unknown', confidence: 0, detectionMethod: `error: ${error.message}`, careersUrl: url };
     }
 }
