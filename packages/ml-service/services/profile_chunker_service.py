@@ -22,7 +22,7 @@ from services.profile_pattern_regex import *
 # dependencies (prevents circular imports and speeds up startup)
 if TYPE_CHECKING:
     from services.embedding_service import EmbeddingService
-    from services.skill_extractor_service import SkillExtractorService
+    from services.skill_extraction_service import SkillExtractorService
 
 
 @dataclass
@@ -67,10 +67,10 @@ class ProfileChunkerService:
     def __init__(
         self,
         embedding_service: "EmbeddingService | None" = None,
-        skill_extractor_service: "SkillExtractorService | None" = None,
+        skill_extraction_service: "SkillExtractorService | None" = None,
     ) -> None:
         self.embedding_service = embedding_service
-        self.skill_extractor_service = skill_extractor_service
+        self.skill_extraction_service = skill_extraction_service
 
     # =========================================================================
     # Main pipeline
