@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     # Model configuration
     embed_model_name: str = "BAAI/bge-base-en-v1.5"
     embed_model_cache_dir: str = "./embed_model_cache"
+    skills_extraction_model_name: str = "feliponi/hirly-ner-multi"
+    skills_extraction_model_cache_dir: str = "./model_cache"
 
     #Server configuration
     host: str = "0.0.0.0"
