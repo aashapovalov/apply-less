@@ -3,80 +3,118 @@
 ## System Overview (Jan 2026)
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Ingestion     │     │   API Service   │     │   Python ML     │
-│   (Node.js)     │     │   (Express)     │     │   (FastAPI)     │
-│                 │     │                 │     │                 │
-│ CLI commands:   │     │ Endpoints:      │     │ Endpoints:      │
-│ • snc ✅        │     │ • /auth/* ✅    │     │ • /health ✅    │
-│ • greenhouse ✅ │     │ • /jobs ✅      │     │ • /api/embed ✅ │
-│ • comeet ✅     │     │ • /match ✅     │     │                 │
-│ • embeddings ✅ │     │ • /profile ✅   │     │ Model:          │
-│                 │     │ • /favorites ✅ │     │ BGE-base-en-v1.5│
-└────────┬────────┘     └────────┬────────┘     └────────┬────────┘
-         │                       │                       │
-         │                       │    ┌──────────────────┘
-         │                       │    │
-         │                       ▼    ▼
-         │              ┌─────────────────┐
-         │              │  ML Service     │
-         │              │  (embeddings)   │
-         │              └────────┬────────┘
-         │                       │
-         └───────────┬───────────┘
-                     ▼
-         ┌─────────────────────────┐
-         │  PostgreSQL + pgvector  │
-         │  Railway                │
-         │                         │
-         │  • companies: 1007      │
-         │  • job_sources: 176     │
-         │  • jobs: 111            │
-         │  • job_embeddings: 111  │
-         │  • users ✅             │
-         │  • auth tokens ✅       │
-         │  • favorites ✅         │
-         └─────────────────────────┘
-                     │
-                     ▼
-         ┌─────────────────────────┐
-         │        Resend           │
-         │      (Email API)        │
-         └─────────────────────────┘
+                                    ┌─────────────────────────────────────┐
+                                    │       Python ML Service             │
+                                    │       (FastAPI + Railway)           │
+                                    │                                     │
+                                    │  ┌─────────────┐ ┌───────────────┐  │
+                                    │  │ BGE-base-en │ │ hirly-ner-    │  │
+                                    │  │ (embeddings)│ │ multi (NER)   │  │
+                                    │  │ 768d        │ │ skill extract │  │
+                                    │  └─────────────┘ └───────────────┘  │
+                                    │                                     │
+                                    │  Endpoints:                         │
+                                    │  • /health                          │
+                                    │  • /api/embed                       │
+                                    │  • /api/embed/single                │
+                                    │  • /api/chunk/job ✅ NEW            │
+                                    │  • /api/chunk/profile ✅ NEW        │
+                                    └──────────────▲──────────────────────┘
+                                                   │
+┌─────────────────┐                 ┌──────────────┴──────────────┐
+│   Ingestion     │                 │        Node.js API          │
+│   (Node.js)     │                 │        (Express)            │
+│                 │                 │        Railway              │
+│ CLI commands:   │                 │                             │
+│ • snc ✅        │                 │  Endpoints:                 │
+│ • greenhouse ✅ │                 │  • /api/auth/* ✅           │
+│ • comeet ✅     │                 │  • /api/jobs ✅             │
+│ • embeddings ✅ │                 │  • /api/match ✅            │
+│ • ats-detect ✅ │                 │  • /api/profile ✅          │
+└────────┬────────┘                 │  • /api/favorites ✅        │
+         │                          └──────────────┬──────────────┘
+         │                                         │
+         │      ┌──────────────────────────────────┼───────────────────────┐
+         │      │                                  │                       │
+         │      ▼                                  ▼                       ▼
+         │ ┌─────────────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+         │ │  PostgreSQL + pgvector  │    │     Resend      │    │    Frontend     │
+         │ │  Railway                │    │   (Email API)   │    │    (React)      │
+         │ │                         │    │                 │    │    Vercel       │
+         │ │  • companies: 1245      │    │  • Verification │    │                 │
+         │ │  • job_sources: 485     │    │  • Password     │    │  🔲 Planned     │
+         └▶│  • jobs: 682            │    │    reset        │    │                 │
+           │  • job_embeddings: 682  │    │                 │    │                 │
+           │  • users ✅             │    └─────────────────┘    └─────────────────┘
+           │  • auth tokens ✅       │
+           │  • favorites ✅         │
+           └─────────────────────────┘
 ```
 
 ---
 
 ## Data Flow
 
-### Embedding Generation (Ingestion → ML Service → DB)
+### 1. Job Ingestion Pipeline
+
 ```
-Ingestion CLI → embedding-client.ts → POST /api/embed → ML Service
-                                                            │
-                                                            ▼
-                                                     BGE-base-en-v1.5
-                                                            │
-                                                            ▼
-                                                     768d vectors
-                                                            │
-                     ┌──────────────────────────────────────┘
-                     ▼
-              job_embeddings_simple table
+SNC API → Ingestion CLI → Companies/Jobs → PostgreSQL
+                                │
+                                ▼
+                    ML Service (/api/chunk/job)
+                                │
+                    ┌───────────┴───────────┐
+                    ▼                       ▼
+            Section Detection         Skill Extraction
+            (about, requirements,     (NER + keywords)
+             responsibilities,         │
+             benefits, preferred)      ▼
+                    │             Skill Level Detection
+                    │             (mandatory/preferred)
+                    ▼                       │
+            Per-section embeddings          │
+                    │                       │
+                    └───────────┬───────────┘
+                                ▼
+                    Embeddings + Skills → PostgreSQL
 ```
 
-### Profile Matching (API → ML Service → DB)
+### 2. Profile Matching
+
 ```
-User profile text → POST /api/match → match-service.ts → ML Service
-                                                             │
-                                                             ▼
-                                                      768d query vector
-                                                             │
-                     ┌───────────────────────────────────────┘
-                     ▼
-              pgvector cosine similarity search
-                     │
-                     ▼
-              Ranked job results
+User Profile Text → Node.js API → ML Service (/api/chunk/profile)
+                                        │
+                        ┌───────────────┴───────────────┐
+                        ▼                               ▼
+                Profile Chunking                  Skill Extraction
+                (full, experience,                      │
+                 education)                             ▼
+                        │                         Feedback Generation
+                        │                         (skills, metrics,
+                        │                          action verbs)
+                        ▼                               │
+                Profile Embeddings              Completeness Score
+                        │                               │
+                        └───────────────┬───────────────┘
+                                        ▼
+                        pgvector similarity search
+                                        │
+                                        ▼
+                                Ranked Job Results
+```
+
+### 3. CV Generation (Planned)
+
+```
+Favorite Job + Profile → ML Service → OpenAI → Tailored CV
+                              │
+                              ▼
+                    Job skills + requirements
+                              +
+                    Profile experience match
+                              │
+                              ▼
+                    Personalized CV content
 ```
 
 ---
@@ -131,19 +169,99 @@ User profile text → POST /api/match → match-service.ts → ML Service
 
 ## Python ML Service Endpoints (port 8000)
 
+### Embedding Endpoints
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Health check + model info |
 | `/api/embed` | POST | Embed multiple texts (batch) |
 | `/api/embed/single` | POST | Embed single text |
 
-### Embed Request
+### Chunking Endpoints (NEW ✅)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/chunk/job` | POST | Job chunking + skills + embeddings |
+| `/api/chunk/profile` | POST | Profile chunking + feedback + score |
+
+### Job Chunk Request
 
 ```json
 {
-  "texts": ["Python developer...", "Java engineer..."],
-  "text_type": "passage",
-  "normalize": true
+  "text": "We are looking for a Python developer...",
+  "title": "Senior Python Developer",
+  "company": "TechCorp",
+  "location": "Tel Aviv"
+}
+```
+
+### Job Chunk Response
+
+```json
+{
+  "chunks": [
+    {
+      "type": "header",
+      "text": "Senior Python Developer - TechCorp - Tel Aviv",
+      "embedding": [0.012, -0.034, ...],
+      "token_count": 8
+    },
+    {
+      "type": "requirements",
+      "text": "5+ years Python experience...",
+      "embedding": [...],
+      "token_count": 45
+    }
+  ],
+  "skills": [
+    {"skill": "Python", "level": "mandatory"},
+    {"skill": "Docker", "level": "preferred"}
+  ],
+  "model": "BAAI/bge-base-en-v1.5",
+  "dimension": 768,
+  "time_ms": 234
+}
+```
+
+### Profile Chunk Request
+
+```json
+{
+  "text": "Senior Software Engineer with 5 years experience..."
+}
+```
+
+### Profile Chunk Response
+
+```json
+{
+  "chunks": [
+    {
+      "type": "full",
+      "text": "Senior Software Engineer...",
+      "embedding": [...],
+      "token_count": 150
+    },
+    {
+      "type": "experience",
+      "text": "Software Engineer at Google...",
+      "embedding": [...],
+      "token_count": 80
+    }
+  ],
+  "skills": [
+    {"skill": "Python", "source": "throughout"},
+    {"skill": "AWS", "source": "throughout"}
+  ],
+  "feedback": [
+    "✅ Work experience well documented",
+    "✅ Uses strong action verbs",
+    "❌ Few skills detected - add technical skills"
+  ],
+  "completeness_score": 0.75,
+  "model": "BAAI/bge-base-en-v1.5",
+  "dimension": 768,
+  "time_ms": 1351
 }
 ```
 
@@ -153,6 +271,46 @@ User profile text → POST /api/match → match-service.ts → ML Service
 |-----------|---------|--------------|
 | `passage` | Job descriptions, stored in DB | None |
 | `query` | User profile at search time | "Represent this sentence..." |
+
+---
+
+## Skill Extraction
+
+### NER Model
+
+**Model:** `feliponi/hirly-ner-multi`
+
+| Entity Type | Description |
+|-------------|-------------|
+| SKILL | Technical skills (Python, AWS, React) |
+| SOFT_SKILL | Soft skills (leadership, communication) |
+| LANG | Languages (English, Hebrew) |
+| CERT | Certifications (AWS Certified) |
+| EXPERIENCE_DURATION | Years of experience (5+ years) |
+
+### Keyword Fallback
+
+Supplements NER for commonly missed skills:
+
+```
+Programming: Python, Java, JavaScript, TypeScript, Go, Rust, C++...
+Cloud/DevOps: AWS, GCP, Azure, Docker, Kubernetes, Terraform...
+Frontend: React, Angular, Vue, Next.js, Tailwind...
+Backend: Node.js, Django, FastAPI, Spring, Rails...
+Databases: PostgreSQL, MongoDB, Redis, Elasticsearch...
+Data/ML: TensorFlow, PyTorch, Pandas, Spark...
+Tools: Git, GraphQL, Kafka, Microservices...
+```
+
+### Level Detection
+
+Analyzes sentence context to classify skill requirements:
+
+| Level | Patterns |
+|-------|----------|
+| `mandatory` | "requirements", "must have", "required", "essential", "qualifications" |
+| `preferred` | "nice to have", "preferred", "bonus", "ideally", "plus", "advantage" |
+| `unknown` | No pattern match found |
 
 ---
 
@@ -255,6 +413,7 @@ User → Request + Authorization: Bearer <access_token>
 | ML Service | FastAPI, Python 3.11 |
 | Auth | JWT (jsonwebtoken), bcrypt |
 | Embeddings | sentence-transformers, BGE-base-en-v1.5 |
+| Skill Extraction | transformers, feliponi/hirly-ner-multi |
 | Database | PostgreSQL 17, pgvector |
 | Email | Resend API |
 | Scraping | Playwright |
@@ -278,8 +437,10 @@ HF_TOKEN=hf_xxxxx
 
 ### Python ML Service
 ```env
-MODEL_NAME=BAAI/bge-base-en-v1.5
-MODEL_CACHE_DIR=./model_cache
+EMBED_MODEL_NAME=BAAI/bge-base-en-v1.5
+EMBED_MODEL_CACHE_DIR=./embed_model_cache
+SKILLS_EXTRACTION_MODEL_NAME=feliponi/hirly-ner-multi
+SKILLS_EXTRACTION_MODEL_CACHE_DIR=./model_cache
 HOST=0.0.0.0
 PORT=8000
 ```

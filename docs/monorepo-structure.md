@@ -66,6 +66,8 @@ apply-less/
 │   │       ├── config/
 │   │       │   └── db.ts
 │   │       ├── detectors/
+│   │       │   ├── ats-detector.ts      # ATS system detection
+│   │       │   └── ats-patterns.ts      # Vendor-specific patterns
 │   │       ├── parsers/
 │   │       ├── services/
 │   │       │   ├── index.ts
@@ -75,6 +77,7 @@ apply-less/
 │   │       ├── stages/
 │   │       │   ├── index.ts
 │   │       │   ├── stage-a-snc.ts         # SNC company scraping
+│   │       │   ├── stage-b-detect-ats.ts  # ATS detection
 │   │       │   ├── stage-d-greenhouse.ts  # Greenhouse jobs
 │   │       │   ├── stage-e-comeet.ts      # Comeet jobs
 │   │       │   └── stage-g-embeddings.ts  # Embedding generation
@@ -92,13 +95,22 @@ apply-less/
 │   │   ├── api/
 │   │   │   ├── __init__.py
 │   │   │   ├── health.py             # GET /health
-│   │   │   └── embed.py              # POST /api/embed
+│   │   │   ├── embed.py              # POST /api/embed, /api/embed/single
+│   │   │   └── chunk.py              # POST /api/chunk/job, /api/chunk/profile ✅ NEW
 │   │   ├── config/
 │   │   │   ├── __init__.py
-│   │   │   └── settings.py           # Pydantic settings
+│   │   │   └── settings.py           # Pydantic settings (both models)
 │   │   ├── services/
 │   │   │   ├── __init__.py
-│   │   │   └── embedding_service.py  # Model loading & inference
+│   │   │   ├── embedding_service.py         # BGE model loading & inference
+│   │   │   ├── skill_extractor_service.py   # NER skill extraction ✅ NEW
+│   │   │   ├── skill_patterns.py            # Keyword fallback patterns ✅ NEW
+│   │   │   ├── job_chunker_service.py       # Job section detection ✅ NEW
+│   │   │   ├── profile_chunker_service.py   # Profile chunking ✅ NEW
+│   │   │   └── profile_pattern_regex.py     # Profile parsing patterns ✅ NEW
+│   │   ├── models/                   # Pydantic models (if any)
+│   │   ├── embed_model_cache/        # BGE model cache (local)
+│   │   ├── model_cache/              # NER model cache (local)
 │   │   └── venv/                     # Virtual environment (local)
 │   │
 │   ├── web/                          # React frontend 🔲 scaffolded
@@ -144,9 +156,10 @@ apply-less/
 │   └── seed/
 │
 └── docs/
-    ├── architecture.md
-    ├── monorepo-structure.md
-    └── plan.md
+    ├── architecture.md               # System architecture
+    ├── monorepo-structure.md         # This file
+    ├── plan.md                       # Implementation plan
+    └── task-*.md                     # Task specifications
 ```
 
 ---
@@ -156,8 +169,8 @@ apply-less/
 | Package | Status | Description |
 |---------|--------|-------------|
 | `api` | ✅ Working | Express API with auth, jobs, match, profile, favorites |
-| `ingestion` | ✅ Working | CLI for SNC, Greenhouse, Comeet, embeddings |
-| `ml-service` | ✅ Working | Python FastAPI with BGE embeddings |
+| `ingestion` | ✅ Working | CLI for SNC, Greenhouse, Comeet, ATS detection, embeddings |
+| `ml-service` | ✅ Working | FastAPI with embeddings + chunking + skill extraction |
 | `web` | 🔲 Scaffolded | React + Vite template |
 | `shared` | 🔲 Empty | Shared TypeScript types |
 
@@ -206,19 +219,77 @@ apply-less/
 | `/health` | GET | Health check + model info |
 | `/api/embed` | POST | Embed batch of texts (max 100) |
 | `/api/embed/single` | POST | Embed single text |
+| `/api/chunk/job` | POST | Job chunking + skills + embeddings ✅ NEW |
+| `/api/chunk/profile` | POST | Profile chunking + feedback + score ✅ NEW |
 
 ### Services
 
 | Service | Responsibility |
 |---------|----------------|
-| `embedding_service.py` | Model loading, inference, query prefixes |
+| `embedding_service.py` | BGE model loading, inference, query prefixes |
+| `skill_extractor_service.py` | NER model loading, skill extraction with levels ✅ NEW |
+| `skill_patterns.py` | Keyword fallback patterns for common skills ✅ NEW |
+| `job_chunker_service.py` | Job section detection (about, requirements, etc.) ✅ NEW |
+| `profile_chunker_service.py` | Profile chunking with feedback ✅ NEW |
+| `profile_pattern_regex.py` | Date/title/action verb patterns ✅ NEW |
 
-### Model
+### Models
 
-- **Name:** BAAI/bge-base-en-v1.5
-- **Dimensions:** 768
-- **Size:** ~400MB
-- **Inference:** ~50-200ms per text (CPU)
+| Model | Purpose | Size |
+|-------|---------|------|
+| BAAI/bge-base-en-v1.5 | Text embeddings (768d) | ~400MB |
+| feliponi/hirly-ner-multi | NER skill extraction | ~1.1GB |
+
+### Skill Extraction Features
+
+| Feature | Description |
+|---------|-------------|
+| NER Model | Extracts SKILL, SOFT_SKILL, LANG, CERT, EXPERIENCE_DURATION |
+| Keyword Fallback | 100+ patterns for commonly missed skills |
+| Level Detection | Classifies mandatory/preferred based on sentence context |
+| Sentence Parsing | Finds skill's containing sentence for context |
+
+### Job Chunking Features
+
+| Feature | Description |
+|---------|-------------|
+| Section Detection | about, responsibilities, requirements, benefits, preferred |
+| Header Generation | Synthetic header from title/company/location |
+| Per-section Embeddings | Each section gets its own embedding vector |
+| Skill Extraction | Skills with mandatory/preferred levels |
+
+### Profile Chunking Features
+
+| Feature | Description |
+|---------|-------------|
+| Aspect Detection | full, experience, education sections |
+| Multi-signal Parsing | Dates, job titles, action verbs, narrative |
+| Feedback Generation | Skills, experience, metrics, length checks |
+| Completeness Score | 0-1 score based on profile quality |
+
+---
+
+## Ingestion Package Details
+
+### CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `snc` | Scrape companies from StartupNationCentral |
+| `snc:dry` | Dry run (3 pages) |
+| `greenhouse` | Fetch jobs from Greenhouse ATS |
+| `comeet` | Fetch jobs from Comeet ATS |
+| `ats-detect` | Detect ATS systems from career URLs |
+| `embeddings` | Generate embeddings for jobs |
+
+### ATS Detection
+
+| Vendor | Detection Methods |
+|--------|-------------------|
+| Greenhouse | URL patterns, script tags, DOM elements |
+| Comeet | URL patterns, script tags, HTML content |
+| Lever | URL patterns, DOM structure |
+| Workable | URL patterns, API calls |
 
 ---
 
@@ -244,6 +315,36 @@ npm run db:migrate   # Run SQL migrations
 cd packages/ml-service
 source venv/bin/activate
 python main.py       # Start ML service (port 8000)
+
+# Or with uvicorn directly
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Test Endpoints
+
+```bash
+# Health check
+curl http://localhost:8000/health | jq
+
+# Embed text
+curl -X POST http://localhost:8000/api/embed/single \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Python developer"}' | jq
+
+# Chunk job
+curl -X POST http://localhost:8000/api/chunk/job \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Requirements: Python, AWS required. Nice to have: Docker",
+    "title": "Backend Developer",
+    "company": "TechCorp",
+    "location": "Tel Aviv"
+  }' | jq '.skills'
+
+# Chunk profile
+curl -X POST http://localhost:8000/api/chunk/profile \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Senior Software Engineer with 5 years Python experience..."}' | jq
 ```
 
 ---
@@ -263,8 +364,10 @@ HF_TOKEN=hf_xxxxx
 
 ### Python ML Service
 ```env
-MODEL_NAME=BAAI/bge-base-en-v1.5
-MODEL_CACHE_DIR=./model_cache
+EMBED_MODEL_NAME=BAAI/bge-base-en-v1.5
+EMBED_MODEL_CACHE_DIR=./embed_model_cache
+SKILLS_EXTRACTION_MODEL_NAME=feliponi/hirly-ner-multi
+SKILLS_EXTRACTION_MODEL_CACHE_DIR=./model_cache
 HOST=0.0.0.0
 PORT=8000
 ```
@@ -276,4 +379,25 @@ HF_TOKEN=hf_xxxxx
 SNC_BASE_URL=https://finder.startupnationcentral.org
 SNC_AUTH_TOKEN=...
 SNC_REFRESH_TOKEN=...
+```
+
+---
+
+## Package Dependencies
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│    web      │────►│    api      │────►│  ml-service │
+│   (React)   │     │  (Express)  │     │  (FastAPI)  │
+└─────────────┘     └──────┬──────┘     └─────────────┘
+                           │
+                    ┌──────▼──────┐
+                    │   shared    │
+                    │   (types)   │
+                    └──────▲──────┘
+                           │
+                    ┌──────┴──────┐
+                    │  ingestion  │
+                    │   (CLI)     │
+                    └─────────────┘
 ```

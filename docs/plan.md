@@ -3,10 +3,10 @@
 ## Timeline Overview
 
 **Demo Day: February 3, 2026**
-**Today: January 25, 2026**
-**Days remaining: 9 days**
+**Today: January 26, 2026**
+**Days remaining: 8 days**
 **Video prep buffer: 2 days (Feb 1-2)**
-**Working days for development: 7 days**
+**Working days for development: 6 days**
 
 ---
 
@@ -20,17 +20,17 @@ Build a job matching platform that:
 
 ---
 
-## Current Status (Jan 25)
+## Current Status (Jan 26)
 
 ### ✅ Completed
 
 | Component | Status | Details |
 |-----------|--------|---------|
 | Database | ✅ | Railway PostgreSQL + pgvector |
-| Companies | ✅ | 1007 from SNC |
-| Job Sources | ✅ | 176 detected |
-| Jobs | ✅ | 111 from Greenhouse |
-| Embeddings | ✅ | 111 jobs (single, BGE 768d via API) |
+| Companies | ✅ | 1245 from SNC |
+| Job Sources | ✅ | 485 detected |
+| Jobs | ✅ | 682 from Greenhouse |
+| Embeddings | ✅ | 682 jobs (single, BGE 768d via API) |
 | API - Jobs | ✅ | GET /jobs, GET /jobs/:id |
 | API - Match | ✅ | POST /match (protected) |
 | **Auth** | ✅ | Full JWT auth system |
@@ -70,14 +70,21 @@ Build a job matching platform that:
 | POST /favorites/:jobId | ✅ |
 | DELETE /favorites/:jobId | ✅ |
 
-### ML Service Features Completed (Day 9)
+### ML Service Features Completed (Day 9-10)
 
 | Feature | Status |
 |---------|--------|
 | GET /health | ✅ |
 | POST /api/embed | ✅ |
 | POST /api/embed/single | ✅ |
+| POST /api/chunk/job | ✅ |
+| POST /api/chunk/profile | ✅ |
 | BGE-base-en-v1.5 model | ✅ |
+| NER skill extraction (hirly-ner-multi) | ✅ |
+| Skill keyword fallback | ✅ |
+| Skill level detection (mandatory/preferred) | ✅ |
+| Job section detection | ✅ |
+| Profile feedback & completeness scoring | ✅ |
 | Query prefixes (text_type) | ✅ |
 | Dockerfile + Railway config | ✅ |
 
@@ -85,10 +92,11 @@ Build a job matching platform that:
 
 | Goal | Target | Status |
 |------|--------|--------|
-| Jobs in database | 2000+ | 🔲 111 |
+| Jobs in database | 2000+ | 🔲 682 |
 | Auth | JWT with refresh tokens | ✅ |
 | Profile & Favorites | CRUD APIs | ✅ |
 | ML Service | Python + local model | ✅ |
+| Job/Profile Chunking | Section + skill extraction | ✅ |
 | Matching accuracy | High (chunked embeddings) | 🔲 |
 | CV generation | Working for favorites | 🔲 |
 | UI | Simple, functional | 🔲 |
@@ -139,31 +147,37 @@ Build a job matching platform that:
 
 ---
 
-### Phase 2: Scaled Ingestion (Days 10-11)
+#### ✅ Day 10 (Jan 26): Job/Profile Chunking & Skill Extraction
 
-#### Day 10 (Jan 25): More Job Sources
+- [x] Add POST /api/chunk/job endpoint
+- [x] Add POST /api/chunk/profile endpoint
+- [x] Implement NER skill extraction (feliponi/hirly-ner-multi model)
+- [x] Add keyword fallback for skills NER misses
+- [x] Skill level detection (mandatory/preferred) based on sentence context
+- [x] Job section detection (about, responsibilities, requirements, benefits, preferred)
+- [x] Profile feedback generation
+- [x] Profile completeness scoring (0-1)
+- [x] Register skill extractor and chunk router in main app
+
+---
+
+### Phase 2: Scaled Ingestion (Day 11)
+
+#### Day 11 (Jan 27): More Job Sources & Mass Ingestion
 
 **Tasks:**
 - [ ] Run Greenhouse for all detected companies
 - [ ] Implement Comeet scraper improvements
-- [ ] Generate embeddings for new jobs
-- [ ] Target: 500+ jobs
-
----
-
-#### Day 11 (Jan 26): Mass Ingestion
-
-**Tasks:**
 - [ ] Run full ingestion pipeline
-- [ ] Chunk all jobs
-- [ ] Generate embeddings
+- [ ] Chunk all jobs using new /chunk/job endpoint
+- [ ] Generate embeddings for chunked jobs
 - [ ] Target: 2000+ jobs
 
 ---
 
 ### Phase 3: CV Generation (Day 12)
 
-#### Day 12 (Jan 27): CV Generation
+#### Day 12 (Jan 28): CV Generation
 
 **Tasks:**
 - [ ] Implement POST /generate-cv in Python ML service
@@ -175,7 +189,7 @@ Build a job matching platform that:
 
 ### Phase 4: Frontend (Days 13-14)
 
-#### Day 13 (Jan 28): Core UI
+#### Day 13 (Jan 29): Core UI
 
 **Tasks:**
 - [ ] Login/Register pages
@@ -185,7 +199,7 @@ Build a job matching platform that:
 
 ---
 
-#### Day 14 (Jan 29): Favorites + CV UI
+#### Day 14 (Jan 30): Favorites + CV UI
 
 **Tasks:**
 - [ ] Favorites page
@@ -198,7 +212,7 @@ Build a job matching platform that:
 
 ### Phase 5: Deploy & Demo (Days 15-17)
 
-#### Day 15 (Jan 30): Deployment
+#### Day 15 (Jan 31): Deployment
 
 **Tasks:**
 - [ ] Deploy Node.js API to Railway
@@ -207,7 +221,7 @@ Build a job matching platform that:
 
 ---
 
-#### Days 16-17 (Jan 31 - Feb 2): Demo Prep
+#### Days 16-17 (Feb 1-2): Demo Prep
 
 **Tasks:**
 - [ ] Fix bugs
@@ -223,25 +237,179 @@ Build a job matching platform that:
 ## Technical Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Frontend      │     │   Node.js API   │     │   Python ML     │
-│   (React)       │────▶│   (Express)     │────▶│   (FastAPI)     │
-│   Vercel        │     │   Railway       │     │   Railway       │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-        │                       │                       │
-        │                       ▼                       ▼
-        │               ┌─────────────────┐     ┌─────────────────┐
-        │               │   PostgreSQL    │     │   BGE-base-en   │
-        │               │   + pgvector    │     │   768 dimensions│
-        │               │   Railway       │     │   (in memory)   │
-        │               └─────────────────┘     └─────────────────┘
-        │                       │
-        │                       ▼
-        │               ┌─────────────────┐
-        │               │     Resend      │
-        │               │   (Email API)   │
-        └──────────────▶└─────────────────┘
+                                    ┌─────────────────────────────────────┐
+                                    │           Python ML Service         │
+                                    │           (FastAPI + Railway)       │
+                                    │                                     │
+                                    │  ┌─────────────┐ ┌───────────────┐  │
+                                    │  │ BGE-base-en │ │ hirly-ner-    │  │
+                                    │  │ (embeddings)│ │ multi (NER)   │  │
+                                    │  └─────────────┘ └───────────────┘  │
+                                    │                                     │
+                                    │  Endpoints:                         │
+                                    │  • /api/embed                       │
+                                    │  • /api/chunk/job                   │
+                                    │  • /api/chunk/profile               │
+                                    └──────────────▲──────────────────────┘
+                                                   │
+┌─────────────────┐                 ┌──────────────┴──────────────┐
+│    Frontend     │    REST API    │        Node.js API          │
+│    (React)      │◄──────────────►│        (Express)            │
+│    Vercel       │                │        Railway              │
+└─────────────────┘                │                             │
+                                    │  Endpoints:                 │
+                                    │  • /api/auth/*              │
+                                    │  • /api/profile             │
+                                    │  • /api/favorites           │
+                                    │  • /api/jobs                │
+                                    │  • /api/match               │
+                                    └──────────────┬──────────────┘
+                                                   │
+                    ┌──────────────────────────────┼──────────────────────────────┐
+                    │                              │                              │
+                    ▼                              ▼                              ▼
+          ┌─────────────────┐           ┌─────────────────┐           ┌─────────────────┐
+          │   PostgreSQL    │           │     Resend      │           │   Ingestion     │
+          │   + pgvector    │           │   (Email API)   │           │   (CLI/Cron)    │
+          │   Railway       │           │                 │           │                 │
+          │                 │           │  • Verification │           │  • SNC scraper  │
+          │  • users        │           │  • Password     │           │  • Greenhouse   │
+          │  • jobs         │           │    reset        │           │  • Comeet       │
+          │  • companies    │           │                 │           │  • ATS detect   │
+          │  • embeddings   │           └─────────────────┘           └─────────────────┘
+          │  • favorites    │
+          └─────────────────┘
 ```
+
+### Data Flow
+
+```
+1. JOB INGESTION:
+   SNC API → Ingestion CLI → Companies/Jobs → PostgreSQL
+                                    ↓
+                           ML Service (/chunk/job)
+                                    ↓
+                           Embeddings + Skills → PostgreSQL
+
+2. USER MATCHING:
+   User Profile → Node.js API → ML Service (/chunk/profile)
+                                    ↓
+                           Profile Embeddings + Feedback
+                                    ↓
+                           pgvector similarity search → Matched Jobs
+
+3. CV GENERATION (planned):
+   Favorite Job + Profile → ML Service → OpenAI → Tailored CV
+```
+
+---
+
+## Monorepo Structure
+
+```
+apply-less/
+├── packages/
+│   ├── api/                      # Node.js Express API
+│   │   ├── src/
+│   │   │   ├── routes/           # API endpoints
+│   │   │   │   ├── auth.ts       # JWT auth routes
+│   │   │   │   ├── jobs.ts       # Job listings
+│   │   │   │   ├── profile.ts    # User profiles
+│   │   │   │   ├── favorites.ts  # Saved jobs
+│   │   │   │   └── match.ts      # Job matching
+│   │   │   ├── middleware/       # Auth, rate limiting
+│   │   │   ├── services/         # Business logic
+│   │   │   └── index.ts
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   ├── ml-service/               # Python FastAPI ML Service
+│   │   ├── api/
+│   │   │   ├── embed.py          # Embedding endpoints
+│   │   │   ├── chunk.py          # Chunking endpoints
+│   │   │   └── health.py         # Health check
+│   │   ├── services/
+│   │   │   ├── embedding_service.py
+│   │   │   ├── skill_extractor_service.py
+│   │   │   ├── skill_patterns.py           # Keyword fallback
+│   │   │   ├── job_chunker_service.py
+│   │   │   ├── profile_chunker_service.py
+│   │   │   └── profile_pattern_regex.py
+│   │   ├── config/
+│   │   │   └── settings.py       # Model configs
+│   │   ├── main.py               # FastAPI app
+│   │   ├── requirements.txt
+│   │   └── Dockerfile
+│   │
+│   ├── ingestion/                # Data ingestion pipelines
+│   │   ├── src/
+│   │   │   ├── scrapers/         # ATS scrapers
+│   │   │   │   ├── greenhouse.ts
+│   │   │   │   └── comeet.ts
+│   │   │   ├── snc/              # StartupNationCentral
+│   │   │   └── ats-detector.ts   # ATS detection
+│   │   └── package.json
+│   │
+│   ├── web/                      # React Frontend (planned)
+│   │   ├── src/
+│   │   └── package.json
+│   │
+│   └── shared/                   # Shared TypeScript types
+│       ├── src/
+│       │   └── types/
+│       └── package.json
+│
+├── db/                           # Database migrations
+│   └── migrations/
+│
+├── docs/                         # Documentation
+│   ├── plan.md                   # This file
+│   └── task-*.md                 # Task specs
+│
+├── scripts/                      # Utility scripts
+│
+├── docker-compose.yml            # Local dev setup
+├── package.json                  # Root workspace
+└── tsconfig.base.json            # Shared TS config
+```
+
+### Package Dependencies
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│    web      │────►│    api      │────►│  ml-service │
+└─────────────┘     └──────┬──────┘     └─────────────┘
+                           │
+                    ┌──────▼──────┐
+                    │   shared    │
+                    └──────▲──────┘
+                           │
+                    ┌──────┴──────┐
+                    │  ingestion  │
+                    └─────────────┘
+```
+
+### ML Service Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| /health | GET | Health check with model status |
+| /api/embed | POST | Batch text embedding |
+| /api/embed/single | POST | Single text embedding |
+| /api/chunk/job | POST | Job chunking + skills + embeddings |
+| /api/chunk/profile | POST | Profile chunking + feedback + score |
+
+### Skill Extraction Details
+
+**Model:** `feliponi/hirly-ner-multi`
+- Extracts: SKILL, SOFT_SKILL, LANG, CERT, EXPERIENCE_DURATION
+- Supplemented with keyword fallback for common skills
+
+**Level Detection:**
+- Analyzes sentence context around each skill
+- Classifies as: `mandatory`, `preferred`, or `unknown`
+- Patterns: "requirements", "must have", "required" → mandatory
+- Patterns: "nice to have", "preferred", "bonus" → preferred
 
 ---
 
@@ -294,6 +462,7 @@ SNC_AUTH_TOKEN=...
 - [x] Custom JWT auth working
 - [x] Profile & favorites API
 - [x] Python ML service with local model
+- [x] Job/profile chunking with skill extraction
 - [ ] 2000+ jobs in database
 - [ ] CV generation for favorites
 - [ ] Simple functional UI
