@@ -3,6 +3,7 @@ import { detectATSFromPage } from "./ats-detector.js";
 import { probeGreenhouseAPI, generateSlugVariations } from "./greenhouse-probe.js";
 import { detectByKeyword } from "./keyword-detector.js";
 import { deepCrawlForAts } from "./deep-crawler.js"
+import { runDetectionPipeline } from "./detection-pipeline.js"
 
 export {
     detectATSFromPage,
@@ -11,4 +12,5 @@ export {
     generateSlugVariations,
     detectByKeyword,
     deepCrawlForAts,
+    runDetectionPipeline,
 };

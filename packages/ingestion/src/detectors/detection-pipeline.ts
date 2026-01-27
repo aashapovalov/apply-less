@@ -1,9 +1,9 @@
-import { Page} from "playwright";
-import {deepCrawlForAts, DeepCrawlOptions} from "./deep-crawler.js";
+import { Page } from "playwright";
+import { deepCrawlForAts, DeepCrawlOptions } from "./deep-crawler.js";
 import { ATSDetectionResult } from "../types/index.js";
-import {detectATSFromPage} from "./ats-detector.js";
-import {probeGreenhouseAPI} from "./greenhouse-probe.js";
-import {detectByKeyword} from "./keyword-detector.js";
+import { detectATSFromPage } from "./ats-detector.js";
+import { probeGreenhouseAPI } from "./greenhouse-probe.js";
+import { detectByKeyword } from "./keyword-detector.js";
 
 export interface DetectionContext {
     page: Page;
@@ -11,7 +11,7 @@ export interface DetectionContext {
     careersUrl: string;
 }
 
-export interface PipilineOptions {
+export interface PipelineOptions {
     enableDeepCrawl?: boolean;
     deepCrawlOptions?: DeepCrawlOptions;
 }
@@ -40,7 +40,7 @@ export interface PipilineOptions {
  */
 export async function runDetectionPipeline(
     context: DetectionContext,
-    options: PipilineOptions = {},
+    options: PipelineOptions = {},
 ): Promise<ATSDetectionResult> {
     const { page, companyName, careersUrl } = context;
     const { enableDeepCrawl = false, deepCrawlOptions } = options;
