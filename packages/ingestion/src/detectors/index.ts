@@ -4,6 +4,7 @@ import { probeGreenhouseAPI, generateSlugVariations } from "./greenhouse-probe.j
 import { detectByKeyword } from "./keyword-detector.js";
 import { deepCrawlForAts } from "./deep-crawler.js"
 import { runDetectionPipeline } from "./detection-pipeline.js"
+import { debugDetection } from "./debug-detection.js"
 
 export {
     detectATSFromPage,
@@ -13,4 +14,5 @@ export {
     detectByKeyword,
     deepCrawlForAts,
     runDetectionPipeline,
+    debugDetection,
 };

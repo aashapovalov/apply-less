@@ -3,22 +3,27 @@
  * Debug script for ATS detection pipeline.
  * Run on a single company to see detailed output at every step.
  * 
- * Usage:
- *   npx ts-node src/debug-detection.ts "Company Name"
- *   npx ts-node src/debug-detection.ts --url "https://company.com/careers"
+ * Usage (via CLI):
+ *   npm run detect -- --debug -c "Company Name"
+ *   npm run detect -- --debug --url "https://company.com/careers"
+ * 
+ * Usage (direct):
+ *   npx ts-node src/detectors/debug-detection.ts "Company Name"
+ *   npx ts-node src/detectors/debug-detection.ts --url "https://company.com/careers"
  */
 
 import { chromium, Page } from "playwright";
+import { Pool } from "pg";
 import { getDb, closeDb } from "../config/db.js";
-import { detectATSFromHTML, detectATSFromPage } from "./ats-detector.js";
+import { detectATSFromHTML } from "./ats-detector.js";
 import { generateSlugVariations, probeGreenhouseAPI } from "./greenhouse-probe.js";
 import { detectByKeyword } from "./keyword-detector.js";
+import { deepCrawlForAts } from "./deep-crawler.js";
 import { ATS_PATTERNS } from "./ats-patterns.js";
 
 // ============== CONFIG ==============
-const DEBUG = true;
 const DEEP_CRAWL_MAX_DEPTH = 2;
-const DEEP_CRAWL_MAX_LINKS = 5;
+const DEEP_CRAWL_MAX_LINKS = 3;
 
 // ============== HELPERS ==============
 function log(section: string, message: string, data?: any) {
@@ -41,6 +46,22 @@ function logStep(step: number, name: string) {
     console.log('─'.repeat(60));
 }
 
+// ============== DB QUERIES ==============
+async function getCompanyInfo(db: Pool, companyName: string) {
+    const result = await db.query(
+        `SELECT c.id, c.company_name, c.careers_page_url, c.ats_checked_at,
+                js.id as job_source_id, js.source_type, js.ats_identifier, 
+                js.api_token, js.detection_method, js.confidence, js.status,
+                (SELECT COUNT(*) FROM jobs j WHERE j.company_id = c.id) as job_count
+         FROM companies c
+         LEFT JOIN job_sources js ON c.id = js.company_id
+         WHERE c.company_name ILIKE $1 AND c.careers_page_url IS NOT NULL 
+         LIMIT 1`,
+        [`%${companyName}%`]
+    );
+    return result.rows[0] || null;
+}
+
 // ============== PATTERN ANALYSIS ==============
 function analyzePatterns(html: string, url: string) {
     log('PATTERN ANALYSIS', 'Checking all ATS patterns against page...');
@@ -48,11 +69,16 @@ function analyzePatterns(html: string, url: string) {
     for (const pattern of ATS_PATTERNS) {
         console.log(`\n🏷️  ${pattern.type.toUpperCase()}`);
         
+        let hasMatch = false;
+        
         // URL patterns
         if (pattern.urlPatterns) {
             for (const regex of pattern.urlPatterns) {
                 const match = url.match(regex);
-                console.log(`   URL [${regex.source.substring(0, 40)}...]: ${match ? '✅ MATCH: ' + match[0] : '❌'}`);
+                if (match) {
+                    console.log(`   URL ✅ MATCH: ${regex.source.substring(0, 50)}`);
+                    hasMatch = true;
+                }
             }
         }
         
@@ -60,7 +86,10 @@ function analyzePatterns(html: string, url: string) {
         if (pattern.htmlPatterns) {
             for (const regex of pattern.htmlPatterns) {
                 const match = html.match(regex);
-                console.log(`   HTML [${regex.source.substring(0, 40)}]: ${match ? '✅ MATCH' : '❌'}`);
+                if (match) {
+                    console.log(`   HTML ✅ MATCH: ${regex.source.substring(0, 50)}`);
+                    hasMatch = true;
+                }
             }
         }
         
@@ -68,21 +97,31 @@ function analyzePatterns(html: string, url: string) {
         if (pattern.scriptPatterns) {
             for (const regex of pattern.scriptPatterns) {
                 const match = html.match(regex);
-                console.log(`   Script [${regex.source.substring(0, 40)}]: ${match ? '✅ MATCH' : '❌'}`);
+                if (match) {
+                    console.log(`   Script ✅ MATCH: ${regex.source.substring(0, 50)}`);
+                    hasMatch = true;
+                }
             }
         }
         
         // Slug extraction
         if (pattern.slugExtractor) {
             const extracted = pattern.slugExtractor(html, url);
-            console.log(`   Slug extractor: ${extracted ? '✅ ' + JSON.stringify(extracted) : '❌ null'}`);
+            if (extracted) {
+                console.log(`   Slug ✅ EXTRACTED: ${JSON.stringify(extracted)}`);
+                hasMatch = true;
+            }
+        }
+        
+        if (!hasMatch) {
+            console.log(`   ❌ No matches`);
         }
     }
 }
 
-// ============== LINK EXTRACTION ==============
-async function extractAllLinks(page: Page, baseOrigin: string) {
-    log('LINK EXTRACTION', `Extracting all links from ${page.url()}...`);
+// ============== LINK ANALYSIS ==============
+async function analyzeLinks(page: Page, baseOrigin: string) {
+    log('LINK ANALYSIS', `Extracting links from ${page.url()}...`);
     
     const links = await page.$$eval('a[href]', (anchors) => {
         return anchors.map(a => ({
@@ -93,7 +132,6 @@ async function extractAllLinks(page: Page, baseOrigin: string) {
         }));
     });
     
-    // Categorize links
     const internal = links.filter(l => l.href.startsWith(baseOrigin));
     const external = links.filter(l => !l.href.startsWith(baseOrigin) && l.href.startsWith('http'));
     
@@ -101,21 +139,21 @@ async function extractAllLinks(page: Page, baseOrigin: string) {
     console.log(`   Total: ${links.length}`);
     console.log(`   Internal: ${internal.length}`);
     console.log(`   External: ${external.length}`);
-    console.log(`   In header/nav: ${links.filter(l => l.inHeader).length}`);
-    console.log(`   In footer: ${links.filter(l => l.inFooter).length}`);
     
-    // Job-like patterns
+    // Job-like links
     const jobPatterns = ['/position', '/job', '/opening', '/role', '/vacancy', '/career', '/location', '/department', '/team'];
     const jobLinks = links.filter(l => jobPatterns.some(p => l.href.toLowerCase().includes(p)));
     
-    console.log(`\n🎯 Job-like links (${jobLinks.length}):`);
-    jobLinks.slice(0, 20).forEach(l => {
-        const flags = [];
-        if (l.inHeader) flags.push('header');
-        if (l.inFooter) flags.push('footer');
-        console.log(`   ${l.href}`);
-        console.log(`      Text: "${l.text}" ${flags.length ? `[${flags.join(', ')}]` : ''}`);
-    });
+    if (jobLinks.length > 0) {
+        console.log(`\n🎯 Job-like links (${jobLinks.length}):`);
+        jobLinks.slice(0, 10).forEach(l => {
+            const flags = [];
+            if (l.inHeader) flags.push('header');
+            if (l.inFooter) flags.push('footer');
+            console.log(`   ${l.href} ${flags.length ? `[${flags.join(', ')}]` : ''}`);
+        });
+        if (jobLinks.length > 10) console.log(`   ... and ${jobLinks.length - 10} more`);
+    }
     
     // ATS domain links
     const atsDomains = ['greenhouse.io', 'lever.co', 'workable.com', 'comeet.co', 'comeet.com'];
@@ -125,78 +163,14 @@ async function extractAllLinks(page: Page, baseOrigin: string) {
         console.log(`\n🔗 ATS Domain links (${atsLinks.length}):`);
         atsLinks.forEach(l => {
             console.log(`   ${l.href}`);
-            console.log(`      Text: "${l.text}"`);
         });
     }
     
-    return { links, internal, external, jobLinks, atsLinks };
-}
-
-// ============== DEEP CRAWL DEBUG ==============
-async function debugDeepCrawl(page: Page, baseUrl: string, depth: number = DEEP_CRAWL_MAX_DEPTH, visited: Set<string> = new Set()) {
-    if (depth <= 0) return;
-    
-    const baseOrigin = new URL(baseUrl).origin;
-    visited.add(page.url());
-    
-    log(`DEEP CRAWL (depth ${DEEP_CRAWL_MAX_DEPTH - depth + 1})`, `Analyzing: ${page.url()}`);
-    
-    // Extract and analyze links
-    const { jobLinks, atsLinks } = await extractAllLinks(page, baseOrigin);
-    
-    // Check current page for ATS
-    const html = await page.content();
-    const currentDetection = detectATSFromHTML(html, page.url());
-    console.log(`\n🔍 Current page detection: ${currentDetection.atsType} (${(currentDetection.confidence * 100).toFixed(0)}%)`);
-    if (currentDetection.extractedSlug) {
-        console.log(`   Slug: ${currentDetection.extractedSlug}`);
-    }
-    
-    if (currentDetection.atsType !== 'unknown' && currentDetection.confidence >= 0.6) {
-        console.log(`\n✅ ATS FOUND! Stopping crawl.`);
-        return currentDetection;
-    }
-    
-    // Filter links for crawling
-    const excludedDomains = ['linkedin.com', 'facebook.com', 'twitter.com', 'instagram.com', 'youtube.com', 'github.com'];
-    const excludedPaths = ['/privacy', '/terms', '/about', '/contact', '/blog', '/login'];
-    
-    const atsDomains = ['greenhouse.io', 'lever.co', 'workable.com', 'comeet.co'];
-    
-    const crawlCandidates = [...jobLinks, ...atsLinks]
-        .filter(l => !visited.has(l.href))
-        .filter(l => !l.inHeader && !l.inFooter)
-        .filter(l => !excludedDomains.some(d => l.href.includes(d)))
-        .filter(l => !excludedPaths.some(p => l.href.toLowerCase().includes(p)))
-        .slice(0, DEEP_CRAWL_MAX_LINKS);
-    
-    console.log(`\n📋 Crawl candidates (${crawlCandidates.length}):`);
-    crawlCandidates.forEach((l, i) => {
-        console.log(`   ${i + 1}. ${l.href}`);
-    });
-    
-    // Crawl each candidate
-    for (const link of crawlCandidates) {
-        visited.add(link.href);
-        
-        try {
-            console.log(`\n➡️  Navigating to: ${link.href}`);
-            await page.goto(link.href, { waitUntil: 'domcontentloaded', timeout: 15000 });
-            await page.waitForTimeout(2000);
-            
-            const result = await debugDeepCrawl(page, baseUrl, depth - 1, visited);
-            if (result) return result;
-            
-        } catch (e: any) {
-            console.log(`   ⚠️ Failed: ${e.message}`);
-        }
-    }
-    
-    return null;
+    return { jobLinks, atsLinks };
 }
 
 // ============== MAIN DEBUG FUNCTION ==============
-async function debugDetection(companyName: string, careersUrl?: string) {
+export async function debugDetection(companyName: string, careersUrl?: string) {
     console.log('\n' + '🔬'.repeat(30));
     console.log('  ATS DETECTION PIPELINE DEBUG');
     console.log('🔬'.repeat(30));
@@ -205,27 +179,39 @@ async function debugDetection(companyName: string, careersUrl?: string) {
     let browser;
     
     try {
-        // Get company info if URL not provided
+        // ========== STEP 0: DB Info ==========
+        logStep(0, 'DATABASE INFO');
+        
+        let company: any = null;
         if (!careersUrl) {
-            const result = await db.query(
-                `SELECT id, company_name, careers_page_url FROM companies 
-                 WHERE company_name ILIKE $1 AND careers_page_url IS NOT NULL 
-                 LIMIT 1`,
-                [`%${companyName}%`]
-            );
+            company = await getCompanyInfo(db, companyName);
             
-            if (result.rows.length === 0) {
+            if (!company) {
                 console.error(`❌ Company "${companyName}" not found or has no careers URL`);
                 return;
             }
             
-            const company = result.rows[0];
             careersUrl = company.careers_page_url;
-            log('COMPANY INFO', `Found company:`, {
-                id: company.id,
-                name: company.company_name,
-                careersUrl: careersUrl,
-            });
+            
+            console.log(`Company: ${company.company_name} (id: ${company.id})`);
+            console.log(`Careers URL: ${careersUrl}`);
+            console.log(`ATS checked at: ${company.ats_checked_at || 'never'}`);
+            console.log(`Jobs in DB: ${company.job_count}`);
+            
+            if (company.job_source_id) {
+                console.log(`\n📦 Existing job_source:`);
+                console.log(`   ID: ${company.job_source_id}`);
+                console.log(`   Type: ${company.source_type}`);
+                console.log(`   Slug/UID: ${company.ats_identifier || '❌ NONE'}`);
+                console.log(`   Token: ${company.api_token ? '✅ present' : '❌ none'}`);
+                console.log(`   Method: ${company.detection_method}`);
+                console.log(`   Confidence: ${(company.confidence * 100).toFixed(0)}%`);
+                console.log(`   Status: ${company.status}`);
+            } else {
+                console.log(`\n📦 No existing job_source`);
+            }
+        } else {
+            console.log(`Using provided URL: ${careersUrl}`);
         }
         
         // Launch browser
@@ -252,6 +238,18 @@ async function debugDetection(companyName: string, careersUrl?: string) {
         console.log(`   HTML length: ${html.length}`);
         console.log(`   Title: ${await page.title()}`);
         
+        // Quick checks
+        const checks = [
+            ['greenhouse.io', html.includes('greenhouse.io')],
+            ['lever.co', html.includes('lever.co')],
+            ['comeet', html.toLowerCase().includes('comeet')],
+            ['workable', html.includes('workable')],
+        ];
+        console.log(`\n🔍 Quick HTML checks:`);
+        checks.forEach(([name, found]) => {
+            console.log(`   ${name}: ${found ? '✅ found' : '❌'}`);
+        });
+        
         // ========== STEP 2: Pattern Analysis ==========
         logStep(2, 'PATTERN ANALYSIS');
         analyzePatterns(html, finalUrl);
@@ -263,12 +261,13 @@ async function debugDetection(companyName: string, careersUrl?: string) {
         
         // ========== STEP 4: Greenhouse API Probe ==========
         logStep(4, 'GREENHOUSE API PROBE');
-        const slugVariations = generateSlugVariations(companyName);
-        console.log(`Slug variations from "${companyName}":`);
+        const effectiveName = company?.company_name || companyName;
+        const slugVariations = generateSlugVariations(effectiveName);
+        console.log(`Slug variations from "${effectiveName}":`);
         slugVariations.forEach(s => console.log(`   - ${s}`));
         
         console.log(`\nProbing Greenhouse API...`);
-        const greenhouseResult = await probeGreenhouseAPI(companyName, careersUrl!);
+        const greenhouseResult = await probeGreenhouseAPI(effectiveName, careersUrl!);
         if (greenhouseResult) {
             console.log(`✅ Found:`, JSON.stringify(greenhouseResult, null, 2));
         } else {
@@ -277,17 +276,21 @@ async function debugDetection(companyName: string, careersUrl?: string) {
         
         // ========== STEP 5: Link Analysis ==========
         logStep(5, 'LINK ANALYSIS');
-        await extractAllLinks(page, new URL(careersUrl!).origin);
+        await analyzeLinks(page, new URL(careersUrl!).origin);
         
         // ========== STEP 6: Deep Crawl ==========
         logStep(6, 'DEEP CRAWL');
-        console.log(`Starting deep crawl (max depth: ${DEEP_CRAWL_MAX_DEPTH}, max links per level: ${DEEP_CRAWL_MAX_LINKS})...`);
+        console.log(`Starting deep crawl (max depth: ${DEEP_CRAWL_MAX_DEPTH}, max links: ${DEEP_CRAWL_MAX_LINKS})...`);
         
         // Reset to careers page
         await page.goto(careersUrl!, { waitUntil: 'domcontentloaded', timeout: 15000 });
         await page.waitForTimeout(2000);
         
-        const deepCrawlResult = await debugDeepCrawl(page, careersUrl!);
+        const deepCrawlResult = await deepCrawlForAts(page, careersUrl!, {
+            maxDepth: DEEP_CRAWL_MAX_DEPTH,
+            maxLinksPerLevel: DEEP_CRAWL_MAX_LINKS,
+        });
+        
         if (deepCrawlResult) {
             console.log(`\n✅ Deep crawl found ATS:`, JSON.stringify(deepCrawlResult, null, 2));
         } else {
@@ -296,7 +299,6 @@ async function debugDetection(companyName: string, careersUrl?: string) {
         
         // ========== STEP 7: Keyword Detection ==========
         logStep(7, 'KEYWORD DETECTION');
-        // Go back to original page for keyword check
         await page.goto(careersUrl!, { waitUntil: 'domcontentloaded', timeout: 15000 });
         const finalHtml = await page.content();
         
@@ -309,22 +311,58 @@ async function debugDetection(companyName: string, careersUrl?: string) {
         
         // ========== SUMMARY ==========
         log('SUMMARY', 'Detection results:');
-        console.log(`\n1. Main detection: ${mainDetection.atsType} (${(mainDetection.confidence * 100).toFixed(0)}%) ${mainDetection.extractedSlug ? `slug: ${mainDetection.extractedSlug}` : 'no slug'}`);
-        console.log(`2. Greenhouse probe: ${greenhouseResult ? `✅ ${greenhouseResult.extractedSlug}` : '❌'}`);
-        console.log(`3. Deep crawl: ${deepCrawlResult ? `✅ ${deepCrawlResult.atsType} slug: ${deepCrawlResult.extractedSlug}` : '❌'}`);
-        console.log(`4. Keyword: ${keywordResult ? `✅ ${keywordResult.atsType}` : '❌'}`);
         
-        // Best result
-        const best = [mainDetection, greenhouseResult, deepCrawlResult, keywordResult]
+        const results = [
+            { name: 'Main detection', result: mainDetection },
+            { name: 'Greenhouse probe', result: greenhouseResult },
+            { name: 'Deep crawl', result: deepCrawlResult },
+            { name: 'Keyword', result: keywordResult },
+        ];
+        
+        results.forEach((r, i) => {
+            if (r.result && r.result.atsType !== 'unknown') {
+                console.log(`${i + 1}. ${r.name}: ✅ ${r.result.atsType} (${(r.result.confidence * 100).toFixed(0)}%) ${r.result.extractedSlug ? `slug: ${r.result.extractedSlug}` : 'NO SLUG'}`);
+            } else {
+                console.log(`${i + 1}. ${r.name}: ❌`);
+            }
+        });
+        
+        // Best result (same logic as pipeline)
+        const validResults = results
+            .map(r => r.result)
             .filter(Boolean)
-            .filter(r => r!.atsType !== 'unknown')
-            .sort((a, b) => b!.confidence - a!.confidence)[0];
+            .filter(r => r!.atsType !== 'unknown');
         
+        const withSlug = validResults.filter(r => r!.extractedSlug);
+        const best = withSlug.length > 0 
+            ? withSlug.sort((a, b) => b!.confidence - a!.confidence)[0]
+            : validResults.sort((a, b) => b!.confidence - a!.confidence)[0];
+        
+        console.log('\n' + '─'.repeat(60));
         if (best) {
-            console.log(`\n🏆 BEST RESULT: ${best.atsType} (${(best.confidence * 100).toFixed(0)}%) via ${best.detectionMethod}`);
-            if (best.extractedSlug) console.log(`   Slug: ${best.extractedSlug}`);
+            const hasSlug = !!best.extractedSlug;
+            console.log(`🏆 BEST RESULT: ${best.atsType} (${(best.confidence * 100).toFixed(0)}%)`);
+            console.log(`   Method: ${best.detectionMethod}`);
+            console.log(`   Slug: ${best.extractedSlug || '❌ NONE'}`);
+            console.log(`   Actionable: ${hasSlug || best.atsType === 'comeet' ? '✅ YES' : '❌ NO (no slug)'}`);
         } else {
-            console.log(`\n❌ NO ATS DETECTED`);
+            console.log(`❌ NO ATS DETECTED`);
+        }
+        
+        // Compare with existing
+        if (company?.job_source_id) {
+            console.log('\n' + '─'.repeat(60));
+            console.log('📊 COMPARISON WITH EXISTING:');
+            if (best) {
+                const sameType = best.atsType === company.source_type;
+                const sameSlug = best.extractedSlug === company.ats_identifier;
+                console.log(`   Type: ${sameType ? '✅ same' : `⚠️ different (DB: ${company.source_type}, detected: ${best.atsType})`}`);
+                console.log(`   Slug: ${sameSlug ? '✅ same' : `⚠️ different (DB: ${company.ats_identifier || 'none'}, detected: ${best.extractedSlug || 'none'})`}`);
+                
+                if (!company.ats_identifier && best.extractedSlug) {
+                    console.log(`   💡 RE-RUN RECOMMENDED: Can now extract slug!`);
+                }
+            }
         }
         
     } catch (error: any) {
@@ -337,23 +375,25 @@ async function debugDetection(companyName: string, careersUrl?: string) {
 }
 
 // ============== CLI ==============
-const args = process.argv.slice(2);
+if (process.argv[1].includes('debug-detection')) {
+    const args = process.argv.slice(2);
 
-if (args.length === 0) {
-    console.log(`
+    if (args.length === 0) {
+        console.log(`
 Usage:
-  npx ts-node src/debug-detection.ts "Company Name"
-  npx ts-node src/debug-detection.ts --url "https://company.com/careers"
+  npx ts-node src/detectors/debug-detection.ts "Company Name"
+  npx ts-node src/detectors/debug-detection.ts --url "https://company.com/careers"
   
 Examples:
-  npx ts-node src/debug-detection.ts "Beewise"
-  npx ts-node src/debug-detection.ts --url "https://www.beewise.ag/careers"
+  npx ts-node src/detectors/debug-detection.ts "Beewise"
+  npx ts-node src/detectors/debug-detection.ts --url "https://www.beewise.ag/careers"
 `);
-    process.exit(0);
-}
+        process.exit(0);
+    }
 
-if (args[0] === '--url') {
-    debugDetection('unknown', args[1]);
-} else {
-    debugDetection(args.join(' '));
+    if (args[0] === '--url') {
+        debugDetection('unknown', args[1]);
+    } else {
+        debugDetection(args.join(' '));
+    }
 }

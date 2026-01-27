@@ -5,18 +5,6 @@ import {detectATSFromHTML} from "./ats-detector.js";
 
 /**
  * Check whether a given URL belongs to a known ATS provider domain.
- *
- * Matches both:
- *  - exact domains       → "greenhouse.io"
- *  - subdomains          → "company.greenhouse.io", "jobs.lever.co"
- *
- * Used to:
- *  - allow outbound crawling into ATS platforms
- *  - distinguish destination ATS pages from internal company links
- *  - stop recursion once an ATS domain is reached
- *
- * @param href - Absolute URL to evaluate
- * @returns true if the URL belongs to a known ATS domain, false otherwise
  */
 function isATSDomain(href: string): boolean {
     try {
@@ -27,131 +15,112 @@ function isATSDomain(href: string): boolean {
     }
 }
 
+interface LinkInfo {
+    href: string;
+    text: string;
+    inExcludedContainer: boolean;
+}
+
 /**
- * Extract and filter potential job / careers links from the current page.
- *
- * Strategy:
- *  - Collect all anchor tags with href
- *  - Exclude anchors inside blacklisted DOM sections (headers, footers, nav, etc.)
- *  - Allow:
- *      - same-origin links (company site)
- *      - known ATS provider domains
- *  - Apply post-filters:
- *      - exclude social / irrelevant domains
- *      - exclude non-job paths
- *      - enforce job-related keyword patterns on same-origin links
- *      - avoid already visited URLs
- *
- * ATS domain links are always allowed (assumed job-related by definition).
- * Same-origin links must match JOB_PATTERNS heuristics.
- *
- * This function is designed to maximize recall while controlling crawl noise.
- *
- * @param page - Playwright page instance (current DOM context)
- * @param baseOrigin - Origin of the company website (protocol + host)
- * @param visited - Set of already visited URLs (to avoid loops)
- *
- * @returns Promise resolving to a list of unique, filtered candidate job / career links
+ * Extract all links with metadata for verbose logging.
  */
-async function extractJobLinks(page: Page, baseOrigin: string, visited: Set<string>): Promise<string[]> {
-    const links: string[] = await page.$$eval(
+async function extractAllLinks(page: Page, baseOrigin: string): Promise<LinkInfo[]> {
+    return page.$$eval(
         'a[href]',
         (anchors, args) => {
-            const { origin, excludeSelectors, atsDomains } = args;
+            const { excludeSelectors } = args;
 
-            return anchors
-                .filter(a => {
-                    for (const selector of excludeSelectors) {
-                        if (a.closest(selector)) {
-                            return false
-                        }
-                    }
-                    return true
-                })
-                .map(a => (a as HTMLAnchorElement).href)
-                .filter(href => {
-                    if (!href) return false;
-
-                    // Allow same-origin links
-                    if (href.startsWith(origin)) return true;
-
-                    // Allow known ATS domains
-                    try {
-                        const url = new URL(href);
-                        return atsDomains.some((domain: string) =>
-                            url.hostname === domain || url.hostname.endsWith('.' + domain)
-                        );
-                    } catch {
-                        return false;
-                    }
-                });
+            return anchors.map(a => {
+                const inExcluded = excludeSelectors.some((selector: string) => a.closest(selector));
+                return {
+                    href: (a as HTMLAnchorElement).href,
+                    text: a.textContent?.trim().substring(0, 40) || '',
+                    inExcludedContainer: inExcluded,
+                };
+            });
         },
-        { origin: baseOrigin, excludeSelectors: EXCLUDED_SELECTORS, atsDomains: ATS_DOMAINS }
+        { excludeSelectors: EXCLUDED_SELECTORS }
     );
+}
 
-    return [... new Set(links)].filter(link => {
-        const lower = link.toLowerCase();
+/**
+ * Filter links and return both filtered results and rejection reasons (for verbose mode).
+ */
+function filterLinks(
+    links: LinkInfo[],
+    baseOrigin: string,
+    visited: Set<string>,
+    verbose: boolean
+): { accepted: string[]; rejections: Array<{ href: string; reason: string }> } {
+    const accepted: string[] = [];
+    const rejections: Array<{ href: string; reason: string }> = [];
 
-        // Exclude social/bad domains
-        if (EXCLUDED_DOMAINS.some(domain => lower.includes(domain))) return false;
+    for (const link of links) {
+        const { href, inExcludedContainer } = link;
+        const lower = href.toLowerCase();
 
-        // Exclude non-job paths
-        if (EXCLUDED_PATHS.some(domain => lower.includes(domain))) return false;
-
-        // For ATS domains, always allow (they're inherently job-related)
-        if (isATSDomain(link)) {
-            return !visited.has(link);
+        // Skip empty
+        if (!href) {
+            continue;
         }
 
-        // For same-origin links, mest match job pattern
-        if (!JOB_PATTERNS.some(pattern => lower.includes(pattern))) return false;
+        // Check if in excluded container
+        if (inExcludedContainer) {
+            if (verbose) rejections.push({ href, reason: 'in header/footer/nav' });
+            continue;
+        }
 
-        // Not already visited
-        return !visited.has(link);
-    });
+        // Must be same-origin or ATS domain
+        const isSameOrigin = href.startsWith(baseOrigin);
+        const isATS = isATSDomain(href);
+
+        if (!isSameOrigin && !isATS) {
+            if (verbose && href.startsWith('http')) {
+                rejections.push({ href, reason: 'external (not ATS domain)' });
+            }
+            continue;
+        }
+
+        // Check excluded domains
+        if (EXCLUDED_DOMAINS.some(d => lower.includes(d))) {
+            if (verbose) rejections.push({ href, reason: `excluded domain` });
+            continue;
+        }
+
+        // Check excluded paths
+        if (EXCLUDED_PATHS.some(p => lower.includes(p))) {
+            if (verbose) rejections.push({ href, reason: `excluded path` });
+            continue;
+        }
+
+        // For same-origin, must match job pattern
+        if (isSameOrigin && !isATS) {
+            if (!JOB_PATTERNS.some(p => lower.includes(p))) {
+                if (verbose) rejections.push({ href, reason: 'no job pattern match' });
+                continue;
+            }
+        }
+
+        // Check already visited
+        if (visited.has(href)) {
+            if (verbose) rejections.push({ href, reason: 'already visited' });
+            continue;
+        }
+
+        accepted.push(href);
+    }
+
+    return { accepted: [...new Set(accepted)], rejections };
 }
 
 export interface DeepCrawlOptions {
     maxDepth?: number;
     maxLinksPerLevel?: number;
+    verbose?: boolean;
 }
 
 /**
- * Perform a bounded deep crawl starting from a company's base page in order
- * to discover and identify the ATS provider used by the company.
- *
- * High-level algorithm:
- *  1. Extract candidate job / career links from the current page
- *  2. Visit a limited number of them (breadth control)
- *  3. On each visited page:
- *      - analyze HTML for ATS signals
- *      - stop immediately if a confident ATS match is found
- *  4. Recurse only on same-origin links (never recurse inside ATS domains)
- *  5. Track visited URLs to avoid cycles and infinite loops
- *
- * Detection characteristics:
- *  - Multi-step heuristic crawl
- *  - Medium–high recall
- *  - Controlled runtime via depth and breadth limits
- *  - Produces explainable detectionMethod path (depth + method chain)
- *
- * Stopping conditions:
- *  - maxDepth reached
- *  - no candidate links found
- *  - confident ATS detection achieved
- *
- * Special handling:
- *  - ATS domains are considered terminal destinations (no further crawling)
- *  - detectionMethod is annotated with crawl depth for traceability
- *
- * @param page - Active Playwright page instance
- * @param baseUrl - Original company homepage or careers root URL
- * @param options - Crawl limits (depth and links per level)
- * @param visited - Set of already visited URLs (used internally for cycle prevention)
- *
- * @returns Promise resolving to:
- *  - ATSDetectionResult when an ATS provider is confidently detected
- *  - null if no ATS is found within crawl limits
+ * Perform a bounded deep crawl to discover ATS provider.
  */
 export async function deepCrawlForAts(
     page: Page,
@@ -159,7 +128,7 @@ export async function deepCrawlForAts(
     options: DeepCrawlOptions = {},
     visited: Set<string> = new Set(),
 ): Promise<ATSDetectionResult | null> {
-    const { maxDepth = 2, maxLinksPerLevel = 3 } = options;
+    const { maxDepth = 2, maxLinksPerLevel = 3, verbose = false } = options;
 
     if (maxDepth <= 0) {
         return null;
@@ -167,25 +136,76 @@ export async function deepCrawlForAts(
 
     const baseOrigin = new URL(baseUrl).origin;
     const currentUrl = page.url();
+    const depth = 3 - maxDepth;
+    const depthIndicator = '→'.repeat(depth);
+    const indent = '   ';
+
     visited.add(currentUrl);
 
-    const potentialLinks = await extractJobLinks(page, baseOrigin, visited);
+    // Extract all links
+    const allLinks = await extractAllLinks(page, baseOrigin);
 
-    if (potentialLinks.length === 0) {
+    if (verbose) {
+        console.log(`\n${indent}${depthIndicator} 📄 Page: ${currentUrl}`);
+        console.log(`${indent}${depthIndicator} 📊 Total links on page: ${allLinks.length}`);
+    }
+
+    // Filter links
+    const { accepted, rejections } = filterLinks(allLinks, baseOrigin, visited, verbose);
+
+    if (verbose && rejections.length > 0) {
+        console.log(`${indent}${depthIndicator} ❌ Rejected links:`);
+        
+        // Group by reason
+        const byReason: Record<string, string[]> = {};
+        for (const r of rejections) {
+            if (!byReason[r.reason]) byReason[r.reason] = [];
+            byReason[r.reason].push(r.href);
+        }
+        
+        for (const [reason, hrefs] of Object.entries(byReason)) {
+            console.log(`${indent}${depthIndicator}    ${reason}: ${hrefs.length}`);
+            if (hrefs.length <= 3) {
+                hrefs.forEach(h => console.log(`${indent}${depthIndicator}       - ${h.replace(baseOrigin, '')}`));
+            }
+        }
+    }
+
+    if (accepted.length === 0) {
+        if (verbose) {
+            console.log(`${indent}${depthIndicator} ⚠️ No candidate links found`);
+        }
         return null;
     }
 
-    const depthIndicator = '→'.repeat(3 - maxDepth);
-    console.log(`   ${depthIndicator} Found ${potentialLinks.length} job links at depth ${3 - maxDepth}, probing up to ${maxLinksPerLevel}...`);
+    console.log(`${indent}${depthIndicator} Found ${accepted.length} job links at depth ${depth}, probing up to ${maxLinksPerLevel}...`);
 
-    for (const link of potentialLinks.slice(0, maxLinksPerLevel)) {
+    if (verbose) {
+        console.log(`${indent}${depthIndicator} ✅ Candidate links:`);
+        accepted.slice(0, 10).forEach((href, i) => {
+            const isATS = isATSDomain(href);
+            const display = isATS ? href : href.replace(baseOrigin, '');
+            const marker = i < maxLinksPerLevel ? '→' : '  (skip)';
+            console.log(`${indent}${depthIndicator}    ${marker} ${isATS ? '🔗 ' : ''}${display}`);
+        });
+        if (accepted.length > 10) {
+            console.log(`${indent}${depthIndicator}    ... and ${accepted.length - 10} more`);
+        }
+    }
+
+    // Crawl selected links
+    for (const link of accepted.slice(0, maxLinksPerLevel)) {
         try {
             visited.add(link);
 
-            // Show shortened link (remove origin for same origin, keep full for ATS
             const isATS = isATSDomain(link);
             const displayLink = isATS ? link : link.replace(baseOrigin, '');
-            console.log(`   ${depthIndicator} ${isATS ? '🔗 ' : ''}${displayLink}`);
+            
+            if (!verbose) {
+                console.log(`${indent}${depthIndicator} ${isATS ? '🔗 ' : ''}${displayLink}`);
+            } else {
+                console.log(`\n${indent}${depthIndicator} ➡️  Navigating: ${isATS ? '🔗 ' : ''}${displayLink}`);
+            }
 
             await page.goto(link, { waitUntil: "domcontentloaded", timeout: 15000 });
             await page.waitForTimeout(2000);
@@ -193,23 +213,26 @@ export async function deepCrawlForAts(
             const html = await page.content();
             const detection = detectATSFromHTML(html, page.url());
 
+            if (verbose) {
+                console.log(`${indent}${depthIndicator}    Detection: ${detection.atsType} (${(detection.confidence * 100).toFixed(0)}%) ${detection.extractedSlug ? `slug: ${detection.extractedSlug}` : ''}`);
+            }
+
             // Found ATS!
             if (detection.atsType !== 'unknown' && detection.confidence >= 0.6) {
-                console.log(`   ${depthIndicator} ✅ Found ${detection.atsType}!`);
+                console.log(`${indent}${depthIndicator} ✅ Found ${detection.atsType}!`);
                 return {
                     ...detection,
-                    detectionMethod: `deep_crawl+d${3 - maxDepth}:${detection.detectionMethod}`,
+                    detectionMethod: `deep_crawl_d${depth}:${detection.detectionMethod}`,
                     careersUrl: baseUrl,
                 };
             }
 
-            // Only go deeper on same-origin links (not ATS domains)
-            // ATS domains are the destination, no need to crawl further
+            // Only go deeper on same-origin links
             if (!isATS) {
                 const deeperResult = await deepCrawlForAts(
                     page,
                     baseUrl,
-                    { maxDepth: maxDepth - 1, maxLinksPerLevel },
+                    { maxDepth: maxDepth - 1, maxLinksPerLevel, verbose },
                     visited,
                 );
 
@@ -219,10 +242,9 @@ export async function deepCrawlForAts(
             }
 
         } catch (error: any) {
-            console.log(`   ${depthIndicator} ⚠️ Failed: ${error.message}`);
+            console.log(`${indent}${depthIndicator} ⚠️ Failed: ${error.message}`);
         }
     }
 
     return null;
 }
-
