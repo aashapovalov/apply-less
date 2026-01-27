@@ -64,22 +64,22 @@ async def lifespan(app: FastAPI):
     embedding_service.load_model()
 
     # Load skill extraction model
-    skills_extraction_service = SkillExtractorService()
-    skills_extraction_service.load_model()
+    skill_extractor_service = SkillExtractorService()
+    skill_extractor_service.load_model()
 
     # Create chunker services (they use embedding + skill services)
     job_chunker_service = JobChunkerService(
         embedding_service=embedding_service,
-        skill_extraction_service=skills_extraction_service
+        skill_extractor_service=skill_extractor_service
     )
     profile_chunker_service = ProfileChunkerService(
         embedding_service=embedding_service,
-        skill_extraction_service=skills_extraction_service
+        skill_extractor_service=skill_extractor_service
     )
 
     # Store in app.state so routes can access it via request.app.state
     app.state.embedding_service = embedding_service
-    app.state.skills_extraction_service = skills_extraction_service
+    app.state.skill_extractor_service = skill_extractor_service
     app.state.cv_generator_service = CVGeneratorService()
     app.state.job_chunker_service = job_chunker_service
     app.state.profile_chunker_service = profile_chunker_service

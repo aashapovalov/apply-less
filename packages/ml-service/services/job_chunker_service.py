@@ -68,7 +68,7 @@ class JobChunkerService:
     def __init__(
         self,
         embedding_service: EmbeddingService = None,
-        skill_extraction_service: SkillExtractorService = None,
+        skill_extractor_service: SkillExtractorService = None,
     ):
         """
           Initialize the chunker with optional services.
@@ -86,7 +86,7 @@ class JobChunkerService:
                 - extract_skills_with_context(...)
           """
         self.embedding_service = embedding_service
-        self.skill_extraction_service = skill_extraction_service
+        self.skill_extractor_service = skill_extractor_service
 
     def chunk_job(
         self,
@@ -164,8 +164,8 @@ class JobChunkerService:
         # 4. Extract prioritized skills from the full job description
         skills = []
 
-        if self.skill_extraction_service and self.skill_extraction_service.is_loaded:
-            skills = self.skill_extraction_service.extract_skills_with_context(text)
+        if self.skill_extractor_service and self.skill_extractor_service.is_loaded:
+            skills = self.skill_extractor_service.extract_skills_with_context(text)
 
         # 5. Serialize output into plain dicts ( safe for JSON / API / DB)
         return {
