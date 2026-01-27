@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     # Anthropic API KEY for CV generation
     anthropic_api_key: str = ""
-    cv_model_name: str = "claude-3-5-sonnet-20241022"
+    cv_model_name: str = "claude-3-haiku-20240307"
 
     #Server configuration
     host: str = "0.0.0.0"
