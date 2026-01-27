@@ -7,7 +7,7 @@ Combines structured skill analysis with raw text for context.
 
 import anthropic
 from config.settings import get_settings
-from cv_gen_prompt_template import PROMPT_TEMPLATE
+from .cv_gen_prompt_template import PROMPT_TEMPLATE
 
 class CVGeneratorService:
     def __init__(self):
