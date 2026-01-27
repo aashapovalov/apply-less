@@ -46,8 +46,11 @@ export async function runDetectionPipeline(
     const { enableDeepCrawl = false, deepCrawlOptions } = options;
 
     // 1. Main detection from careers page
-    let detection = await detectATSFromPage(page, companyName);
-    if (detection.atsType !== 'unknown') {
+    let detection = await detectATSFromPage(page, careersUrl);
+    
+    // Return early only if we have both a known ATS type AND extracted slug
+    // Otherwise continue to API probe which might find the slug
+    if (detection.atsType !== 'unknown' && detection.extractedSlug) {
         return detection;
     }
 
@@ -61,7 +64,7 @@ export async function runDetectionPipeline(
     if (enableDeepCrawl) {
         console.log(`   🔄 Deep crawling for hidden ATS...`);
 
-        const deepResult = await deepCrawlForAts(page, companyName, deepCrawlOptions);
+        const deepResult = await deepCrawlForAts(page, careersUrl, deepCrawlOptions);
 
         if (deepResult) {
             return deepResult;
