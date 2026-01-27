@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import { IngestionStats } from "../types/index.js";
 import { PlaywrightClient, SNCClientPlaywright } from "../clients/index.js";
-import { CompanyService, JobSourceService } from "../services/index.js";
+import { CompanyService } from "../services/index.js";
 import { CompanyDetailParser } from "../parsers/company-detail-parser.js";
 import { normalizeName } from "../utils/index.js";
 
@@ -68,7 +68,6 @@ export async function runStageA (
     // Track additional stats
     let detailsFetched = 0;
     let careersUrlsFound = 0;
-    let jobSourcesCreated = 0;
 
     const playwrightClient = new PlaywrightClient();
     let sncClient: SNCClientPlaywright | null = null;
@@ -96,7 +95,6 @@ export async function runStageA (
 
         sncClient = new SNCClientPlaywright(browser);
         const companyService = new CompanyService(db);
-        const jobSourceService = new JobSourceService(db);
         const detailParser = new CompanyDetailParser();
 
         // Step3: test connection
@@ -203,25 +201,11 @@ export async function runStageA (
                                         if (details.careersUrl) {
                                             careersUrlsFound++;
 
-                                            const jobSourceResult = await jobSourceService.upsertJobSource({
-                                                company_id: result.id,
-                                                source_type: "careers_html",
-                                                base_url: details.careersUrl,
-                                                detection_method: "snc_careers_button",
-                                                confidence: 1.0,
-                                                status: "active",
-                                                last_checked_at: new Date(),
-                                            });
-
-                                            if (jobSourceResult.isNew) {
-                                                jobSourcesCreated++;
-                                                console.log(`      🎯 Created job source for careers page`);
-                                            } else {
-                                                console.log(`      ♻️  Updated existing job source`);
-                                            }
                                         }
+
                                     } else {
                                         console.log(`      ⚠️  No valid details found`);
+                                        console.log(`      🎯 Careers URL saved (ATS detection in Stage B)`);
                                     }
 
                                     // Delay between companies with jitter
@@ -311,7 +295,6 @@ export async function runStageA (
             console.log(`\n📄 Company Details:`);
             console.log(`   Details fetched: ${detailsFetched}`);
             console.log(`   Careers URLs found: ${careersUrlsFound}`);
-            console.log(`   Job sources created: ${jobSourcesCreated}`);
         }
         console.log(`\nDuration: ${durationMin} minutes (${durationSec}s)`);
         console.log('='.repeat(60) + '\n');
