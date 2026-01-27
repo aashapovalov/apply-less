@@ -129,3 +129,51 @@ export const ATS_PATTERNS: ATSPattern[] = [
         }
     },
 ];
+
+// Selectors to exclude (header, footer, nav)
+export const EXCLUDED_SELECTORS = [
+    'header', 'footer', 'nav',
+    '[role="navigation"]', '[role="banner"]', '[role="contentinfo"]',
+    '.header', '.footer', '.nav', '.navbar', '.navigation',
+    '.menu', '.sidebar', '.social', '.share',
+    '#header', '#footer', '#nav', '#navbar', '#menu',
+];
+
+// Known ATS domains to follow (even though they're external)
+export const ATS_DOMAINS = [
+    'jobs.lever.co',
+    'boards.greenhouse.io',
+    'job-boards.greenhouse.io',
+    'boards-api.greenhouse.io',
+    'apply.workable.com',
+    'www.comeet.co',
+    'comeet.co',
+];
+
+// Domains to exclude
+export const EXCLUDED_DOMAINS = [
+    'linkedin.com', 'facebook.com', 'twitter.com', 'x.com',
+    'instagram.com', 'youtube.com', 'tiktok.com', 'pinterest.com',
+    'github.com', 'glassdoor.com', 'indeed.com',
+];
+
+// Paths to exclude
+export const EXCLUDED_PATHS = [
+    '/privacy', '/terms', '/legal', '/cookie', '/policy',
+    '/about', '/contact', '/blog', '/news', '/press',
+    '/login', '/signin', '/signup', '/register',
+    '/faq', '/help', '/support',
+];
+
+// Paths that indicate job-related content
+export const JOB_PATTERNS = [
+    '/position', '/positions',
+    '/job', '/jobs',
+    '/opening', '/openings',
+    '/role', '/roles',
+    '/vacancy', '/vacancies',
+    '/career', '/careers',
+    '/location', '/locations',
+    '/department', '/departments',
+    '/team', '/teams',
+];
