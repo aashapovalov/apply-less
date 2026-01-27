@@ -72,6 +72,7 @@ program
     .option('--dry-run', 'Preview without writing to database', false)
     .option('-l, --limit <number>', 'Limit number of companies')
     .option('-c, --company <name>', 'Test single company by name')
+    .option('-r, --recheck', 'Recheck companies that were checked but have no job_source', false)
     .option('-f, --force', 'Re-detect even if job_source exists', false)
     .action(async (options) => {
         console.log('\n🚀 ApplyLess Ingestion: Stage B (ATS Detection)\n');
@@ -83,6 +84,7 @@ program
                 dryRun: options.dryRun,
                 limit: options.limit ? parseInt(options.limit) : undefined,
                 companyName: options.company,
+                recheck: options.recheck,
                 force: options.force,
             });
 
