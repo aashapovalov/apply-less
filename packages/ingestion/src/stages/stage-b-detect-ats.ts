@@ -1,5 +1,5 @@
 import {Pool} from "pg";
-import { IngestionStats } from "../types/index.js";
+import {ATSDetectionResult, IngestionStats} from "../types/index.js";
 import { PlaywrightClient } from "../clients/index.js";
 import { JobSourceService } from "../services/index.js";
 import { detectATSFromPage } from "../detectors/index.js";
@@ -57,7 +57,7 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
 
         // Get companies without job sources OR with a specific name
         let query = `
-        SELECT c.id, c.company_name, c.careers_page_url
+        SELECT c.id, c.company_name, c.normalized_name, c.careers_page_url
         FROM companies c
         WHERE c.careers_page_url IS NOT NULL
         AND c.careers_page_url NOT LIKE '%linkedin.com%'
@@ -98,7 +98,30 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
                 stats.totalProcessed++;
 
                 // Detect ATS for the current company careers page.
-                const detection = await detectATSFromPage(page, company.careers_page_url);
+                let detection: ATSDetectionResult = await detectATSFromPage(page, company.careers_page_url);
+
+                // Greenhouse API probe fallback
+                if (detection.atsType === 'unknown') {
+                    console.log(`   🔄 Trying Greenhouse API probe...`);
+
+                    const slugVariations = generateSlugVariations(company.company_name);
+                    console.log(`   📝 Slug variations: ${slugVariations.join(', ')}`);
+
+                    const foundSlug = await probeGreenhouseAPI(slugVariations);
+
+                    if (foundSlug) {
+                        console.log(`   🎯 Greenhouse API probe SUCCESS: ${foundSlug}`);
+                        detection = {
+                            atsType: 'greenhouse',
+                            confidence: 0.75,
+                            detectionMethod: 'api-probe',
+                            extractedSlug: foundSlug,
+                            careersUrl: company.careers_page_url,
+                        };
+                    } else {
+                        console.log(`   ❌ Greenhouse API probe: no match`);
+                    }
+                }
 
                 console.log(`   ✅ Detected: ${detection.atsType} (${(detection.confidence * 100).toFixed(0)}%)`);
                 if (detection.extractedSlug) {
@@ -151,4 +174,62 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
     } finally {
         await playwrightClient.close();
     }
+}
+
+/**
+ * Generate slug variations from company name for Greenhouse API probing
+ * Greenhouse slugs are typically lowercase, alphanumeric, sometimes with hyphens
+ */
+function generateSlugVariations(companyName: string): string[] {
+    const base = companyName.toLowerCase().trim();
+
+    const variations = new Set<string>();
+
+    // Remove all non-alphanumeric: "App's Flyer Inc." -> "appsflyerinc"
+    variations.add(base.replace(/[^a-z0-9]/g, ""));
+
+    // Replace spaces/special chars with nothing, remove common suffixes
+    const noSuffix = base
+        .replace(/\s*(inc\.?|llc\.?|ltd\.?|corp\.?|co\.?|company)$/i, "")
+        .trim();
+    variations.add(noSuffix.replace(/[^a-z0-9]/g, ""));
+
+    // Replace spaces with hyphens: "Apps Flyer" -> "apps-flyer"
+    variations.add(base.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
+    variations.add(noSuffix.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
+
+    // Just first word (common for single-word company names)
+    const firstWord = base.split(/[^a-z0-9]/)[0];
+    if (firstWord && firstWord.length > 2) {
+        variations.add(firstWord);
+    }
+
+    // Filter out empty strings and duplicates
+    return Array.from(variations).filter(str => str.length > 1);
+}
+
+/**
+ * Probe Greenhouse API to check if a slug returns jobs
+ * Returns the working slug if found, null otherwise
+ */
+async function probeGreenhouseAPI(slugVariations: string[]): Promise<string | null> {
+    for (const slug of slugVariations) {
+        try {
+            const url = `https://boards-api.greenhouse.io/v1/boards/${slug}/jobs`;
+            const response = await fetch(url);
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.jobs && data.jobs.length > 0) {
+                    return slug
+                }
+            }
+
+            // Small delay between API calls to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 300));
+        } catch {
+            // Ignore fetch errors, try next variation
+        }
+    }
+    return null;
 }
