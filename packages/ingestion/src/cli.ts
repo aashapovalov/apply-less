@@ -10,6 +10,7 @@ import {
     runStageE, runStageG
 } from "./stages/index.js";
 import {verifyEmbeddings} from "./stages/stage-g-embeddings.js";
+import { debugDetection } from "./detectors/index.js";
 
 // Create the root CLI program
 const program = new Command();
@@ -203,6 +204,29 @@ program
             process.exitCode = 1;
         } finally {
             await closeDb();
+        }
+    });
+
+// Debug: Run detailed detection analysis on single company
+program
+    .command('debug')
+    .description('Debug ATS detection pipeline for a single company')
+    .option('-c, --company <name>', 'Company name to debug')
+    .option('-u, --url <url>', 'Careers URL to debug (bypasses DB lookup)')
+    .action(async (options) => {
+        console.log('\n🔬 ApplyLess Ingestion: Debug Detection\n');
+
+        if (!options.company && !options.url) {
+            console.error('❌ Must provide either --company or --url');
+            process.exitCode = 1;
+            return;
+        }
+
+        try {
+            await debugDetection(options.company || 'unknown', options.url);
+        } catch (error: any) {
+            console.error('❌ Fatal error:', error.message);
+            process.exitCode = 1;
         }
     });
 
