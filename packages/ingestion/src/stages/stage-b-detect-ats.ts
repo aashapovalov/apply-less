@@ -8,30 +8,25 @@ export interface StageBOptions {
     dryRun?: boolean;
     limit?: number;
     companyName?: string;
+    recheck?: boolean;
     force?: boolean;
 }
 
 /**
  * Runs Stage B of the ingestion pipeline: ATS Detection.
  *
- * Stage B:
- *  - Loads companies that have a careers_page_url
- *  - By default, processes only companies that do NOT have an existing job_source
- *  - Optionally filters by company name substring
- *  - Uses a single Playwright browser/page to visit each careers page
- *  - Detects ATS vendor via `detectATSFromPage`
- *  - Optionally upserts a job_sources record when confidence ≥ 0.6
+ * Flag behavior:
+ *   (none)           - Process companies where ats_checked_at IS NULL (new companies)
+ *   --recheck        - Process companies checked but no job_source found
+ *   --force          - Process new companies OR companies without job_source
+ *   --recheck --force - Process ALL companies (full re-run)
  *
- * Notes:
- *  - Uses a fixed 2s delay between companies to reduce load / rate limits.
- *  - Always closes the Playwright client in a `finally` block.
- *
- * @param db - Postgres connection pool used for reading companies and writing job_sources
- * @param options - Stage configuration (dry run / limit / company name filter)
- * @returns IngestionStats summary for Stage B (counts, errors, timestamps)
+ * Always excludes LinkedIn career pages.
+ * Always updates ats_checked_at after processing.
+ * Only creates job_source when actionable data found (slug, UID, etc).
  */
 export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<IngestionStats> {
-    const { dryRun = false, limit, companyName, force = false } = options;
+    const { dryRun = false, limit, companyName, recheck=false, force = false } = options;
 
     const stats: IngestionStats = {
         stage: "Stage B: ATS Detection",
@@ -50,6 +45,8 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
     try {
         console.log('\n🔍 Starting Stage B: ATS Detection');
         console.log('='.repeat(60));
+        console.log(`Mode: ${recheck && force ? 'FULL RE-RUN' : recheck ? 'RECHECK (no source found)' : force ? 'NEW + FAILED' : 'NEW ONLY'}`);
+        console.log(`Dry run: ${dryRun}`);
 
         await playwrightClient.launch({ headless: false });  // Headed mode to avoid bot detection
         const browser = playwrightClient.getBrowser();
@@ -65,15 +62,31 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
         const params: any = [];
 
         if (companyName) {
-            query += ` AND company_name ILIKE $1`;
+            // Filter by company name (overrides other flags)
             params.push(`%${companyName}%`);
-        } else if (!force) {
-            // Only process companies without existing job sources (skip if --force)
-            query += ` AND NOT EXISTS (
-                SELECT 1 FROM job_sources js WHERE js.company_id = c.id
-            )`;
+            query += ` AND c.company_name ILIKE $${params.length}`;
+        } else if (recheck && force) {
+            // --recheck --force: ALL companies
+            // No additional filter
+        } else if (recheck) {
+            // --recheck: checked but no job_source
+            query += `
+            AND c.ats_checked_at IS NOT NULL
+            AND NOT EXISTS (SELECT 1 FROM job_sources WHERE js.company_id = c.id)
+            `;
         }
-        // When force=true, process all companies with careers_page_url
+        else if (force) {
+            // --force: new OR no job_source
+            query += `
+              AND (
+                c.ats_checked_at IS NULL
+                OR NOT EXISTS (SELECT 1 FROM job_sources js WHERE js.company_id = c.id)
+              )
+            `;
+        } else {
+            // Default: new companies only
+            query += ` AND c.ats_checked_at IS NULL`;
+        }
 
         query += ` ORDER BY c.company_name`;
         if (limit) {
@@ -100,7 +113,7 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
                 // Detect ATS for the current company careers page.
                 let detection: ATSDetectionResult = await detectATSFromPage(page, company.careers_page_url);
 
-                // Greenhouse API probe fallback
+                // Fallback 1: Greenhouse API probe fallback
                 if (detection.atsType === 'unknown') {
                     console.log(`   🔄 Trying Greenhouse API probe...`);
 
@@ -123,6 +136,22 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
                     }
                 }
 
+                // Fallback 2: Comeet keyword detection
+                if (detection.atsType === 'unknown') {
+                    const html = await page.content();
+
+                    if (/comeet/i.test(html)) {
+                        console.log(`   🎯 Comeet keyword found (UID unknown)`);
+                        detection = {
+                            atsType: "comeet",
+                            confidence: 0.65,
+                            detectionMethod: "keyword_match",
+                            extractedSlug: undefined,
+                            careersUrl: company.careers_page_url,
+                        };
+                    }
+                }
+
                 console.log(`   ✅ Detected: ${detection.atsType} (${(detection.confidence * 100).toFixed(0)}%)`);
                 if (detection.extractedSlug) {
                     console.log(`   🔑 Slug/UID: ${detection.extractedSlug}`);
@@ -130,8 +159,22 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
 
                 results[detection.atsType] = (results[detection.atsType] || 0) + 1;
 
-                // Persist detection result to job_sources if: 1) not a dry run, 2) confidence meets the minimum threshold (≥ 0.6)
-                if (!dryRun && detection.confidence >= 0.6) {
+                if (!dryRun) {
+                    // Always update ats_checked_at
+                    await db.query(
+                        `UPDATE companies SET ats_checked_at = NOW()
+                                        WHERE id = $1`,
+                        [company.id]
+                    );
+                }
+
+                // Only create job_source if we have actionable data
+                const hasActionableData =
+                    detection.confidence > 0.6 &&
+                    detection.atsType !== 'unknown' &&
+                    (detection.extractedSlug || detection.atsType === 'comeet');
+
+                if (hasActionableData) {
                     const result = await jobSourceService.upsertJobSource({
                         company_id: company.id,
                         source_type: detection.atsType as any,
@@ -142,12 +185,17 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
                         confidence: detection.confidence,
                         status: "active",
                     });
-
                     if (result.isNew) {
                         stats.newRecords++;
+                        console.log(`   💾 Created job_source`);
+
                     } else {
                         stats.updatedRecords++;
+                        console.log(`   ♻️  Updated job_source`);
                     }
+                } else {
+                    stats.skippedRecords++;
+                    console.log(`   ⏭️  No actionable data, skipped job_source`);
                 }
 
                 // Throttle between navigations to reduce rate limiting / load
@@ -157,6 +205,14 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
                 stats.failedRecords++;
                 stats.errors.push({ message: company.companyName, details: error.message});
                 console.log(`   ❌ Error: ${error.message}`);
+
+                // Still mark as checked even on error
+                if (!dryRun) {
+                    await db.query(
+                        `UPDATE companies SET ats_checked_at = NOW()  WHERE id = $1`,
+                        [company.id]
+                    );
+                }
             }
         }
 
