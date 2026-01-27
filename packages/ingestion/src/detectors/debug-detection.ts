@@ -289,6 +289,7 @@ export async function debugDetection(companyName: string, careersUrl?: string) {
         const deepCrawlResult = await deepCrawlForAts(page, careersUrl!, {
             maxDepth: DEEP_CRAWL_MAX_DEPTH,
             maxLinksPerLevel: DEEP_CRAWL_MAX_LINKS,
+            verbose: true,
         });
         
         if (deepCrawlResult) {
