@@ -19,6 +19,7 @@
                                     │  • /api/embed/single                │
                                     │  • /api/chunk/job ✅                │
                                     │  • /api/chunk/profile ✅            │
+                                    │  • /api/generate-cv ✅              │
                                     └──────────────▲──────────────────────┘
                                                    │
 ┌─────────────────┐                 ┌──────────────┴──────────────┐
@@ -103,18 +104,43 @@ User Profile Text → Node.js API → ML Service (/api/chunk/profile)
                                 Ranked Job Results
 ```
 
-### 3. CV Generation (Planned)
+### 3. CV Generation ✅
 
 ```
-Favorite Job + Profile → ML Service → OpenAI → Tailored CV
-                              │
-                              ▼
-                    Job skills + requirements
-                              +
-                    Profile experience match
-                              │
-                              ▼
-                    Personalized CV content
+POST /api/generate-cv
+        │
+        ▼
+┌───────────────────────────────────────────┐
+│  1. Validate Profile                      │
+│     - Word count ≥ 200 (hard limit)       │
+│     - Word count < 300 (warning)          │
+│     - Completeness score ≥ 0.4            │
+└──────────────────────┬────────────────────┘
+                       │
+                       ▼
+┌──────────────────────┴────────────────────┐
+│  2. Chunk Job + Profile                   │
+│     - Extract skills from both            │
+│     - Detect mandatory/preferred          │
+└──────────────────────┬────────────────────┘
+                       │
+                       ▼
+┌──────────────────────┴────────────────────┐
+│  3. Skill Gap Analysis                    │
+│     - matching_skills                     │
+│     - missing_skills                      │
+│     - match_rate                          │
+└──────────────────────┬────────────────────┘
+                       │
+                       ▼
+┌──────────────────────┴────────────────────┐
+│  4. Call Claude 3 Haiku                   │
+│     - Build prompt with context           │
+│     - Generate tailored CV                │
+└──────────────────────┬────────────────────┘
+                       │
+                       ▼
+               CV Markdown + Match Summary
 ```
 
 ---
@@ -459,6 +485,7 @@ User → Request + Authorization: Bearer <access_token>
 | Auth | JWT (jsonwebtoken), bcrypt |
 | Embeddings | sentence-transformers, BGE-base-en-v1.5 |
 | Skill Extraction | transformers, feliponi/hirly-ner-multi |
+| CV Generation | Anthropic Claude 3 Haiku |
 | Database | PostgreSQL 17, pgvector |
 | Email | Resend API |
 | Scraping | Playwright |
@@ -486,6 +513,8 @@ EMBED_MODEL_NAME=BAAI/bge-base-en-v1.5
 EMBED_MODEL_CACHE_DIR=./embed_model_cache
 SKILLS_EXTRACTION_MODEL_NAME=feliponi/hirly-ner-multi
 SKILLS_EXTRACTION_MODEL_CACHE_DIR=./model_cache
+ANTHROPIC_API_KEY=sk-ant-...
+CV_MODEL_NAME=claude-3-haiku-20240307
 HOST=0.0.0.0
 PORT=8000
 ```

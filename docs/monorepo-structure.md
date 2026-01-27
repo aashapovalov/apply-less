@@ -106,18 +106,22 @@ apply-less/
 │   │   │   ├── __init__.py
 │   │   │   ├── health.py             # GET /health
 │   │   │   ├── embed.py              # POST /api/embed, /api/embed/single
-│   │   │   └── chunk.py              # POST /api/chunk/job, /api/chunk/profile
+│   │   │   ├── chunk.py              # POST /api/chunk/job, /api/chunk/profile
+│   │   │   └── cv.py                 # POST /api/generate-cv ✅ NEW
 │   │   ├── config/
 │   │   │   ├── __init__.py
-│   │   │   └── settings.py           # Pydantic settings (both models)
+│   │   │   └── settings.py           # Pydantic settings + Anthropic API key
 │   │   ├── services/
 │   │   │   ├── __init__.py
 │   │   │   ├── embedding_service.py         # BGE model loading & inference
 │   │   │   ├── skill_extractor_service.py   # NER skill extraction
 │   │   │   ├── skill_patterns.py            # Keyword fallback patterns
+│   │   │   ├── skill_gap_service.py         # Job vs profile skill comparison ✅ NEW
 │   │   │   ├── job_chunker_service.py       # Job section detection
 │   │   │   ├── profile_chunker_service.py   # Profile chunking
-│   │   │   └── profile_pattern_regex.py     # Profile parsing patterns
+│   │   │   ├── profile_pattern_regex.py     # Profile parsing patterns
+│   │   │   ├── cv_generator_service.py      # Anthropic API call ✅ NEW
+│   │   │   └── cv_gen_prompt_template.py    # CV prompt template ✅ NEW
 │   │   ├── models/                   # Pydantic models (if any)
 │   │   ├── embed_model_cache/        # BGE model cache (local)
 │   │   ├── model_cache/              # NER model cache (local)
@@ -180,7 +184,7 @@ apply-less/
 |---------|--------|-------------|
 | `api` | ✅ Working | Express API with auth, jobs, match, profile, favorites |
 | `ingestion` | ✅ Working | CLI for SNC, ATS detection, Greenhouse, Comeet, embeddings |
-| `ml-service` | ✅ Working | FastAPI with embeddings + chunking + skill extraction |
+| `ml-service` | ✅ Working | FastAPI with embeddings + chunking + skill extraction + CV generation |
 | `web` | 🔲 Scaffolded | React + Vite template |
 | `shared` | 🔲 Empty | Shared TypeScript types |
 
@@ -306,6 +310,7 @@ Finds ATS hidden behind navigation layers:
 | `/api/embed/single` | POST | Embed single text |
 | `/api/chunk/job` | POST | Job chunking + skills + embeddings |
 | `/api/chunk/profile` | POST | Profile chunking + feedback + score |
+| `/api/generate-cv` | POST | Generate tailored CV using Claude ✅ NEW |
 
 ### Services
 
@@ -314,9 +319,12 @@ Finds ATS hidden behind navigation layers:
 | `embedding_service.py` | BGE model loading, inference, query prefixes |
 | `skill_extractor_service.py` | NER model loading, skill extraction with levels |
 | `skill_patterns.py` | Keyword fallback patterns for common skills |
-| `job_chunker_service.py` | Job section detection (about, requirements, etc.) |
+| `skill_gap_service.py` | Compare job vs profile skills ✅ NEW |
+| `job_chunker_service.py` | Job section detection |
 | `profile_chunker_service.py` | Profile chunking with feedback |
 | `profile_pattern_regex.py` | Date/title/action verb patterns |
+| `cv_generator_service.py` | Prompt building + Anthropic API call ✅ NEW |
+| `cv_gen_prompt_template.py` | CV generation prompt template ✅ NEW |
 
 ### Models
 
@@ -405,6 +413,17 @@ curl -X POST http://localhost:8000/api/chunk/job \
 curl -X POST http://localhost:8000/api/chunk/profile \
   -H "Content-Type: application/json" \
   -d '{"text": "Senior Software Engineer with 5 years Python experience..."}' | jq
+
+# Generate CV (requires 200+ word profile)
+curl -X POST http://localhost:8000/api/generate-cv \
+  -H "Content-Type: application/json" \
+  -d '{
+    "job_title": "Senior Backend Engineer",
+    "job_company": "TechCorp",
+    "job_location": "Tel Aviv",
+    "job_description": "Requirements: 5+ years Python. Must have AWS, PostgreSQL.",
+    "profile_text": "Senior Software Engineer with 6 years experience... (200+ words)"
+  }' | jq '.cv_markdown'
 ```
 
 ---
@@ -428,6 +447,8 @@ EMBED_MODEL_NAME=BAAI/bge-base-en-v1.5
 EMBED_MODEL_CACHE_DIR=./embed_model_cache
 SKILLS_EXTRACTION_MODEL_NAME=feliponi/hirly-ner-multi
 SKILLS_EXTRACTION_MODEL_CACHE_DIR=./model_cache
+ANTHROPIC_API_KEY=sk-ant-...
+CV_MODEL_NAME=claude-3-haiku-20240307
 HOST=0.0.0.0
 PORT=8000
 ```

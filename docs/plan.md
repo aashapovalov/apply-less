@@ -70,7 +70,7 @@ Build a job matching platform that:
 | POST /favorites/:jobId | ✅ |
 | DELETE /favorites/:jobId | ✅ |
 
-### ML Service Features Completed (Day 9-10)
+### ML Service Features Completed (Day 9-12)
 
 | Feature | Status |
 |---------|--------|
@@ -79,12 +79,16 @@ Build a job matching platform that:
 | POST /api/embed/single | ✅ |
 | POST /api/chunk/job | ✅ |
 | POST /api/chunk/profile | ✅ |
+| POST /api/generate-cv | ✅ |
 | BGE-base-en-v1.5 model | ✅ |
 | NER skill extraction (hirly-ner-multi) | ✅ |
 | Skill keyword fallback | ✅ |
 | Skill level detection (mandatory/preferred) | ✅ |
+| Skill gap analysis | ✅ |
 | Job section detection | ✅ |
 | Profile feedback & completeness scoring | ✅ |
+| CV generation (Claude 3 Haiku) | ✅ |
+| Profile validation (word count, completeness) | ✅ |
 | Query prefixes (text_type) | ✅ |
 | Dockerfile + Railway config | ✅ |
 
@@ -97,8 +101,8 @@ Build a job matching platform that:
 | Profile & Favorites | CRUD APIs | ✅ |
 | ML Service | Python + local model | ✅ |
 | Job/Profile Chunking | Section + skill extraction | ✅ |
+| CV generation | Working for favorites | ✅ |
 | Matching accuracy | High (chunked embeddings) | 🔲 |
-| CV generation | Working for favorites | 🔲 |
 | UI | Simple, functional | 🔲 |
 
 ---
@@ -175,15 +179,18 @@ Build a job matching platform that:
 
 ---
 
-### Phase 3: CV Generation (Day 12)
+### ✅ Phase 3: CV Generation (Day 12)
 
-#### Day 12 (Jan 28): CV Generation
+#### ✅ Day 12 (Jan 27): CV Generation
 
-**Tasks:**
-- [ ] Implement POST /generate-cv in Python ML service
-- [ ] Use OpenAI API for CV generation
-- [ ] Implement /api/cv endpoints in Node.js
-- [ ] Store generated CVs
+- [x] Add `ANTHROPIC_API_KEY` to config
+- [x] Create skill gap analysis service
+- [x] Create CV generator service with Claude API
+- [x] Create prompt template with CV structure
+- [x] Implement POST /api/generate-cv endpoint
+- [x] Add profile validation (200 word min, completeness ≥ 0.4)
+- [x] Test with real job + profile
+- [x] CV generation working with Claude 3 Haiku
 
 ---
 
@@ -463,8 +470,8 @@ SNC_AUTH_TOKEN=...
 - [x] Profile & favorites API
 - [x] Python ML service with local model
 - [x] Job/profile chunking with skill extraction
+- [x] CV generation for favorites
 - [ ] 2000+ jobs in database
-- [ ] CV generation for favorites
 - [ ] Simple functional UI
 - [ ] Deployed to production
 - [ ] No crashes during demo
