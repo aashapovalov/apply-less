@@ -1,9 +1,10 @@
 import {Pool} from "pg";
-import {ATSDetectionResult, IngestionStats} from "../types/index.js";
+
+import { IngestionStats } from "../types/index.js";
 import { PlaywrightClient } from "../clients/index.js";
 import { JobSourceService } from "../services/index.js";
-import {detectATSFromPage, runDetectionPipeline} from "../detectors/index.js";
-import {buildQuery} from "../utils/index.js";
+import { runDetectionPipeline } from "../detectors/index.js";
+import { buildQuery } from "../utils/index.js";
 
 export interface StageBOptions {
     dryRun?: boolean;
@@ -15,18 +16,37 @@ export interface StageBOptions {
 }
 
 /**
- * Runs Stage B of the ingestion pipeline: ATS Detection.
+ * Run Stage B of the ingestion pipeline: ATS Detection.
  *
- * Flag behavior:
- *   (none)              - Process companies where ats_checked_at IS NULL (new)
- *   --recheck           - Process companies checked but no job_source found
- *   --force             - Process new OR companies without job_source
- *   --recheck --force   - Process ALL companies (full re-run)
- *   --deep-crawl        - Enable deep crawling for hidden ATS (slower)
+ * Responsibilities:
+ *  - Select companies with valid careers_page_url (LinkedIn pages excluded by query builder)
+ *  - Navigate to each careers page using Playwright (headed mode helps reduce bot detection)
+ *  - Run a multi-step ATS detection pipeline (page signals → API probe → optional deep crawl → keyword fallback)
+ *  - Persist detection bookkeeping and (when actionable) create/update a job_sources record
  *
- * Always excludes LinkedIn career pages.
- * Always updates ats_checked_at after processing.
- * Only creates job_source when actionable data found.
+ * Flag behavior (company selection):
+ *  - (none)            → new companies only (ats_checked_at IS NULL)
+ *  - --recheck         → previously checked, but still no job_source
+ *  - --force           → new OR no job_source
+ *  - --recheck --force → all companies with careers_page_url (full re-run)
+ *  - --companyName     → filters by name; overrides selection flags
+ *
+ * Persistence behavior:
+ *  - Always updates companies.ats_checked_at after processing each company (unless dryRun)
+ *  - Upserts job_sources only when detection is actionable:
+ *      - confidence > 0.6
+ *      - atsType !== "unknown"
+ *      - extractedSlug exists OR provider supports detection without slug (e.g., Comeet)
+ *
+ * Operational behavior:
+ *  - Uses throttling between navigations to reduce rate limiting
+ *  - Errors are collected into stats and processing continues for remaining companies
+ *  - Even on error, the company is marked as checked (unless dryRun)
+ *
+ * @param db - node-postgres Pool instance
+ * @param options - Stage B options controlling selection + detection behavior
+ *
+ * @returns IngestionStats summary including totals, errors, and timestamps
  */
 export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<IngestionStats> {
     const {
@@ -82,7 +102,7 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
                 stats.totalProcessed++;
 
 
-                // Run detecion pipeline
+                // Run detection pipeline
                 const detection = await runDetectionPipeline(
                     {
                         page,
@@ -146,7 +166,7 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
 
             } catch (error: any) {
                 stats.failedRecords++;
-                stats.errors.push({ message: company.companyName, details: error.message});
+                stats.errors.push({ message: company.company_name, details: error.message});
                 console.log(`   ❌ Error: ${error.message}`);
 
                 // Still mark as checked even on error
@@ -176,7 +196,11 @@ export async function runStageB(db: Pool, options: StageBOptions = {}): Promise<
 }
 
 /**
- * Get mode description for logging.
+ * Get a human-readable mode label for logging based on selection flags.
+ *
+ * @param recheck - Whether the pipeline is running in recheck mode
+ * @param force - Whether the pipeline is running in force mode
+ * @returns Mode label used in console output
  */
 function getModeDescription(recheck: boolean, force: boolean): string {
     if (recheck && force) return 'FULL RE-RUN';
@@ -186,7 +210,15 @@ function getModeDescription(recheck: boolean, force: boolean): string {
 }
 
 /**
- * Mark company as checked.
+ * Mark a company as ATS-checked by setting companies.ats_checked_at to NOW().
+ * Used to avoid re-processing the same company in default mode.
+ *
+ * Note: In this stage, the company is marked as checked even if detection fails,
+ * to prevent repeated failures from blocking the pipeline (unless dryRun).
+ *
+ * @param db - node-postgres Pool instance
+ * @param companyId - Companies table primary key
+ * @returns Promise resolved when the update query finishes
  */
 async function markCompanyChecked(db: Pool, companyId: number): Promise<void> {
     await db.query(
