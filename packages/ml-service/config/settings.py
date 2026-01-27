@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     skills_extraction_model_name: str = "feliponi/hirly-ner-multi"
     skills_extraction_model_cache_dir: str = "./model_cache"
 
+    # Anthropic API KEY for CV generation
+    anthropic_api_key: str = ""
+    cv_model_name: str = "claude-3-5-sonnet-20241022"
+
     #Server configuration
     host: str = "0.0.0.0"
     port: int = 8080
