@@ -67,15 +67,16 @@ export function buildQuery(options: StageBOptions): { query: string; params: any
         // --recheck: checked but no job_source
         query += `
             AND c.ats_checked_at IS NOT NULL
-            AND NOT EXISTS (SELECT 1 FROM job_sources WHERE js.company_id = c.id)
+            AND NOT EXISTS (SELECT 1 FROM job_sources js WHERE js.company_id = c.id)
             `;
     }
     else if (force) {
-        // --force: new OR no job_source
+        // --force: new OR no job_source OR (has job_source but no slug)
         query += `
               AND (
                 c.ats_checked_at IS NULL
                 OR NOT EXISTS (SELECT 1 FROM job_sources js WHERE js.company_id = c.id)
+                OR EXISTS (SELECT 1 FROM job_sources js WHERE js.company_id = c.id AND js.ats_identifier IS NULL)
               )
             `;
     } else {
