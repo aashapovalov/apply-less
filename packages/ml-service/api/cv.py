@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from services.skill_gap_service import analyze_skill_gap
 
-router = APIRouter(prefix="/api", tags=["cv"])
+router = APIRouter(tags=["cv"])
 
 class CVGenerateRequest(BaseModel):
     """Request body for CV generation"""
