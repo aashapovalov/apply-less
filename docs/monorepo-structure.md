@@ -55,20 +55,25 @@ apply-less/
 │   │   ├── .env
 │   │   └── src/
 │   │       ├── cli.ts                # Commander CLI entry
-│   │       ├── test-embedding.ts     # ML service connection test
 │   │       ├── clients/
 │   │       │   ├── index.ts
 │   │       │   ├── snc-client-playwright.ts
 │   │       │   ├── greenhouse-client.ts
 │   │       │   ├── comeet-client.ts
-│   │       │   ├── embedding-client.ts  # ML service client
+│   │       │   ├── embedding-client.ts
 │   │       │   └── playwright-client.ts
 │   │       ├── config/
 │   │       │   └── db.ts
-│   │       ├── detectors/
-│   │       │   ├── ats-detector.ts      # ATS system detection
-│   │       │   └── ats-patterns.ts      # Vendor-specific patterns
+│   │       ├── detectors/                    # ATS detection modules ✅ REFACTORED
+│   │       │   ├── index.ts                  # Exports all detectors
+│   │       │   ├── ats-detector.ts           # HTML/URL pattern detection
+│   │       │   ├── ats-patterns.ts           # Vendor-specific patterns
+│   │       │   ├── greenhouse-probe.ts       # API probing with slug variations
+│   │       │   ├── deep-crawler.ts           # Recursive link crawling
+│   │       │   ├── keyword-detector.ts       # Keyword fallback detection
+│   │       │   └── detection-pipeline.ts     # Orchestrates all detectors
 │   │       ├── parsers/
+│   │       │   └── company-detail-parser.ts
 │   │       ├── services/
 │   │       │   ├── index.ts
 │   │       │   ├── company-service.ts
@@ -76,14 +81,19 @@ apply-less/
 │   │       │   └── job-source-service.ts
 │   │       ├── stages/
 │   │       │   ├── index.ts
-│   │       │   ├── stage-a-snc.ts         # SNC company scraping
-│   │       │   ├── stage-b-detect-ats.ts  # ATS detection
-│   │       │   ├── stage-d-greenhouse.ts  # Greenhouse jobs
-│   │       │   ├── stage-e-comeet.ts      # Comeet jobs
-│   │       │   └── stage-g-embeddings.ts  # Embedding generation
+│   │       │   ├── stage-a-snc.ts            # SNC company scraping
+│   │       │   ├── stage-b-detect-ats.ts     # ATS detection (uses pipeline)
+│   │       │   ├── stage-d-greenhouse.ts     # Greenhouse jobs
+│   │       │   ├── stage-e-comeet.ts         # Comeet jobs
+│   │       │   └── stage-g-embeddings.ts     # Embedding generation
 │   │       ├── types/
 │   │       │   └── index.ts
 │   │       └── utils/
+│   │           ├── index.ts
+│   │           ├── prepare-job-text.ts
+│   │           ├── stage-b-query-builder.ts  # Query builder for Stage B flags
+│   │           ├── text-normalizer.ts
+│   │           └── url-normalizer.ts
 │   │
 │   ├── ml-service/                   # Python FastAPI ✅
 │   │   ├── main.py                   # FastAPI entry point
@@ -96,18 +106,18 @@ apply-less/
 │   │   │   ├── __init__.py
 │   │   │   ├── health.py             # GET /health
 │   │   │   ├── embed.py              # POST /api/embed, /api/embed/single
-│   │   │   └── chunk.py              # POST /api/chunk/job, /api/chunk/profile ✅ NEW
+│   │   │   └── chunk.py              # POST /api/chunk/job, /api/chunk/profile
 │   │   ├── config/
 │   │   │   ├── __init__.py
 │   │   │   └── settings.py           # Pydantic settings (both models)
 │   │   ├── services/
 │   │   │   ├── __init__.py
 │   │   │   ├── embedding_service.py         # BGE model loading & inference
-│   │   │   ├── skill_extractor_service.py   # NER skill extraction ✅ NEW
-│   │   │   ├── skill_patterns.py            # Keyword fallback patterns ✅ NEW
-│   │   │   ├── job_chunker_service.py       # Job section detection ✅ NEW
-│   │   │   ├── profile_chunker_service.py   # Profile chunking ✅ NEW
-│   │   │   └── profile_pattern_regex.py     # Profile parsing patterns ✅ NEW
+│   │   │   ├── skill_extractor_service.py   # NER skill extraction
+│   │   │   ├── skill_patterns.py            # Keyword fallback patterns
+│   │   │   ├── job_chunker_service.py       # Job section detection
+│   │   │   ├── profile_chunker_service.py   # Profile chunking
+│   │   │   └── profile_pattern_regex.py     # Profile parsing patterns
 │   │   ├── models/                   # Pydantic models (if any)
 │   │   ├── embed_model_cache/        # BGE model cache (local)
 │   │   ├── model_cache/              # NER model cache (local)
@@ -169,10 +179,21 @@ apply-less/
 | Package | Status | Description |
 |---------|--------|-------------|
 | `api` | ✅ Working | Express API with auth, jobs, match, profile, favorites |
-| `ingestion` | ✅ Working | CLI for SNC, Greenhouse, Comeet, ATS detection, embeddings |
+| `ingestion` | ✅ Working | CLI for SNC, ATS detection, Greenhouse, Comeet, embeddings |
 | `ml-service` | ✅ Working | FastAPI with embeddings + chunking + skill extraction |
 | `web` | 🔲 Scaffolded | React + Vite template |
 | `shared` | 🔲 Empty | Shared TypeScript types |
+
+---
+
+## Database Counts (Jan 27, 2026)
+
+| Table | Count |
+|-------|-------|
+| companies | 1,496 |
+| job_sources | 683 |
+| jobs | 1,716 |
+| job_embeddings | 682 |
 
 ---
 
@@ -210,6 +231,70 @@ apply-less/
 
 ---
 
+## Ingestion Package Details
+
+### CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `snc` | Scrape companies from StartupNationCentral |
+| `detect` | Detect ATS systems from career URLs |
+| `greenhouse` | Fetch jobs from Greenhouse ATS |
+| `comeet` | Fetch jobs from Comeet ATS |
+| `embeddings` | Generate embeddings for jobs |
+
+### ATS Detection Pipeline
+
+Stage B (`detect` command) uses a modular detection pipeline:
+
+| Module | Responsibility |
+|--------|----------------|
+| `ats-detector.ts` | HTML/URL pattern matching from page content |
+| `ats-patterns.ts` | Vendor-specific patterns (Greenhouse, Comeet, Lever, Workable) |
+| `greenhouse-probe.ts` | API probing with company name slug variations |
+| `deep-crawler.ts` | Recursive crawling for hidden ATS (follows job links) |
+| `keyword-detector.ts` | Last-resort keyword matching (e.g., "comeet" in HTML) |
+| `detection-pipeline.ts` | Orchestrates detectors in order |
+
+### Detection Priority
+
+| Step | Method | Confidence |
+|------|--------|------------|
+| 1 | Page Detection (URL/DOM/HTML patterns) | 85-95% |
+| 2 | Greenhouse API Probe | 75% |
+| 3 | Deep Crawl (optional) | varies |
+| 4 | Keyword Match | 65% |
+
+### Detection Flags
+
+| Flag | Companies Processed |
+|------|---------------------|
+| (none) | `ats_checked_at IS NULL` (new companies) |
+| `--recheck` | Checked but no job_source found |
+| `--force` | New OR no job_source |
+| `--recheck --force` | All companies (full re-run) |
+| `--deep-crawl` | Enable recursive link crawling |
+| `-c, --company <n>` | Single company by name |
+
+### ATS Vendor Support
+
+| Vendor | Detection | Slug Extraction |
+|--------|-----------|-----------------|
+| Greenhouse | URL, DOM, script, API probe | ✅ Board slug |
+| Comeet | URL, DOM, script, keyword | ✅ UID + token |
+| Lever | URL patterns | ✅ Company slug |
+| Workable | URL patterns | ✅ Company slug |
+
+### Deep Crawl Feature
+
+Finds ATS hidden behind navigation layers:
+- Follows job-like links up to 2 levels deep
+- Excludes header/footer/nav elements
+- Excludes social media domains
+- Follows links to known ATS domains (greenhouse.io, lever.co, comeet.co)
+
+---
+
 ## ML Service Package Details
 
 ### Endpoints
@@ -219,19 +304,19 @@ apply-less/
 | `/health` | GET | Health check + model info |
 | `/api/embed` | POST | Embed batch of texts (max 100) |
 | `/api/embed/single` | POST | Embed single text |
-| `/api/chunk/job` | POST | Job chunking + skills + embeddings ✅ NEW |
-| `/api/chunk/profile` | POST | Profile chunking + feedback + score ✅ NEW |
+| `/api/chunk/job` | POST | Job chunking + skills + embeddings |
+| `/api/chunk/profile` | POST | Profile chunking + feedback + score |
 
 ### Services
 
 | Service | Responsibility |
 |---------|----------------|
 | `embedding_service.py` | BGE model loading, inference, query prefixes |
-| `skill_extractor_service.py` | NER model loading, skill extraction with levels ✅ NEW |
-| `skill_patterns.py` | Keyword fallback patterns for common skills ✅ NEW |
-| `job_chunker_service.py` | Job section detection (about, requirements, etc.) ✅ NEW |
-| `profile_chunker_service.py` | Profile chunking with feedback ✅ NEW |
-| `profile_pattern_regex.py` | Date/title/action verb patterns ✅ NEW |
+| `skill_extractor_service.py` | NER model loading, skill extraction with levels |
+| `skill_patterns.py` | Keyword fallback patterns for common skills |
+| `job_chunker_service.py` | Job section detection (about, requirements, etc.) |
+| `profile_chunker_service.py` | Profile chunking with feedback |
+| `profile_pattern_regex.py` | Date/title/action verb patterns |
 
 ### Models
 
@@ -269,30 +354,6 @@ apply-less/
 
 ---
 
-## Ingestion Package Details
-
-### CLI Commands
-
-| Command | Description |
-|---------|-------------|
-| `snc` | Scrape companies from StartupNationCentral |
-| `snc:dry` | Dry run (3 pages) |
-| `greenhouse` | Fetch jobs from Greenhouse ATS |
-| `comeet` | Fetch jobs from Comeet ATS |
-| `ats-detect` | Detect ATS systems from career URLs |
-| `embeddings` | Generate embeddings for jobs |
-
-### ATS Detection
-
-| Vendor | Detection Methods |
-|--------|-------------------|
-| Greenhouse | URL patterns, script tags, DOM elements |
-| Comeet | URL patterns, script tags, HTML content |
-| Lever | URL patterns, DOM structure |
-| Workable | URL patterns, API calls |
-
----
-
 ## NPM Scripts (root)
 
 ```bash
@@ -303,7 +364,6 @@ npm run dev          # Start all (concurrent)
 
 # Ingestion
 npm run ingest:snc        # Run SNC scraping
-npm run ingest:snc:dry    # Dry run (3 pages)
 
 # Database
 npm run db:migrate   # Run SQL migrations

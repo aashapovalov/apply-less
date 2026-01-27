@@ -17,8 +17,8 @@
                                     │  • /health                          │
                                     │  • /api/embed                       │
                                     │  • /api/embed/single                │
-                                    │  • /api/chunk/job ✅ NEW            │
-                                    │  • /api/chunk/profile ✅ NEW        │
+                                    │  • /api/chunk/job ✅                │
+                                    │  • /api/chunk/profile ✅            │
                                     └──────────────▲──────────────────────┘
                                                    │
 ┌─────────────────┐                 ┌──────────────┴──────────────┐
@@ -27,10 +27,10 @@
 │                 │                 │        Railway              │
 │ CLI commands:   │                 │                             │
 │ • snc ✅        │                 │  Endpoints:                 │
-│ • greenhouse ✅ │                 │  • /api/auth/* ✅           │
-│ • comeet ✅     │                 │  • /api/jobs ✅             │
-│ • embeddings ✅ │                 │  • /api/match ✅            │
-│ • ats-detect ✅ │                 │  • /api/profile ✅          │
+│ • detect ✅     │                 │  • /api/auth/* ✅           │
+│ • greenhouse ✅ │                 │  • /api/jobs ✅             │
+│ • comeet ✅     │                 │  • /api/match ✅            │
+│ • embeddings ✅ │                 │  • /api/profile ✅          │
 └────────┬────────┘                 │  • /api/favorites ✅        │
          │                          └──────────────┬──────────────┘
          │                                         │
@@ -41,9 +41,9 @@
          │ │  PostgreSQL + pgvector  │    │     Resend      │    │    Frontend     │
          │ │  Railway                │    │   (Email API)   │    │    (React)      │
          │ │                         │    │                 │    │    Vercel       │
-         │ │  • companies: 1245      │    │  • Verification │    │                 │
-         │ │  • job_sources: 485     │    │  • Password     │    │  🔲 Planned     │
-         └▶│  • jobs: 682            │    │    reset        │    │                 │
+         │ │  • companies: 1496      │    │  • Verification │    │                 │
+         │ │  • job_sources: 683     │    │  • Password     │    │  🔲 Planned     │
+         └▶│  • jobs: 1716           │    │    reset        │    │                 │
            │  • job_embeddings: 682  │    │                 │    │                 │
            │  • users ✅             │    └─────────────────┘    └─────────────────┘
            │  • auth tokens ✅       │
@@ -119,6 +119,51 @@ Favorite Job + Profile → ML Service → OpenAI → Tailored CV
 
 ---
 
+## ATS Detection Pipeline
+
+Stage B uses a multi-step detection pipeline to identify ATS vendors from company career pages:
+
+### Detection Order (first match wins)
+
+| Step | Method | Confidence | Description |
+|------|--------|------------|-------------|
+| 1 | Page Detection | 85-95% | URL patterns, DOM selectors, HTML/script patterns |
+| 2 | Greenhouse API Probe | 75% | Try company name variations as Greenhouse slug |
+| 3 | Deep Crawl | varies | Follow job-like links to find hidden ATS (optional) |
+| 4 | Keyword Match | 65% | Detect "comeet" keyword for manual review |
+
+### Supported ATS Vendors
+
+| Vendor | Detection Methods | Slug Extraction |
+|--------|-------------------|-----------------|
+| Greenhouse | URL, DOM, script patterns | Board slug from URL/embed code |
+| Comeet | URL, DOM, script patterns | Company UID + token |
+| Lever | URL patterns | Company slug |
+| Workable | URL patterns | Company slug |
+
+### CLI Flags
+
+| Flag | Description |
+|------|-------------|
+| (none) | Process new companies only (`ats_checked_at IS NULL`) |
+| `--recheck` | Re-check companies that were checked but have no job_source |
+| `--force` | Process new + failed companies |
+| `--recheck --force` | Full re-run on all companies |
+| `--deep-crawl` | Enable deep crawling for hidden ATS (slower) |
+| `-c, --company <name>` | Test single company by name |
+
+### Deep Crawl
+
+Some companies hide their ATS behind navigation (e.g., `/careers/` → `/careers/location/israel/` → `/careers/position/123/`).
+
+Deep crawl:
+- Follows job-like links up to 2 levels deep
+- Excludes header/footer/nav links
+- Excludes social media domains
+- Also follows links to known ATS domains (greenhouse.io, lever.co, etc.)
+
+---
+
 ## API Endpoints
 
 ### Auth Endpoints (`/api/auth`)
@@ -177,7 +222,7 @@ Favorite Job + Profile → ML Service → OpenAI → Tailored CV
 | `/api/embed` | POST | Embed multiple texts (batch) |
 | `/api/embed/single` | POST | Embed single text |
 
-### Chunking Endpoints (NEW ✅)
+### Chunking Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -319,8 +364,8 @@ Analyzes sentence context to classify skill requirements:
 ### Core Tables
 
 ```sql
-companies (id, company_name, normalized_name, company_website_url, tags[], ...)
-job_sources (id, company_id, source_type, base_url, status, ...)
+companies (id, company_name, normalized_name, company_website_url, careers_page_url, ats_checked_at, tags[], ...)
+job_sources (id, company_id, source_type, base_url, ats_identifier, api_token, detection_method, confidence, status, ...)
 jobs (id, company_id, title, location, description, requirements, canonical_url, ...)
 job_chunks (id, job_id, chunk_index, section_type, content, ...)
 job_embeddings (id, job_chunk_id, embedding vector(768), model_name, ...)
