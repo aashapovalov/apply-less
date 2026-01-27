@@ -34,8 +34,11 @@ def analyze_skill_gap(job_skills: list, profile_skills: list) -> dict:
     matching_preferred = [skill for skill in mandatory if skill.lower() in profile_skill_names]
     missing_mandatory = [skill for skill in mandatory if skill.lower() not in profile_skill_names]
 
+    # Deduplicate matching skills
+    all_matching = list(dict.fromkeys(matching_mandatory + matching_preferred))
+
     return {
-        "matching_skills": matching_mandatory + matching_preferred,
+        "matching_skills": all_matching,
         "missing_skills": missing_mandatory,
         "preferred_skills_matched": matching_preferred,
         "match_rate": {
