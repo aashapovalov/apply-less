@@ -1,387 +1,181 @@
 # ApplyLess Architecture
 
-## System Overview (Jan 2026)
+## System Overview
 
 ```
-                                    ┌─────────────────────────────────────┐
-                                    │       Python ML Service             │
-                                    │       (FastAPI + Railway)           │
-                                    │                                     │
-                                    │  ┌─────────────┐ ┌───────────────┐  │
-                                    │  │ BGE-base-en │ │ hirly-ner-    │  │
-                                    │  │ (embeddings)│ │ multi (NER)   │  │
-                                    │  │ 768d        │ │ skill extract │  │
-                                    │  └─────────────┘ └───────────────┘  │
-                                    │                                     │
-                                    │  Endpoints:                         │
-                                    │  • /health                          │
-                                    │  • /api/embed                       │
-                                    │  • /api/embed/single                │
-                                    │  • /api/chunk/job ✅                │
-                                    │  • /api/chunk/profile ✅            │
-                                    │  • /api/generate-cv ✅              │
-                                    └──────────────▲──────────────────────┘
-                                                   │
-┌─────────────────┐                 ┌──────────────┴──────────────┐
-│   Ingestion     │                 │        Node.js API          │
-│   (Node.js)     │                 │        (Express)            │
-│                 │                 │        Railway              │
-│ CLI commands:   │                 │                             │
-│ • snc ✅        │                 │  Endpoints:                 │
-│ • detect ✅     │                 │  • /api/auth/* ✅           │
-│ • greenhouse ✅ │                 │  • /api/jobs ✅             │
-│ • comeet ✅     │                 │  • /api/match ✅            │
-│ • embeddings ✅ │                 │  • /api/profile ✅          │
-└────────┬────────┘                 │  • /api/favorites ✅        │
-         │                          └──────────────┬──────────────┘
-         │                                         │
-         │      ┌──────────────────────────────────┼───────────────────────┐
-         │      │                                  │                       │
-         │      ▼                                  ▼                       ▼
-         │ ┌─────────────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-         │ │  PostgreSQL + pgvector  │    │     Resend      │    │    Frontend     │
-         │ │  Railway                │    │   (Email API)   │    │    (React)      │
-         │ │                         │    │                 │    │    Vercel       │
-         │ │  • companies: 1496      │    │  • Verification │    │                 │
-         │ │  • job_sources: 683     │    │  • Password     │    │  🔲 Planned     │
-         └▶│  • jobs: 1716           │    │    reset        │    │                 │
-           │  • job_embeddings: 682  │    │                 │    │                 │
-           │  • users ✅             │    └─────────────────┘    └─────────────────┘
-           │  • auth tokens ✅       │
-           │  • favorites ✅         │
-           └─────────────────────────┘
+┌─────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│   React Web     │     │   Node.js API    │     │  Python ML       │
+│   (Vercel)      │────▶│   (Express)      │────▶│  (FastAPI)       │
+│                 │     │                  │     │                  │
+│   • Jobs list   │     │   • /auth/*      │     │   • /api/embed   │
+│   • Matching    │     │   • /jobs        │     │   • /api/chunk/* │
+│   • Favorites   │     │   • /match       │     │   • /api/cv      │
+│   • CV gen      │     │   • /profile     │     │                  │
+│                 │     │   • /favorites   │     │   Models:        │
+│   IN PROGRESS   │     │                  │     │   • BGE-base-en  │
+└─────────────────┘     └────────┬─────────┘     │   • hirly-ner    │
+                                 │               └────────┬─────────┘
+         ┌───────────────────────┼────────────────────────┘
+         │                       │
+         ▼                       ▼
+┌─────────────────┐     ┌──────────────────┐     ┌──────────────────┐
+│  PostgreSQL     │     │     Resend       │     │   Ingestion      │
+│  + pgvector     │     │   (Email API)    │     │   (CLI)          │
+│                 │     │                  │     │                  │
+│  • companies    │     │   • Verification │     │   • snc          │
+│  • jobs         │     │   • Password     │     │   • detect       │
+│  • embeddings   │     │     reset        │     │   • greenhouse   │
+│  • users        │     │                  │     │   • comeet       │
+│  • favorites    │     │                  │     │   • embeddings   │
+└─────────────────┘     └──────────────────┘     └──────────────────┘
 ```
+
+**Current Stats:** 1496 companies, 683 job sources, 1716 jobs, 682 embeddings
 
 ---
 
-## Data Flow
+## Data Flows
 
-### 1. Job Ingestion Pipeline
+### 1. Job Ingestion
 
 ```
-SNC API → Ingestion CLI → Companies/Jobs → PostgreSQL
-                                │
-                                ▼
-                    ML Service (/api/chunk/job)
-                                │
-                    ┌───────────┴───────────┐
-                    ▼                       ▼
-            Section Detection         Skill Extraction
-            (about, requirements,     (NER + keywords)
-             responsibilities,         │
-             benefits, preferred)      ▼
-                    │             Skill Level Detection
-                    │             (mandatory/preferred)
-                    ▼                       │
-            Per-section embeddings          │
-                    │                       │
-                    └───────────┬───────────┘
-                                ▼
-                    Embeddings + Skills → PostgreSQL
+SNC API → Companies → ATS Detection → Job Fetching → ML Chunking → Embeddings → DB
 ```
+
+1. **SNC Scraping:** Fetch Israeli startups from StartupNationCentral
+2. **ATS Detection:** Identify career page type (Greenhouse, Comeet, Lever, etc.)
+3. **Job Fetching:** Pull jobs from detected ATS APIs
+4. **Chunking:** Split job into sections, extract skills
+5. **Embedding:** Generate vectors for similarity search
 
 ### 2. Profile Matching
 
 ```
-User Profile Text → Node.js API → ML Service (/api/chunk/profile)
-                                        │
-                        ┌───────────────┴───────────────┐
-                        ▼                               ▼
-                Profile Chunking                  Skill Extraction
-                (full, experience,                      │
-                 education)                             ▼
-                        │                         Feedback Generation
-                        │                         (skills, metrics,
-                        │                          action verbs)
-                        ▼                               │
-                Profile Embeddings              Completeness Score
-                        │                               │
-                        └───────────────┬───────────────┘
-                                        ▼
-                        pgvector similarity search
-                                        │
-                                        ▼
-                                Ranked Job Results
+Profile Text → ML Service → Chunk + Embed → pgvector Search → Ranked Jobs
 ```
 
-### 3. CV Generation ✅
+### 3. CV Generation
 
 ```
-POST /api/generate-cv
-        │
-        ▼
-┌───────────────────────────────────────────┐
-│  1. Validate Profile                      │
-│     - Word count ≥ 200 (hard limit)       │
-│     - Word count < 300 (warning)          │
-│     - Completeness score ≥ 0.4            │
-└──────────────────────┬────────────────────┘
-                       │
-                       ▼
-┌──────────────────────┴────────────────────┐
-│  2. Chunk Job + Profile                   │
-│     - Extract skills from both            │
-│     - Detect mandatory/preferred          │
-└──────────────────────┬────────────────────┘
-                       │
-                       ▼
-┌──────────────────────┴────────────────────┐
-│  3. Skill Gap Analysis                    │
-│     - matching_skills                     │
-│     - missing_skills                      │
-│     - match_rate                          │
-└──────────────────────┬────────────────────┘
-                       │
-                       ▼
-┌──────────────────────┴────────────────────┐
-│  4. Call Claude 3 Haiku                   │
-│     - Build prompt with context           │
-│     - Generate tailored CV                │
-└──────────────────────┬────────────────────┘
-                       │
-                       ▼
-               CV Markdown + Match Summary
+Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
 ```
-
----
-
-## ATS Detection Pipeline
-
-Stage B uses a multi-step detection pipeline to identify ATS vendors from company career pages:
-
-### Detection Order (first match wins)
-
-| Step | Method | Confidence | Description |
-|------|--------|------------|-------------|
-| 1 | Page Detection | 85-95% | URL patterns, DOM selectors, HTML/script patterns |
-| 2 | Greenhouse API Probe | 75% | Try company name variations as Greenhouse slug |
-| 3 | Deep Crawl | varies | Follow job-like links to find hidden ATS (optional) |
-| 4 | Keyword Match | 65% | Detect "comeet" keyword for manual review |
-
-### Supported ATS Vendors
-
-| Vendor | Detection Methods | Slug Extraction |
-|--------|-------------------|-----------------|
-| Greenhouse | URL, DOM, script patterns | Board slug from URL/embed code |
-| Comeet | URL, DOM, script patterns | Company UID + token |
-| Lever | URL patterns | Company slug |
-| Workable | URL patterns | Company slug |
-
-### CLI Flags
-
-| Flag | Description |
-|------|-------------|
-| (none) | Process new companies only (`ats_checked_at IS NULL`) |
-| `--recheck` | Re-check companies that were checked but have no job_source |
-| `--force` | Process new + failed companies |
-| `--recheck --force` | Full re-run on all companies |
-| `--deep-crawl` | Enable deep crawling for hidden ATS (slower) |
-| `-c, --company <name>` | Test single company by name |
-
-### Deep Crawl
-
-Some companies hide their ATS behind navigation (e.g., `/careers/` → `/careers/location/israel/` → `/careers/position/123/`).
-
-Deep crawl:
-- Follows job-like links up to 2 levels deep
-- Excludes header/footer/nav links
-- Excludes social media domains
-- Also follows links to known ATS domains (greenhouse.io, lever.co, etc.)
 
 ---
 
 ## API Endpoints
 
-### Auth Endpoints (`/api/auth`)
+### Auth (`/api/auth`)
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/register` | POST | No | Create account, send verification email |
-| `/login` | POST | No | Login → access + refresh tokens |
-| `/refresh` | POST | No | Exchange refresh → new tokens |
+| `/login` | POST | No | Returns access + refresh tokens |
+| `/refresh` | POST | No | Exchange refresh token for new pair |
 | `/logout` | POST | Yes | Revoke refresh token |
-| `/verify-email` | GET | No | Verify email via token |
+| `/verify-email` | GET | No | Verify email via token link |
 | `/forgot-password` | POST | No | Send password reset email |
 | `/reset-password` | POST | No | Reset password with token |
 | `/resend-verification` | POST | No | Resend verification email |
 | `/me` | GET | Yes | Get current user info |
 
-### Jobs Endpoints (`/api/jobs`)
+### Jobs (`/api/jobs`)
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/` | GET | No | List jobs (paginated, filterable) |
 | `/:id` | GET | No | Get job details |
 
-### Match Endpoints (`/api/match`)
+**Query params:** `limit`, `offset`, `location`, `company`, `tags`, `sort`
+
+### Match (`/api/match`)
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/` | POST | Yes | Match profile text → ranked jobs |
+| `/` | POST | No | Match profile text to jobs |
 
-### Profile Endpoints (`/api/profile`)
+**Body:** `{ profile, limit?, offset?, threshold? }`
+
+### Profile (`/api/profile`)
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/` | GET | Yes | Get user profile text |
-| `/` | POST | Yes | Save/update profile text |
+| `/` | POST | Yes | Save/update profile (max 50K chars) |
 | `/` | DELETE | Yes | Delete profile text |
 
-### Favorites Endpoints (`/api/favorites`)
+### Favorites (`/api/favorites`)
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/` | GET | Yes | Get all favorites with job details |
 | `/:jobId` | GET | Yes | Check if job is favorited |
-| `/:jobId` | POST | Yes | Add job to favorites |
-| `/:jobId` | DELETE | Yes | Remove job from favorites |
+| `/:jobId` | POST | Yes | Add to favorites |
+| `/:jobId` | DELETE | Yes | Remove from favorites |
 
 ---
 
-## Python ML Service Endpoints (port 8000)
+## ML Service Endpoints (Port 8000)
 
-### Embedding Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check + model info |
-| `/api/embed` | POST | Embed multiple texts (batch) |
-| `/api/embed/single` | POST | Embed single text |
-
-### Chunking Endpoints
+### Health & Embeddings
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/chunk/job` | POST | Job chunking + skills + embeddings |
-| `/api/chunk/profile` | POST | Profile chunking + feedback + score |
+| `/health` | GET | Health check + model status |
+| `/api/embed` | POST | Batch embedding (max 100 texts) |
+| `/api/embed/single` | POST | Single text embedding |
 
-### Job Chunk Request
+### Chunking
 
-```json
-{
-  "text": "We are looking for a Python developer...",
-  "title": "Senior Python Developer",
-  "company": "TechCorp",
-  "location": "Tel Aviv"
-}
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/chunk/job` | POST | Job → sections + skills + embeddings |
+| `/api/chunk/profile` | POST | Profile → chunks + feedback + score |
 
-### Job Chunk Response
+### CV Generation
 
-```json
-{
-  "chunks": [
-    {
-      "type": "header",
-      "text": "Senior Python Developer - TechCorp - Tel Aviv",
-      "embedding": [0.012, -0.034, ...],
-      "token_count": 8
-    },
-    {
-      "type": "requirements",
-      "text": "5+ years Python experience...",
-      "embedding": [...],
-      "token_count": 45
-    }
-  ],
-  "skills": [
-    {"skill": "Python", "level": "mandatory"},
-    {"skill": "Docker", "level": "preferred"}
-  ],
-  "model": "BAAI/bge-base-en-v1.5",
-  "dimension": 768,
-  "time_ms": 234
-}
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/generate-cv` | POST | Generate tailored CV via Claude |
 
-### Profile Chunk Request
+**Validation:** Profile must have 200+ words and completeness score ≥ 0.4
 
-```json
-{
-  "text": "Senior Software Engineer with 5 years experience..."
-}
-```
+---
 
-### Profile Chunk Response
+## ATS Detection Pipeline
 
-```json
-{
-  "chunks": [
-    {
-      "type": "full",
-      "text": "Senior Software Engineer...",
-      "embedding": [...],
-      "token_count": 150
-    },
-    {
-      "type": "experience",
-      "text": "Software Engineer at Google...",
-      "embedding": [...],
-      "token_count": 80
-    }
-  ],
-  "skills": [
-    {"skill": "Python", "source": "throughout"},
-    {"skill": "AWS", "source": "throughout"}
-  ],
-  "feedback": [
-    "✅ Work experience well documented",
-    "✅ Uses strong action verbs",
-    "❌ Few skills detected - add technical skills"
-  ],
-  "completeness_score": 0.75,
-  "model": "BAAI/bge-base-en-v1.5",
-  "dimension": 768,
-  "time_ms": 1351
-}
-```
+Detection runs in order (first match wins):
 
-### Text Types (Important for BGE)
+| Step | Method | Confidence |
+|------|--------|------------|
+| 1 | Page patterns (URL, DOM, scripts) | 85-95% |
+| 2 | Greenhouse API probe | 75% |
+| 3 | Deep crawl (optional) | varies |
+| 4 | Keyword fallback | 65% |
 
-| text_type | Use for | Prefix added |
-|-----------|---------|--------------|
-| `passage` | Job descriptions, stored in DB | None |
-| `query` | User profile at search time | "Represent this sentence..." |
+**Supported ATS:** Greenhouse, Comeet, Lever, Workable
+
+**CLI flags:**
+- `--recheck` — Re-check companies with no job_source
+- `--force` — Process all companies
+- `--deep-crawl` — Follow job links recursively
+- `-c, --company <name>` — Single company
 
 ---
 
 ## Skill Extraction
 
-### NER Model
+**NER Model:** `feliponi/hirly-ner-multi`
 
-**Model:** `feliponi/hirly-ner-multi`
+| Entity | Examples |
+|--------|----------|
+| SKILL | Python, AWS, React |
+| SOFT_SKILL | Leadership, communication |
+| LANG | English, Hebrew |
+| CERT | AWS Certified |
 
-| Entity Type | Description |
-|-------------|-------------|
-| SKILL | Technical skills (Python, AWS, React) |
-| SOFT_SKILL | Soft skills (leadership, communication) |
-| LANG | Languages (English, Hebrew) |
-| CERT | Certifications (AWS Certified) |
-| EXPERIENCE_DURATION | Years of experience (5+ years) |
+**Level Detection:** Analyzes sentence context to classify as `mandatory` or `preferred`
 
-### Keyword Fallback
-
-Supplements NER for commonly missed skills:
-
-```
-Programming: Python, Java, JavaScript, TypeScript, Go, Rust, C++...
-Cloud/DevOps: AWS, GCP, Azure, Docker, Kubernetes, Terraform...
-Frontend: React, Angular, Vue, Next.js, Tailwind...
-Backend: Node.js, Django, FastAPI, Spring, Rails...
-Databases: PostgreSQL, MongoDB, Redis, Elasticsearch...
-Data/ML: TensorFlow, PyTorch, Pandas, Spark...
-Tools: Git, GraphQL, Kafka, Microservices...
-```
-
-### Level Detection
-
-Analyzes sentence context to classify skill requirements:
-
-| Level | Patterns |
-|-------|----------|
-| `mandatory` | "requirements", "must have", "required", "essential", "qualifications" |
-| `preferred` | "nice to have", "preferred", "bonus", "ideally", "plus", "advantage" |
-| `unknown` | No pattern match found |
+**Keyword Fallback:** 100+ patterns for skills NER misses (Docker, Kubernetes, etc.)
 
 ---
 
@@ -390,61 +184,30 @@ Analyzes sentence context to classify skill requirements:
 ### Core Tables
 
 ```sql
-companies (id, company_name, normalized_name, company_website_url, careers_page_url, ats_checked_at, tags[], ...)
-job_sources (id, company_id, source_type, base_url, ats_identifier, api_token, detection_method, confidence, status, ...)
-jobs (id, company_id, title, location, description, requirements, canonical_url, ...)
-job_chunks (id, job_id, chunk_index, section_type, content, ...)
-job_embeddings (id, job_chunk_id, embedding vector(768), model_name, ...)
-job_embeddings_simple (id, job_id, embedding vector(768), ...)
+companies        -- 1496 records: company info, careers URL, ATS status
+job_sources      -- 683 records: detected ATS with slugs/tokens
+jobs             -- 1716 records: job postings
+job_chunks       -- Section-level job content
+job_embeddings   -- 682 records: 768d vectors (BGE)
 ```
 
 ### Auth Tables
 
 ```sql
-users (id, firebase_uid, email, display_name, profile_text, password_hash, email_verified, ...)
-refresh_tokens (id, user_id, token_hash, expires_at, revoked_at, ...)
-verification_tokens (id, user_id, token_hash, expires_at, used_at, ...)
-password_reset_tokens (id, user_id, token_hash, expires_at, used_at, ...)
-rate_limits (id, key, attempts, window_start)
-favorites (id, user_id, job_id, created_at)
+users                  -- User accounts
+refresh_tokens         -- JWT refresh tokens (30d expiry)
+verification_tokens    -- Email verification (24h expiry)
+password_reset_tokens  -- Password reset (1h expiry)
+rate_limits            -- Rate limiting state
+favorites              -- User saved jobs
 ```
 
-### Future Tables (schema exists)
+### Future Tables
 
 ```sql
-profile_chunks (id, user_id, chunk_index, section_type, content, ...)
-profile_embeddings (id, profile_chunk_id, embedding vector(768), ...)
-generated_resumes (id, user_id, job_id, content, ...)
-```
-
----
-
-## Auth Flow
-
-### Registration
-```
-User → POST /register → Create user → Generate verification token 
-     → Send email via Resend → User clicks link → GET /verify-email 
-     → Mark email_verified = true
-```
-
-### Login
-```
-User → POST /login → Verify password → Check email_verified 
-     → Generate access token (JWT, 1h) + refresh token (30d) 
-     → Store refresh token hash in DB → Return tokens
-```
-
-### Token Refresh
-```
-User → POST /refresh → Validate refresh token → Revoke old token 
-     → Generate new token pair → Return new tokens
-```
-
-### Protected Request
-```
-User → Request + Authorization: Bearer <access_token> 
-     → authMiddleware validates JWT → Extract userId → Process request
+profile_chunks         -- User profile sections
+profile_embeddings     -- Profile vectors
+generated_resumes      -- Tailored CVs
 ```
 
 ---
@@ -452,62 +215,44 @@ User → Request + Authorization: Bearer <access_token>
 ## Security
 
 ### Password Requirements
+
 - Minimum 8 characters
-- At least 1 uppercase letter
-- At least 1 digit
-- At least 1 special character
+- At least 1 uppercase, 1 digit, 1 special character
 
 ### Rate Limiting
 
 | Action | Limit |
 |--------|-------|
-| Login | 5 attempts / 15 min / IP |
-| Register | 3 attempts / 60 min / IP |
-| Forgot Password | 3 attempts / 60 min / email |
+| Login | 5 / 15 min / IP |
+| Register | 3 / 60 min / IP |
+| Forgot Password | 3 / 60 min / email |
 
 ### Token Expiry
 
 | Token | Expiry |
 |-------|--------|
-| Access Token (JWT) | 1 hour |
-| Refresh Token | 30 days |
-| Verification Link | 24 hours |
-| Password Reset Link | 1 hour |
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| API | Express 5, TypeScript |
-| ML Service | FastAPI, Python 3.11 |
-| Auth | JWT (jsonwebtoken), bcrypt |
-| Embeddings | sentence-transformers, BGE-base-en-v1.5 |
-| Skill Extraction | transformers, feliponi/hirly-ner-multi |
-| CV Generation | Anthropic Claude 3 Haiku |
-| Database | PostgreSQL 17, pgvector |
-| Email | Resend API |
-| Scraping | Playwright |
-| Frontend | React 19, Vite (scaffolded) |
-| Hosting | Railway (DB + API + ML) |
+| Access (JWT) | 1 hour |
+| Refresh | 30 days |
+| Email verification | 24 hours |
+| Password reset | 1 hour |
 
 ---
 
 ## Environment Variables
 
 ### Node.js API
+
 ```env
 DATABASE_URL=postgresql://...
-JWT_SECRET=<32+ char secret>
-JWT_REFRESH_SECRET=<32+ char secret>
+JWT_SECRET=<32+ chars>
+JWT_REFRESH_SECRET=<32+ chars>
 RESEND_API_KEY=re_xxxxx
 FROM_EMAIL=onboarding@resend.dev
 FRONTEND_URL=http://localhost:5173
-HF_TOKEN=hf_xxxxx
 ```
 
 ### Python ML Service
+
 ```env
 EMBED_MODEL_NAME=BAAI/bge-base-en-v1.5
 EMBED_MODEL_CACHE_DIR=./embed_model_cache
@@ -518,3 +263,28 @@ CV_MODEL_NAME=claude-3-haiku-20240307
 HOST=0.0.0.0
 PORT=8000
 ```
+
+### Ingestion
+
+```env
+DATABASE_URL=postgresql://...
+SNC_BASE_URL=https://finder.startupnationcentral.org
+SNC_AUTH_TOKEN=...
+SNC_REFRESH_TOKEN=...
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| API | Express 5, TypeScript, JWT, bcrypt |
+| ML Service | FastAPI, sentence-transformers, BGE-base-en-v1.5 |
+| Skill Extraction | transformers, feliponi/hirly-ner-multi |
+| CV Generation | Anthropic Claude 3 Haiku |
+| Database | PostgreSQL 17, pgvector |
+| Email | Resend API |
+| Scraping | Playwright |
+| Frontend | React 19, Vite, TailwindCSS |
+| Hosting | Railway (API, ML, DB), Vercel (web) |

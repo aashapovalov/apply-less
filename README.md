@@ -1,197 +1,85 @@
 # ApplyLess
 
-**AI-powered job search assistant for Israel hi-tech candidates.**
+AI-powered job matching platform for Israel hi-tech candidates. Automatically ingests jobs from company career pages and ATS systems, uses semantic matching to recommend relevant positions, and generates tailored CVs.
 
-ApplyLess automatically ingests job postings from company career pages and ATS systems, and uses semantic matching to recommend relevant jobs based on your profile.
-
----
-
-## 🎯 Current Status
-
-**Phase: Backend Complete → Moving to Ingestion & Frontend**
-
-| Component | Status | Details |
-|-----------|--------|---------|
-| Database | ✅ Deployed | Railway PostgreSQL + pgvector |
-| Companies | ✅ 1007 | Scraped from SNC |
-| Job Sources | ✅ 176 | Career pages detected |
-| Jobs | ✅ 111 | From Greenhouse API |
-| Embeddings | ✅ 111 | BGE-base-en via HuggingFace API |
-| Auth API | ✅ Working | JWT + email verification |
-| Jobs API | ✅ Working | List, search, details |
-| Match API | ✅ Working | Vector similarity search |
-| Profile API | ✅ Working | Save/retrieve profile text |
-| Favorites API | ✅ Working | Add/remove saved jobs |
-| ML Service | ✅ Working | Python FastAPI + BGE model |
-| Frontend | ⏳ Planned | Job browser + recommendations |
-
----
-
-## 🏗️ Architecture
-
-```
-┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│   Ingestion      │     │   API Service    │     │   Python ML      │
-│   (Node.js)      │     │   (Express)      │     │   (FastAPI)      │
-│                  │     │                  │     │                  │
-│ • SNC Scraping   │     │ • /auth/* ✅     │     │ • /health ✅     │
-│ • Greenhouse ✅  │     │ • /jobs ✅       │     │ • /api/embed ✅  │
-│ • Comeet ✅      │     │ • /match ✅      │     │                  │
-│ • Embeddings ✅  │     │ • /profile ✅    │     │ BGE-base-en-v1.5 │
-│                  │     │ • /favorites ✅  │     │ 768 dimensions   │
-└────────┬─────────┘     └────────┬─────────┘     └────────┬─────────┘
-         │                        │                        │
-         └────────────────────────┼────────────────────────┘
-                                  ▼
-                  ┌───────────────────────────────┐
-                  │  PostgreSQL + pgvector        │
-                  │  Railway                      │
-                  └───────────────────────────────┘
-```
-
----
-
-## 📦 Project Structure
-
-```
-apply-less/
-├── packages/
-│   ├── ingestion/          # Job scraping & ingestion
-│   ├── api/                # Express API ✅
-│   ├── ml-service/         # Python ML service ✅
-│   └── web/                # React frontend (scaffolded)
-│
-├── db/migrations/          # SQL migrations (001-009)
-├── docs/                   # Documentation
-└── scripts/                # Utility scripts
-```
-
----
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 20+
 - Python 3.11+
-- npm
+- PostgreSQL with pgvector
 
 ### Setup
 
 ```bash
-# Clone repository
-git clone https://github.com/aashapovalov/apply-less.git
-cd apply-less
-
 # Install dependencies
 npm install
 
-# Copy environment variables
+# Configure environment
 cp .env.example .env
-# Edit .env with your DATABASE_URL and other secrets
+# Edit .env with your DATABASE_URL and secrets
 
-# Run migrations
+# Run database migrations
 npm run db:migrate
 
-# Start API server
+# Start API server (port 3001)
 npm run dev:api
 
-# Start ML service (separate terminal)
+# Start ML service (port 8000) - separate terminal
 cd packages/ml-service
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 python main.py
 ```
 
-### Test the APIs
+### Verify Installation
 
 ```bash
-# Node.js API
 curl http://localhost:3001/health
-curl http://localhost:3001/api/jobs
-
-# Python ML Service
 curl http://localhost:8000/health
-curl -X POST http://localhost:8000/api/embed/single \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Python developer", "text_type": "query"}'
 ```
 
----
-
-## 🔧 CLI Commands
+## CLI Commands
 
 ```bash
-# Development
-npm run dev:api           # Start API server (port 3001)
-npm run dev:web           # Start frontend (port 5173)
+# API & Frontend
+npm run dev:api              # Express API (port 3001)
+npm run dev:web              # React frontend (port 5173)
 
 # Database
-npm run db:migrate        # Run SQL migrations
+npm run db:migrate           # Run SQL migrations
 
-# Ingestion
-npm run start --workspace=packages/ingestion -- snc        # SNC companies
-npm run start --workspace=packages/ingestion -- greenhouse # Greenhouse jobs
-npm run start --workspace=packages/ingestion -- comeet     # Comeet jobs
-npm run start --workspace=packages/ingestion -- embeddings # Generate embeddings
+# Ingestion Pipeline
+npm run start --workspace=packages/ingestion -- snc         # Scrape companies from SNC
+npm run start --workspace=packages/ingestion -- detect      # Detect ATS systems
+npm run start --workspace=packages/ingestion -- greenhouse  # Fetch Greenhouse jobs
+npm run start --workspace=packages/ingestion -- comeet      # Fetch Comeet jobs
+npm run start --workspace=packages/ingestion -- embeddings  # Generate embeddings
 ```
 
----
+## Project Structure
 
-## 📈 Progress
+```
+apply-less/
+├── packages/
+│   ├── api/           # Express REST API (auth, jobs, matching, favorites)
+│   ├── ingestion/     # Job scraping CLI (SNC, Greenhouse, Comeet)
+│   ├── ml-service/    # Python ML service (embeddings, skills, CV generation)
+│   └── web/           # React frontend (in progress)
+├── db/migrations/     # PostgreSQL schema
+└── docs/              # Documentation
+```
 
-### ✅ Completed
+## Documentation
 
-- [x] Project setup & monorepo structure
-- [x] Database schema with pgvector
-- [x] Railway deployment (PostgreSQL + pgvector)
-- [x] SNC company scraping (1007 companies)
-- [x] Career page detection (176 sources)
-- [x] Greenhouse API integration (111 jobs)
-- [x] Comeet API integration
-- [x] Embeddings generation (BGE-base-en-v1.5)
-- [x] JWT authentication with email verification
-- [x] Jobs API (list, search, details)
-- [x] Match API (vector similarity)
-- [x] Profile API (save/retrieve)
-- [x] Favorites API (CRUD)
-- [x] Python ML service (local embeddings)
+- **[Architecture](docs/architecture.md)** — System design, API endpoints, data flows
+- **[Monorepo Structure](docs/monorepo-structure.md)** — Package layout and file descriptions
+- **[Implementation Plan](docs/plan.md)** — Development roadmap
 
-### ⏳ Planned
+## Tech Stack
 
-- [ ] More job ingestion (2000+ target)
-- [ ] CV generation
-- [ ] React frontend
-- [ ] Production deployment
-
----
-
-## 📚 Documentation
-
-- [Architecture](docs/architecture.md) - System design & API endpoints
-- [Monorepo Structure](docs/monorepo-structure.md) - Package layout
-- [Implementation Plan](docs/plan.md) - Development roadmap
-
----
-
-## 🛠️ Tech Stack
-
-**Backend:**
-- Node.js + TypeScript + Express
-- PostgreSQL + pgvector
-- JWT + bcrypt (auth)
-- Resend (email)
-
-**ML Service:**
-- Python + FastAPI
-- sentence-transformers
-- BGE-base-en-v1.5 (768d embeddings)
-
-**Frontend (planned):**
-- React + Vite
-- TailwindCSS
-
-**Infrastructure:**
-- Railway (hosting)
-- GitHub
+**Backend:** Node.js, Express, PostgreSQL + pgvector, JWT  
+**ML Service:** Python, FastAPI, sentence-transformers (BGE), Anthropic Claude  
+**Frontend:** React, Vite, TailwindCSS  
+**Infrastructure:** Railway, Vercel
