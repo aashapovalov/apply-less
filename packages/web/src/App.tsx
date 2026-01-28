@@ -1,8 +1,15 @@
+import { Route, Routes } from 'react-router-dom';
+
+import { MainLayout } from '@/layout/main-layout.tsx';
+import { Landing } from '@/pages/landing.tsx';
+
 function App() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <h1 className="text-3xl font-bold text-blue-500">Tailwind Works!</h1>
-    </div>
+    <Routes>
+      <Route element={<MainLayout />}>
+        <Route path="/" element={<Landing />} />
+      </Route>
+    </Routes>
   );
 }
 
