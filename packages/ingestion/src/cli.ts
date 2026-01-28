@@ -75,6 +75,7 @@ program
     .option('-c, --company <name>', 'Test single company by name')
     .option('-r, --recheck', 'Recheck companies that were checked but have no job_source', false)
     .option('-f, --force', 'Re-detect even if job_source exists', false)
+    .option('-d, --deep-crawl', 'Enable deep crawler to investigate links on career website')
     .action(async (options) => {
         console.log('\n🚀 ApplyLess Ingestion: Stage B (ATS Detection)\n');
 
@@ -87,6 +88,7 @@ program
                 companyName: options.company,
                 recheck: options.recheck,
                 force: options.force,
+                deepCrawl: options.deepCrawl,
             });
 
             // Mark process as failed if there were partial or hard errors
