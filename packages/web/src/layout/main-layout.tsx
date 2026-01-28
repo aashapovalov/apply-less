@@ -1,6 +1,6 @@
 import { Link, Outlet } from 'react-router-dom';
 
-import logoSvg from '@/assets/logo.svg';
+import logoSvg from '@/assets/logo_title.svg';
 
 export function MainLayout() {
   return (
