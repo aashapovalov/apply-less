@@ -1,5 +1,6 @@
-import { AuthResponse, LoginRequest, RegisterRequest, User } from '../types'
-import { api } from './api.ts'
+import type { AuthResponse, LoginRequest, RegisterRequest, User } from '@/types';
+
+import { api } from './api.ts';
 
 export const authApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -11,10 +12,12 @@ export const authApi = api.injectEndpoints({
       }),
       onQueryStarted: async (_, { queryFulfilled }) => {
         try {
-          const { data } = await queryFulfilled
-          localStorage.setItem('accessToken', data.accessToken)
-          localStorage.setItem('refreshToken', data.refreshToken)
-        } catch {}
+          const { data } = await queryFulfilled;
+          localStorage.setItem('accessToken', data.accessToken);
+          localStorage.setItem('refreshToken', data.refreshToken);
+        } catch {
+          // Ignore errors
+        }
       },
     }),
 
@@ -34,10 +37,10 @@ export const authApi = api.injectEndpoints({
       }),
       onQueryStarted: async (_, { queryFulfilled }) => {
         try {
-          await queryFulfilled
+          await queryFulfilled;
         } finally {
-          localStorage.removeItem('accessToken')
-          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
         }
       },
     }),
@@ -47,7 +50,6 @@ export const authApi = api.injectEndpoints({
       providesTags: ['User'],
     }),
   }),
-})
+});
 
-export const { useLoginMutation, useRegisterMutation, useLogoutMutation, useGetMeMutation } =
-  authApi
+export const { useLoginMutation, useRegisterMutation, useLogoutMutation } = authApi;
