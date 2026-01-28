@@ -5,6 +5,7 @@ import { detectByKeyword } from "./keyword-detector.js";
 import { deepCrawlForAts } from "./deep-crawler.js"
 import { runDetectionPipeline } from "./detection-pipeline.js"
 import { debugDetection } from "./debug-detection.js"
+import { extractComeetUID } from "./comeet-extractor.js"
 
 export {
     detectATSFromPage,
@@ -15,4 +16,5 @@ export {
     deepCrawlForAts,
     runDetectionPipeline,
     debugDetection,
+    extractComeetUID,
 };

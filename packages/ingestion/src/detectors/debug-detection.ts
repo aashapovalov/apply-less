@@ -19,6 +19,7 @@ import { detectATSFromHTML } from "./ats-detector.js";
 import { generateSlugVariations, probeGreenhouseAPI } from "./greenhouse-probe.js";
 import { detectByKeyword } from "./keyword-detector.js";
 import { deepCrawlForAts } from "./deep-crawler.js";
+import { extractComeetUID } from "./comeet-extractor.js";
 import { ATS_PATTERNS } from "./ats-patterns.js";
 
 // ============== CONFIG ==============
@@ -310,6 +311,23 @@ export async function debugDetection(companyName: string, careersUrl?: string) {
             console.log(`❌ No keyword matches`);
         }
         
+        // ========== STEP 8: Comeet UID Extraction ==========
+        let comeetResult = null;
+        if (mainDetection.atsType === 'comeet' || keywordResult?.atsType === 'comeet') {
+            logStep(8, 'COMEET UID EXTRACTION');
+            
+            // Reset to careers page
+            await page.goto(careersUrl!, { waitUntil: 'domcontentloaded', timeout: 15000 });
+            await page.waitForTimeout(2000);
+            
+            comeetResult = await extractComeetUID(page, careersUrl!);
+            if (comeetResult) {
+                console.log(`\n✅ Comeet extraction result:`, JSON.stringify(comeetResult, null, 2));
+            } else {
+                console.log(`\n❌ Could not extract Comeet UID`);
+            }
+        }
+        
         // ========== SUMMARY ==========
         log('SUMMARY', 'Detection results:');
         
@@ -318,6 +336,7 @@ export async function debugDetection(companyName: string, careersUrl?: string) {
             { name: 'Greenhouse probe', result: greenhouseResult },
             { name: 'Deep crawl', result: deepCrawlResult },
             { name: 'Keyword', result: keywordResult },
+            { name: 'Comeet extraction', result: comeetResult },
         ];
         
         results.forEach((r, i) => {
