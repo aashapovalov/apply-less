@@ -10,6 +10,9 @@
   --color-accent: #3b82f6;
   --color-accent-hover: #2563eb;
   --color-border: #e5e7eb;
+  --color-error-bg: #fef2f2;
+  --color-error-border: #fecaca;
+  --color-error-text: #dc2626;
 
   /* Fonts */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
