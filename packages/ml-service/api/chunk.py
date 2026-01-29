@@ -169,13 +169,13 @@ async def chunk_job(request: Request, body: JobChunkRequest) -> JobChunkResponse
     """
     # Retrieve shared services from application state
     embedding_service = request.app.state.embedding_service
-    skills_extraction_service = request.app.state.skills_extraction_service
+    skill_extractor_service = request.app.state.skill_extractor_service
 
     # Ensure models are ready before processing
     if not embedding_service.is_loaded:
         raise HTTPException(status_code=503, detail="Embedding model not loaded")
 
-    if not skills_extraction_service.is_loaded:
+    if not skill_extractor_service.is_loaded:
         raise HTTPException(status_code=503, detail="Skill extraction model not loaded")
 
     # Import locally to avoid circular imports during app startup
@@ -184,7 +184,7 @@ async def chunk_job(request: Request, body: JobChunkRequest) -> JobChunkResponse
     start_time = time.time()
 
     # Initialize chunker with active services
-    chunker = JobChunkerService(embedding_service, skills_extraction_service)
+    chunker = JobChunkerService(embedding_service, skill_extractor_service)
 
     # Run chunking pipeline
     result = chunker.chunk_job(
@@ -224,13 +224,13 @@ async def chunk_profile(request: Request, body: ProfileChunkRequest) -> ProfileC
     """
     # Retrieve shared services from application state
     embedding_service = request.app.state.embedding_service
-    skills_extraction_service = request.app.state.skills_extraction_service
+    skill_extractor_service = request.app.state.skill_extractor_service
 
     # Ensure models are ready before processing
     if not embedding_service.is_loaded:
         raise HTTPException(status_code=503, detail="Embedding model not loaded")
 
-    if not skills_extraction_service.is_loaded:
+    if not skill_extractor_service.is_loaded:
         raise HTTPException(status_code=503, detail="Skill extraction model not loaded")
 
     # Import locally to avoid circular imports during app startup
@@ -239,7 +239,7 @@ async def chunk_profile(request: Request, body: ProfileChunkRequest) -> ProfileC
     start_time = time.time()
 
     # Initialize chunker with active services
-    chunker = ProfileChunkerService(embedding_service, skills_extraction_service)
+    chunker = ProfileChunkerService(embedding_service, skill_extractor_service)
 
     # Run chunking pipeline
     result = chunker.chunk_profile(body.text)
