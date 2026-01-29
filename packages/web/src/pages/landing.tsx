@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-import gridBg from '@/assets/bg-lines.png';
+import { gridBg } from '@/assets';
 
 export function Landing() {
   return (

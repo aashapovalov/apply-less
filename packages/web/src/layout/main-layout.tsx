@@ -1,6 +1,6 @@
 import { Link, Outlet } from 'react-router-dom';
 
-import logoSvg from '@/assets/logo_title.svg';
+import { logoTitleSvg } from '@/assets';
 
 export function MainLayout() {
   return (
@@ -10,7 +10,7 @@ export function MainLayout() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           {/* Logo */}
           <Link to="/">
-            <img src={logoSvg} alt="Apply-less logo" className="h-8" />
+            <img src={logoTitleSvg} alt="Apply-less logo" className="h-8" />
           </Link>
           {/* Navigation */}
           <nav className="text-secondary flex items-center gap-6 text-sm">
