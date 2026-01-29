@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request
 router = APIRouter(tags=["health"])
 
 @router.get("/health")
-async def health_check(request: Request) -> dict:
+async def health_check(request: Request):
     """
         Health check endpoint with model status.
 
@@ -26,8 +26,10 @@ async def health_check(request: Request) -> dict:
 
         """
     embedding_service = request.app.state.embedding_service
+    skill_extractor_service = request.app.state.skill_extractor_service
 
     return {
         "status": "ok",
-        "model": embedding_service.info,
+        "embedding_model": embedding_service.info,
+        "skill_model": skill_extractor_service.info,
     }
