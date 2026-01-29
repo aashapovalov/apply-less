@@ -31,7 +31,7 @@ def analyze_skill_gap(job_skills: list, profile_skills: list) -> dict:
 
     # Find matches and gaps
     matching_mandatory = [skill for skill in mandatory if skill.lower() in profile_skill_names]
-    matching_preferred = [skill for skill in mandatory if skill.lower() in profile_skill_names]
+    matching_preferred = [skill for skill in preferred if skill.lower() in profile_skill_names]
     missing_mandatory = [skill for skill in mandatory if skill.lower() not in profile_skill_names]
 
     # Deduplicate matching skills
