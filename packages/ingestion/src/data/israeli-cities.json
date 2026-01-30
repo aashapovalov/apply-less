@@ -11,672 +11,138 @@
     }
   },
   "cities": [
-    {
-      "name": "Tel Aviv",
-      "name_he": "תל אביב-יפו",
-      "region": "central",
-      "district": "Tel Aviv",
-      "aliases": [
-        "tel aviv-yafo",
-        "tel-aviv",
-        "tlv",
-        "tel aviv yafo",
-        "telaviv"
-      ]
-    },
-    {
-      "name": "Jerusalem",
-      "name_he": "ירושלים",
-      "region": "jerusalem",
-      "district": "Jerusalem",
-      "aliases": ["yerushalayim"]
-    },
-    {
-      "name": "Haifa",
-      "name_he": "חיפה",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": []
-    },
-    {
-      "name": "Rishon LeZion",
-      "name_he": "ראשון לציון",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["rishon lezion", "rishon le-zion", "rishon le zion"]
-    },
-    {
-      "name": "Petah Tikva",
-      "name_he": "פתח תקווה",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["petach tikva", "petah tiqwa"]
-    },
-    {
-      "name": "Ashdod",
-      "name_he": "אשדוד",
-      "region": "central",
-      "district": "Southern",
-      "aliases": []
-    },
-    {
-      "name": "Netanya",
-      "name_he": "נתניה",
-      "region": "central",
-      "district": "Central",
-      "aliases": []
-    },
-    {
-      "name": "Beer Sheva",
-      "name_he": "באר שבע",
-      "region": "south",
-      "district": "Southern",
-      "aliases": ["be'er sheva", "beersheba", "beersheva", "beer-sheva"]
-    },
-    {
-      "name": "Holon",
-      "name_he": "חולון",
-      "region": "central",
-      "district": "Tel Aviv",
-      "aliases": []
-    },
-    {
-      "name": "Bnei Brak",
-      "name_he": "בני ברק",
-      "region": "central",
-      "district": "Tel Aviv",
-      "aliases": ["bnei-brak", "bene beraq"]
-    },
-    {
-      "name": "Ramat Gan",
-      "name_he": "רמת גן",
-      "region": "central",
-      "district": "Tel Aviv",
-      "aliases": ["ramat-gan"]
-    },
-    {
-      "name": "Bat Yam",
-      "name_he": "בת ים",
-      "region": "central",
-      "district": "Tel Aviv",
-      "aliases": ["bat-yam"]
-    },
-    {
-      "name": "Rehovot",
-      "name_he": "רחובות",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["rechovot"]
-    },
-    {
-      "name": "Ashkelon",
-      "name_he": "אשקלון",
-      "region": "south",
-      "district": "Southern",
-      "aliases": []
-    },
-    {
-      "name": "Herzliya",
-      "name_he": "הרצליה",
-      "region": "central",
-      "district": "Tel Aviv",
-      "aliases": ["herzlia"]
-    },
-    {
-      "name": "Kfar Saba",
-      "name_he": "כפר סבא",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["kfar-saba", "kfar sava"]
-    },
-    {
-      "name": "Ra'anana",
-      "name_he": "רעננה",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["raanana", "ra'anana"]
-    },
-    {
-      "name": "Beit Shemesh",
-      "name_he": "בית שמש",
-      "region": "jerusalem",
-      "district": "Jerusalem",
-      "aliases": ["bet shemesh", "beit-shemesh"]
-    },
-    {
-      "name": "Modi'in",
-      "name_he": "מודיעין-מכבים-רעות",
-      "region": "jerusalem",
-      "district": "Central",
-      "aliases": ["modiin", "modi'in-maccabim-re'ut", "modiin maccabim reut"]
-    },
-    {
-      "name": "Hadera",
-      "name_he": "חדרה",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": []
-    },
-    {
-      "name": "Lod",
-      "name_he": "לוד",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["lydda"]
-    },
-    {
-      "name": "Ramla",
-      "name_he": "רמלה",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["ramle"]
-    },
-    {
-      "name": "Nazareth",
-      "name_he": "נצרת",
-      "region": "north",
-      "district": "Northern",
-      "aliases": []
-    },
-    {
-      "name": "Nazareth Illit",
-      "name_he": "נוף הגליל",
-      "region": "north",
-      "district": "Northern",
-      "aliases": ["nof hagalil", "nazareth elite"]
-    },
-    {
-      "name": "Givatayim",
-      "name_he": "גבעתיים",
-      "region": "central",
-      "district": "Tel Aviv",
-      "aliases": []
-    },
-    {
-      "name": "Hod HaSharon",
-      "name_he": "הוד השרון",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["hod hasharon"]
-    },
-    {
-      "name": "Rosh HaAyin",
-      "name_he": "ראש העין",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["rosh haayin"]
-    },
-    {
-      "name": "Kiryat Ata",
-      "name_he": "קריית אתא",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": ["qiryat ata"]
-    },
-    {
-      "name": "Kiryat Gat",
-      "name_he": "קריית גת",
-      "region": "south",
-      "district": "Southern",
-      "aliases": ["qiryat gat"]
-    },
-    {
-      "name": "Kiryat Motzkin",
-      "name_he": "קריית מוצקין",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": []
-    },
-    {
-      "name": "Kiryat Yam",
-      "name_he": "קריית ים",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": []
-    },
-    {
-      "name": "Kiryat Bialik",
-      "name_he": "קריית ביאליק",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": []
-    },
-    {
-      "name": "Kiryat Ono",
-      "name_he": "קריית אונו",
-      "region": "central",
-      "district": "Tel Aviv",
-      "aliases": []
-    },
-    {
-      "name": "Kiryat Shmona",
-      "name_he": "קריית שמונה",
-      "region": "north",
-      "district": "Northern",
-      "aliases": []
-    },
-    {
-      "name": "Or Yehuda",
-      "name_he": "אור יהודה",
-      "region": "central",
-      "district": "Tel Aviv",
-      "aliases": []
-    },
-    {
-      "name": "Yavne",
-      "name_he": "יבנה",
-      "region": "central",
-      "district": "Central",
-      "aliases": []
-    },
-    {
-      "name": "Acre",
-      "name_he": "עכו",
-      "region": "north",
-      "district": "Northern",
-      "aliases": ["akko", "acco", "ako"]
-    },
-    {
-      "name": "Afula",
-      "name_he": "עפולה",
-      "region": "north",
-      "district": "Northern",
-      "aliases": []
-    },
-    {
-      "name": "Eilat",
-      "name_he": "אילת",
-      "region": "south",
-      "district": "Southern",
-      "aliases": []
-    },
-    {
-      "name": "Nahariya",
-      "name_he": "נהריה",
-      "region": "north",
-      "district": "Northern",
-      "aliases": []
-    },
-    {
-      "name": "Karmiel",
-      "name_he": "כרמיאל",
-      "region": "north",
-      "district": "Northern",
-      "aliases": []
-    },
-    {
-      "name": "Tiberias",
-      "name_he": "טבריה",
-      "region": "north",
-      "district": "Northern",
-      "aliases": []
-    },
-    {
-      "name": "Safed",
-      "name_he": "צפת",
-      "region": "north",
-      "district": "Northern",
-      "aliases": ["tzfat", "zefat"]
-    },
-    {
-      "name": "Dimona",
-      "name_he": "דימונה",
-      "region": "south",
-      "district": "Southern",
-      "aliases": []
-    },
-    {
-      "name": "Arad",
-      "name_he": "ערד",
-      "region": "south",
-      "district": "Southern",
-      "aliases": []
-    },
-    {
-      "name": "Sderot",
-      "name_he": "שדרות",
-      "region": "south",
-      "district": "Southern",
-      "aliases": []
-    },
-    {
-      "name": "Netivot",
-      "name_he": "נתיבות",
-      "region": "south",
-      "district": "Southern",
-      "aliases": []
-    },
-    {
-      "name": "Ofakim",
-      "name_he": "אופקים",
-      "region": "south",
-      "district": "Southern",
-      "aliases": []
-    },
-    {
-      "name": "Yokneam",
-      "name_he": "יקנעם",
-      "region": "north",
-      "district": "Northern",
-      "aliases": ["yoqneam"]
-    },
-    {
-      "name": "Caesarea",
-      "name_he": "קיסריה",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": ["qesarya", "kesarya"]
-    },
-    {
-      "name": "Shoham",
-      "name_he": "שוהם",
-      "region": "central",
-      "district": "Central",
-      "aliases": []
-    },
-    {
-      "name": "Migdal HaEmek",
-      "name_he": "מגדל העמק",
-      "region": "north",
-      "district": "Northern",
-      "aliases": ["migdal haemek"]
-    },
-    {
-      "name": "Zichron Yaakov",
-      "name_he": "זכרון יעקב",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": ["zikhron ya'akov"]
-    },
-    {
-      "name": "Ma'ale Adumim",
-      "name_he": "מעלה אדומים",
-      "region": "jerusalem",
-      "district": "Judea and Samaria",
-      "aliases": ["maale adumim"]
-    },
-    {
-      "name": "Mevaseret Zion",
-      "name_he": "מבשרת ציון",
-      "region": "jerusalem",
-      "district": "Jerusalem",
-      "aliases": []
-    },
-    {
-      "name": "Tirat Carmel",
-      "name_he": "טירת כרמל",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": ["tirat hacarmel"]
-    },
-    {
-      "name": "Nesher",
-      "name_he": "נשר",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": []
-    },
-    {
-      "name": "Ramat HaSharon",
-      "name_he": "רמת השרון",
-      "region": "central",
-      "district": "Tel Aviv",
-      "aliases": ["ramat hasharon"]
-    },
-    {
-      "name": "Ness Ziona",
-      "name_he": "נס ציונה",
-      "region": "central",
-      "district": "Central",
-      "aliases": []
-    },
-    {
-      "name": "Giv'at Shmuel",
-      "name_he": "גבעת שמואל",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["givat shmuel"]
-    },
-    {
-      "name": "Pardes Hanna-Karkur",
-      "name_he": "פרדס חנה-כרכור",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": ["pardes hanna"]
-    },
-    {
-      "name": "Even Yehuda",
-      "name_he": "אבן יהודה",
-      "region": "central",
-      "district": "Central",
-      "aliases": []
-    },
-    {
-      "name": "Kadima-Zoran",
-      "name_he": "קדימה-צורן",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["kadima"]
-    },
-    {
-      "name": "Gan Yavne",
-      "name_he": "גן יבנה",
-      "region": "central",
-      "district": "Central",
-      "aliases": []
-    },
-    {
-      "name": "Gedera",
-      "name_he": "גדרה",
-      "region": "central",
-      "district": "Central",
-      "aliases": []
-    },
-    {
-      "name": "Binyamina-Giv'at Ada",
-      "name_he": "בנימינה-גבעת עדה",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": ["binyamina"]
-    },
-    {
-      "name": "Or Akiva",
-      "name_he": "אור עקיבא",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": []
-    },
-    {
-      "name": "Shlomi",
-      "name_he": "שלומי",
-      "region": "north",
-      "district": "Northern",
-      "aliases": []
-    },
-    {
-      "name": "Kiryat Malakhi",
-      "name_he": "קריית מלאכי",
-      "region": "south",
-      "district": "Southern",
-      "aliases": []
-    },
-    {
-      "name": "Kiryat Tiv'on",
-      "name_he": "קריית טבעון",
-      "region": "north",
-      "district": "Northern",
-      "aliases": ["kiryat tivon"]
-    },
-    {
-      "name": "Ma'alot-Tarshiha",
-      "name_he": "מעלות-תרשיחא",
-      "region": "north",
-      "district": "Northern",
-      "aliases": ["maalot"]
-    },
-    {
-      "name": "Bet She'an",
-      "name_he": "בית שאן",
-      "region": "north",
-      "district": "Northern",
-      "aliases": ["beit shean"]
-    },
-    {
-      "name": "Ramat Yishai",
-      "name_he": "רמת ישי",
-      "region": "north",
-      "district": "Northern",
-      "aliases": []
-    },
-    {
-      "name": "Sakhnin",
-      "name_he": "סח'נין",
-      "region": "north",
-      "district": "Northern",
-      "aliases": []
-    },
-    {
-      "name": "Umm al-Fahm",
-      "name_he": "אום אל-פחם",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": []
-    },
-    {
-      "name": "Baqa-Jatt",
-      "name_he": "באקה-ג'ת",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": ["baqa al-gharbiyye"]
-    },
-    {
-      "name": "Tamra",
-      "name_he": "טמרה",
-      "region": "north",
-      "district": "Northern",
-      "aliases": []
-    },
-    {
-      "name": "Shefa-Amr",
-      "name_he": "שפרעם",
-      "region": "north",
-      "district": "Northern",
-      "aliases": ["shfaram"]
-    },
-    {
-      "name": "Ar'ara",
-      "name_he": "ערערה",
-      "region": "north",
-      "district": "Haifa",
-      "aliases": []
-    },
-    {
-      "name": "Rahat",
-      "name_he": "רהט",
-      "region": "south",
-      "district": "Southern",
-      "aliases": []
-    },
-    {
-      "name": "Tayibe",
-      "name_he": "טייבה",
-      "region": "central",
-      "district": "Central",
-      "aliases": []
-    },
-    {
-      "name": "Tira",
-      "name_he": "טירה",
-      "region": "central",
-      "district": "Central",
-      "aliases": []
-    },
-    {
-      "name": "Kafr Qasim",
-      "name_he": "כפר קאסם",
-      "region": "central",
-      "district": "Central",
-      "aliases": ["kfar qassem"]
-    },
-    {
-      "name": "Qalansawe",
-      "name_he": "קלנסווה",
-      "region": "central",
-      "district": "Central",
-      "aliases": []
-    },
-    {
-      "name": "Abu Ghosh",
-      "name_he": "אבו גוש",
-      "region": "jerusalem",
-      "district": "Jerusalem",
-      "aliases": []
-    }
+    { "name": "Tel Aviv", "name_he": "תל אביב-יפו", "region": "central", "district": "Tel Aviv", "aliases": ["tel aviv-yafo", "tel-aviv", "tlv", "tel aviv yafo", "telaviv"] },
+    { "name": "Jerusalem", "name_he": "ירושלים", "region": "jerusalem", "district": "Jerusalem", "aliases": ["yerushalayim"] },
+    { "name": "Haifa", "name_he": "חיפה", "region": "north", "district": "Haifa", "aliases": [] },
+    { "name": "Rishon LeZion", "name_he": "ראשון לציון", "region": "central", "district": "Central", "aliases": ["rishon lezion", "rishon le-zion", "rishon le zion"] },
+    { "name": "Petah Tikva", "name_he": "פתח תקווה", "region": "central", "district": "Central", "aliases": ["petach tikva", "petah tiqwa"] },
+    { "name": "Ashdod", "name_he": "אשדוד", "region": "central", "district": "Southern", "aliases": [] },
+    { "name": "Netanya", "name_he": "נתניה", "region": "central", "district": "Central", "aliases": [] },
+    { "name": "Beer Sheva", "name_he": "באר שבע", "region": "south", "district": "Southern", "aliases": ["be'er sheva", "beersheba", "beersheva", "beer-sheva"] },
+    { "name": "Holon", "name_he": "חולון", "region": "central", "district": "Tel Aviv", "aliases": [] },
+    { "name": "Bnei Brak", "name_he": "בני ברק", "region": "central", "district": "Tel Aviv", "aliases": ["bnei-brak", "bene beraq"] },
+    { "name": "Ramat Gan", "name_he": "רמת גן", "region": "central", "district": "Tel Aviv", "aliases": ["ramat-gan"] },
+    { "name": "Bat Yam", "name_he": "בת ים", "region": "central", "district": "Tel Aviv", "aliases": ["bat-yam"] },
+    { "name": "Rehovot", "name_he": "רחובות", "region": "central", "district": "Central", "aliases": ["rechovot"] },
+    { "name": "Ashkelon", "name_he": "אשקלון", "region": "south", "district": "Southern", "aliases": [] },
+    { "name": "Herzliya", "name_he": "הרצליה", "region": "central", "district": "Tel Aviv", "aliases": ["herzlia"] },
+    { "name": "Kfar Saba", "name_he": "כפר סבא", "region": "central", "district": "Central", "aliases": ["kfar-saba", "kfar sava"] },
+    { "name": "Ra'anana", "name_he": "רעננה", "region": "central", "district": "Central", "aliases": ["raanana"] },
+    { "name": "Beit Shemesh", "name_he": "בית שמש", "region": "jerusalem", "district": "Jerusalem", "aliases": ["bet shemesh", "beit-shemesh"] },
+    { "name": "Modi'in", "name_he": "מודיעין-מכבים-רעות", "region": "jerusalem", "district": "Central", "aliases": ["modiin", "modi'in-maccabim-re'ut", "modiin maccabim reut"] },
+    { "name": "Hadera", "name_he": "חדרה", "region": "north", "district": "Haifa", "aliases": [] },
+    { "name": "Lod", "name_he": "לוד", "region": "central", "district": "Central", "aliases": ["lydda"] },
+    { "name": "Ramla", "name_he": "רמלה", "region": "central", "district": "Central", "aliases": ["ramle"] },
+    { "name": "Nazareth", "name_he": "נצרת", "region": "north", "district": "Northern", "aliases": [] },
+    { "name": "Nof HaGalil", "name_he": "נוף הגליל", "region": "north", "district": "Northern", "aliases": ["nazareth illit", "nazareth elite", "nof hagalil"] },
+    { "name": "Givatayim", "name_he": "גבעתיים", "region": "central", "district": "Tel Aviv", "aliases": [] },
+    { "name": "Hod HaSharon", "name_he": "הוד השרון", "region": "central", "district": "Central", "aliases": ["hod hasharon"] },
+    { "name": "Rosh HaAyin", "name_he": "ראש העין", "region": "central", "district": "Central", "aliases": ["rosh haayin"] },
+    { "name": "Kiryat Ata", "name_he": "קריית אתא", "region": "north", "district": "Haifa", "aliases": ["qiryat ata"] },
+    { "name": "Kiryat Gat", "name_he": "קריית גת", "region": "south", "district": "Southern", "aliases": ["qiryat gat"] },
+    { "name": "Kiryat Motzkin", "name_he": "קריית מוצקין", "region": "north", "district": "Haifa", "aliases": [] },
+    { "name": "Kiryat Yam", "name_he": "קריית ים", "region": "north", "district": "Haifa", "aliases": [] },
+    { "name": "Kiryat Bialik", "name_he": "קריית ביאליק", "region": "north", "district": "Haifa", "aliases": [] },
+    { "name": "Kiryat Ono", "name_he": "קריית אונו", "region": "central", "district": "Tel Aviv", "aliases": [] },
+    { "name": "Kiryat Shmona", "name_he": "קריית שמונה", "region": "north", "district": "Northern", "aliases": [] },
+    { "name": "Or Yehuda", "name_he": "אור יהודה", "region": "central", "district": "Tel Aviv", "aliases": [] },
+    { "name": "Yavne", "name_he": "יבנה", "region": "central", "district": "Central", "aliases": [] },
+    { "name": "Acre", "name_he": "עכו", "region": "north", "district": "Northern", "aliases": ["akko", "acco", "ako"] },
+    { "name": "Afula", "name_he": "עפולה", "region": "north", "district": "Northern", "aliases": [] },
+    { "name": "Eilat", "name_he": "אילת", "region": "south", "district": "Southern", "aliases": [] },
+    { "name": "Nahariya", "name_he": "נהריה", "region": "north", "district": "Northern", "aliases": [] },
+    { "name": "Karmiel", "name_he": "כרמיאל", "region": "north", "district": "Northern", "aliases": [] },
+    { "name": "Tiberias", "name_he": "טבריה", "region": "north", "district": "Northern", "aliases": [] },
+    { "name": "Safed", "name_he": "צפת", "region": "north", "district": "Northern", "aliases": ["tzfat", "zefat"] },
+    { "name": "Dimona", "name_he": "דימונה", "region": "south", "district": "Southern", "aliases": [] },
+    { "name": "Arad", "name_he": "ערד", "region": "south", "district": "Southern", "aliases": [] },
+    { "name": "Sderot", "name_he": "שדרות", "region": "south", "district": "Southern", "aliases": [] },
+    { "name": "Netivot", "name_he": "נתיבות", "region": "south", "district": "Southern", "aliases": [] },
+    { "name": "Ofakim", "name_he": "אופקים", "region": "south", "district": "Southern", "aliases": [] },
+    { "name": "Yokneam", "name_he": "יקנעם", "region": "north", "district": "Northern", "aliases": ["yoqneam", "yoqne'am"] },
+    { "name": "Caesarea", "name_he": "קיסריה", "region": "north", "district": "Haifa", "aliases": ["qesarya", "kesarya"] },
+    { "name": "Shoham", "name_he": "שוהם", "region": "central", "district": "Central", "aliases": [] },
+    { "name": "Migdal HaEmek", "name_he": "מגדל העמק", "region": "north", "district": "Northern", "aliases": ["migdal haemek"] },
+    { "name": "Zichron Yaakov", "name_he": "זכרון יעקב", "region": "north", "district": "Haifa", "aliases": ["zikhron ya'akov"] },
+    { "name": "Ma'ale Adumim", "name_he": "מעלה אדומים", "region": "jerusalem", "district": "Judea and Samaria", "aliases": ["maale adumim"] },
+    { "name": "Mevaseret Zion", "name_he": "מבשרת ציון", "region": "jerusalem", "district": "Jerusalem", "aliases": [] },
+    { "name": "Ramat HaSharon", "name_he": "רמת השרון", "region": "central", "district": "Tel Aviv", "aliases": ["ramat hasharon"] },
+    { "name": "Ness Ziona", "name_he": "נס ציונה", "region": "central", "district": "Central", "aliases": [] },
+    { "name": "Giv'at Shmuel", "name_he": "גבעת שמואל", "region": "central", "district": "Central", "aliases": ["givat shmuel"] },
+    { "name": "Rahat", "name_he": "רהט", "region": "south", "district": "Southern", "aliases": [] },
+    { "name": "Beit HaEmek", "name_he": "בית העמק", "region": "north", "district": "Northern", "aliases": ["beit haemek"] }
   ],
   "countryIndicators": {
     "IL": ["israel", ", il", ",il"],
     "US": [
-      "usa",
-      "united states",
-      ", us",
-      ",us",
-      "new york",
-      "san francisco",
-      "california",
-      "boston",
-      "seattle",
-      "austin",
-      "chicago",
-      "los angeles",
-      "denver",
-      "atlanta",
-      "miami",
-      "dallas",
-      "washington dc",
-      "philadelphia",
-      "phoenix",
-      "san diego",
-      "san jose"
+      "usa", "united states", ", us", ",us", "us -", "- us", "us remote", "remote us", "remote- us", "north america",
+      "new york", "san francisco", "california", "boston", "seattle",
+      "austin", "chicago", "los angeles", "denver", "atlanta", "miami",
+      "north carolina", "texas", "florida", "washington", "oregon",
+      "massachusetts", "new jersey", "bronx", "ann arbor", "burlington",
+      "bedminster", "minnesota", "columbus", "sunnyvale", "san diego",
+      "san jose", "phoenix", "philadelphia", "dallas", "washington dc", "illinois", "virginia", "maryland", "georgia", "michigan"
     ],
-    "GB": [
-      "uk",
-      "united kingdom",
-      ", gb",
-      "london",
-      "england",
-      "manchester",
-      "birmingham",
-      "edinburgh"
-    ],
-    "DE": ["germany", ", de", "berlin", "munich", "frankfurt", "hamburg"],
+    "GB": ["uk", "united kingdom", ", gb", "london", "england", "manchester", "birmingham", "edinburgh", "scotland", "dundee"],
+    "DE": ["germany", ", de", "berlin", "munich", "frankfurt", "hamburg", "stuttgart"],
     "NL": ["netherlands", ", nl", "amsterdam", "rotterdam", "eindhoven"],
-    "FR": ["france", ", fr", "paris", "lyon"],
-    "CA": ["canada", ", ca", "toronto", "vancouver", "montreal"],
-    "AU": ["australia", ", au", "sydney", "melbourne"],
+    "FR": ["france", ", fr", "paris", "lyon", "toulouse"],
+    "CA": ["canada", ", ca", "can-", "toronto", "vancouver", "montreal", "quebec", "ottawa"],
+    "AU": ["australia", ", au", "sydney", "melbourne", "brisbane"],
+    "NZ": ["new zealand", ", nz", "auckland", "wellington"],
     "SG": ["singapore", ", sg"],
-    "IN": [
-      "india",
-      ", in",
-      "bangalore",
-      "mumbai",
-      "delhi",
-      "hyderabad",
-      "pune",
-      "chennai"
-    ],
-    "PL": ["poland", ", pl", "warsaw", "krakow", "wroclaw"],
-    "UA": ["ukraine", ", ua", "kyiv", "lviv"],
+    "IN": ["india", ", in", "bangalore", "bengaluru", "mumbai", "delhi", "hyderabad", "pune", "chennai", "gurgaon", "noida"],
+    "PL": ["poland", ", pl", "warsaw", "krakow", "wroclaw", "gdansk"],
+    "UA": ["ukraine", ", ua", "kyiv", "lviv", "odessa"],
     "RO": ["romania", ", ro", "bucharest"],
-    "IE": ["ireland", ", ie", "dublin"]
+    "IE": ["ireland", ", ie", "dublin"],
+    "CN": ["china", ", cn", "beijing", "shanghai", "shenzhen", "guangzhou", "hangzhou"],
+    "JP": ["japan", ", jp", "tokyo", "osaka", "kyoto"],
+    "KR": ["korea", ", kr", "seoul", "south korea"],
+    "TW": ["taiwan", ", tw", "taipei"],
+    "HK": ["hong kong", ", hk"],
+    "ID": ["indonesia", ", id", "jakarta"],
+    "TH": ["thailand", ", th", "bangkok"],
+    "PH": ["philippines", ", ph", "manila", "makati"],
+    "VN": ["vietnam", ", vn", "ho chi minh", "hanoi"],
+    "MY": ["malaysia", ", my", "kuala lumpur"],
+    "BR": ["brazil", ", br", "sao paulo", "rio de janeiro", "florianopolis"],
+    "AR": ["argentina", ", ar", "buenos aires"],
+    "MX": ["mexico", ", mx", "mexico city"],
+    "CL": ["chile", ", cl", "santiago"],
+    "CO": ["colombia", ", co", "bogota", "bogotá", "medellin", "medellín"],
+    "CR": ["costa rica", ", cr", "san josé", "san jose"],
+    "PE": ["peru", ", pe", "lima", "san isidro"],
+    "BO": ["bolivia", ", bo", "cochabamba", "la paz"],
+    "ES": ["spain", ", es", "madrid", "barcelona"],
+    "IT": ["italy", ", it", "milan", "rome"],
+    "AT": ["austria", ", at", "vienna"],
+    "CH": ["switzerland", ", ch", "zurich", "geneva"],
+    "SE": ["sweden", ", se", "stockholm"],
+    "DK": ["denmark", ", dk", "copenhagen"],
+    "FI": ["finland", ", fi", "helsinki"],
+    "NO": ["norway", ", no", "oslo"],
+    "BE": ["belgium", ", be", "brussels"],
+    "CZ": ["czech", ", cz", "prague", "brno"],
+    "PT": ["portugal", ", pt", "lisbon"],
+    "GR": ["greece", ", gr", "athens"],
+    "HU": ["hungary", ", hu", "budapest"],
+    "BG": ["bulgaria", ", bg", "sofia"],
+    "CY": ["cyprus", ", cy", "limassol", "nicosia"],
+    "PY": ["paraguay", ", py", "asuncion"],
+    "NG": ["nigeria", ", ng", "lagos"],
+    "AE": ["uae", "emirates", ", ae", "dubai", "abu dhabi"],
+    "PS": ["palestine", ", ps", "ramallah", "west bank", "gaza"],
+    "PK": ["pakistan", ", pk", "lahore", "karachi", "islamabad"],
+    "ZA": ["south africa", ", za", "johannesburg", "cape town"],
+    "NORDICS": ["nordics", "nordic", "scandinavia"],
+    "EMEA": ["emea"],
+    "LATAM": ["latam"],
+    "APAC": ["apac", "asia pacific"],
+    "GLOBAL": ["global", "worldwide"]
   },
   "remoteIndicators": [
-    "remote",
-    "work from home",
-    "wfh",
-    "hybrid",
-    "anywhere",
-    "distributed",
-    "telecommute",
-    "home office"
+    "remote", "work from home", "wfh", "hybrid", "anywhere",
+    "distributed", "telecommute", "home office"
   ]
 }
