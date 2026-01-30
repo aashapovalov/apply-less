@@ -1,19 +1,25 @@
 interface FeatureCardProps {
-  icon: string;
   title: string;
   description: React.ReactNode;
-  gradient: string;
+  backgroundImage: string;
 }
 
-export function FeatureCard({ icon, title, description, gradient }: FeatureCardProps) {
+export function FeatureCard({ title, description, backgroundImage }: FeatureCardProps) {
   return (
-    <div className="bg-card relative overflow-hidden rounded-xl p-6 shadow-sm">
-      <div className="absolute top-0 bottom-0 left-0 w-1" style={{ background: gradient }} />
-      <div className="mb-4 flex items-center gap-3">
-        <span className="text-2xl">{icon}</span>
-        <h3 className="text-primary text-lg font-medium">{title}</h3>
+    <div className="group relative aspect-square overflow-hidden rounded-2xl border-2 border-border-light bg-white shadow-md transition-all duration-300 ease-out hover:shadow-xl hover:shadow-black/10">
+      {/* Background image layer - cropped 1px from top */}
+      <div
+        className="absolute -top-px right-0 bottom-0 left-0 bg-cover bg-center transition-all duration-500 ease-out group-hover:scale-110 group-hover:brightness-95"
+        style={{ backgroundImage: `url(${backgroundImage})` }}
+      />
+
+      {/* Content overlay */}
+      <div className="relative z-10 flex h-full flex-col justify-end p-6">
+        <div className="transform transition-transform duration-300 ease-out group-hover:-translate-y-1">
+          <h3 className="text-primary mb-2 text-xl font-semibold">{title}</h3>
+          <p className="text-secondary text-sm leading-relaxed">{description}</p>
+        </div>
       </div>
-      <p className="text-secondary text-sm leading-relaxed">{description}</p>
     </div>
   );
 }

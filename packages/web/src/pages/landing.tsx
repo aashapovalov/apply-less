@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 
+import { plate1, plate2, plate3 } from '@/assets';
 import { Button, FeatureCard } from '@/components/ui';
 
 export function Landing() {
@@ -31,7 +32,6 @@ export function Landing() {
         <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-3">
           {/* Card 1: Paste profile */}
           <FeatureCard
-            icon="📋"
             title="Paste profile"
             description={
               <>
@@ -40,12 +40,11 @@ export function Landing() {
                 No formatting required.
               </>
             }
-            gradient="linear-gradient(to bottom, #3B82F6, #06B6D4)"
+            backgroundImage={plate1}
           />
 
           {/* Card 2: Match jobs */}
           <FeatureCard
-            icon="🎯"
             title="Match jobs"
             description={
               <>
@@ -54,12 +53,11 @@ export function Landing() {
                 Fewer, higher-quality matches.
               </>
             }
-            gradient="linear-gradient(to bottom, #3B82F6, #14B8A6)"
+            backgroundImage={plate2}
           />
 
           {/* Card 3: Generate CV */}
           <FeatureCard
-            icon="📄"
             title="Generate CV"
             description={
               <>
@@ -68,7 +66,7 @@ export function Landing() {
                 No one-click spam.
               </>
             }
-            gradient="linear-gradient(to bottom, #FBBF24, #22C55E)"
+            backgroundImage={plate3}
           />
         </div>
       </section>
