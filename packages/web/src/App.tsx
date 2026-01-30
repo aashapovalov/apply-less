@@ -1,7 +1,16 @@
 import { Route, Routes } from 'react-router-dom';
 
 import { AuthLayout, MainLayout } from '@/layout';
-import { ForgotPassword, Landing, Login, Register, ResetPassword, VerifyEmail } from '@/pages';
+import {
+  ForgotPassword,
+  JobDetails,
+  Jobs,
+  Landing,
+  Login,
+  Register,
+  ResetPassword,
+  VerifyEmail,
+} from '@/pages';
 
 function App() {
   return (
@@ -9,6 +18,8 @@ function App() {
       {/* Public routes with main layout*/}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Landing />} />
+        <Route path="/jobs" element={<Jobs />} />
+        <Route path="/jobs/:id" element={<JobDetails />} />
       </Route>
 
       {/* Auth routes with auth layout*/}
