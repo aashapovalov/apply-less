@@ -1,13 +1,20 @@
 import { Route, Routes } from 'react-router-dom';
 
-import { MainLayout } from '@/layout/main-layout.tsx';
-import { Landing } from '@/pages/landing.tsx';
+import { AuthLayout, MainLayout } from '@/layout';
+import { Landing, Login, Register } from '@/pages';
 
 function App() {
   return (
     <Routes>
+      {/* Public routes with main layout*/}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Landing />} />
+      </Route>
+
+      {/* Auth routes with auth layout*/}
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
       </Route>
     </Routes>
   );
