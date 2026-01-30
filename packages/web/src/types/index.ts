@@ -41,33 +41,30 @@ export interface ResetPasswordForm {
 }
 
 export interface Job {
-  id: number;
+  job_id: number;
   title: string;
-  company: string;
+  company_name: string;
   location: string | null;
+  tags: string[];
+  url: string;
+  posted_date: string;
+}
+
+export interface JobDetail extends Job {
   description: string;
   requirements: string | null;
-  salary: string | null;
-  jobType: string | null;
-  experienceLevel: string | null;
-  skills: string[];
-  postedAt: string;
-  sourceUrl: string;
+  department: string | null;
 }
 
 export interface JobResponse {
   jobs: Job[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+  total: number;
+  has_more: boolean;
 }
 
 export interface JobQueryParams {
-  page?: number;
   limit?: number;
+  offset?: number;
   search?: string;
   location?: string;
   company?: string;
