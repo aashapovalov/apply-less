@@ -1,21 +1,10 @@
 import { Link } from 'react-router-dom';
 
-import { gridBg } from '@/assets';
 import { Button, FeatureCard } from '@/components/ui';
 
 export function Landing() {
   return (
     <div className="relative">
-      {/* Background grid overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.03] invert"
-        style={{
-          backgroundImage: `url(${gridBg})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      />
-
       {/* Hero Section */}
       <section className="relative px-4 pt-24 pb-32">
         <div className="mx-auto max-w-3xl text-center">
