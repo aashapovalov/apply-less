@@ -9,13 +9,13 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, className }: JobCardProps) {
-  const timeAgo = getTimeAgo(job.postedAt);
+  const timeAgo = getTimeAgo(job.posted_date);
 
   return (
     <Link
-      to={`/jobs/${job.id}`}
+      to={`/jobs/${job.job_id}`}
       className={cn(
-        'bg-card block rounded-xl p-6 shadow-sm transition-all hover:translate-y-0 hover:shadow-md',
+        'bg-card block rounded-xl p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md',
         className
       )}
     >
@@ -23,25 +23,25 @@ export function JobCard({ job, className }: JobCardProps) {
         <div className="min-w-0 flex-1">
           <h3 className="text-primary truncate text-lg font-medium">{job.title}</h3>
           <p className="text-secondary mt-1 text-sm">
-            {job.company}
+            {job.company_name}
             {job.location && <span className="text-muted"> • {job.location}</span>}
             <span className="text-muted"> • {timeAgo}</span>
           </p>
         </div>
       </div>
 
-      {job.skills.length > 0 && (
+      {job.tags.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {job.skills.slice(0, 5).map((skill) => (
+          {job.tags.slice(0, 5).map((tag) => (
             <span
-              key={skill}
+              key={tag}
               className="bg-background text-secondary rounded-md px-2.5 py-1 text-xs font-medium"
             >
-              {skill}
+              {tag}
             </span>
           ))}
-          {job.skills.length > 5 && (
-            <span className="text-muted px-2.5 py-1 text-xs">+{job.skills.length - 5}</span>
+          {job.tags.length > 5 && (
+            <span className="text-muted px-2.5 py-1 text-xs">+{job.tags.length - 5} more</span>
           )}
         </div>
       )}
