@@ -139,6 +139,7 @@ export interface Job {
   location?: string;
   country?: string;
   region?: string;
+  city?: string;
   normalized_location?: string;
   department?: string;
   employment_type?: string;
