@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { Alert, Button, Input, PasswordStrength } from '@/components/ui';
+import { PasswordStrength } from '@/components/auth';
+import { Alert, Button, Input } from '@/components/ui';
 import { useRegisterMutation } from '@/services/auth.ts';
 import type { RegisterForm } from '@/types';
 import { getErrorMessage } from '@/utils';
