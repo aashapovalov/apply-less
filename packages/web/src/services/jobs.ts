@@ -7,7 +7,12 @@ export const jobsApi = api.injectEndpoints({
     getJobs: builder.query<JobResponse, JobQueryParams>({
       query: (params) => ({
         url: '/jobs',
-        params,
+        params: {
+          limit: params.limit,
+          offset: params.offset,
+          location: params.location,
+          company: params.company,
+        },
       }),
       providesTags: ['Jobs'],
     }),
