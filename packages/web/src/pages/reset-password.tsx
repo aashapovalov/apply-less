@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
+import { Alert, Button, Input, PasswordStrength } from '@/components/ui';
 import { useResetPasswordMutation } from '@/services/auth.ts';
-import type { ResetPasswordForm } from '@/types';
+import type { RegisterForm, ResetPasswordForm } from '@/types';
 import { getErrorMessage } from '@/utils';
 
 export function ResetPassword() {
@@ -14,22 +15,17 @@ export function ResetPassword() {
   const [error, setError] = useState<string | null>(null);
 
   const {
+    control,
     register,
     handleSubmit,
-    watch,
     formState: { errors },
-  } = useForm<ResetPasswordForm>();
+  } = useForm<RegisterForm>();
 
-  const password = watch('password', '');
-
-  // Password validation rules
-  const passwordRules = {
-    minLength: password.length >= 8,
-    hasUppercase: /[A-Z]/.test(password),
-    hasLowercase: /[a-z]/.test(password),
-    hasNumber: /\d/.test(password),
-    hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-  };
+  const password = useWatch({
+    control,
+    name: 'password',
+    defaultValue: '',
+  });
 
   const onSubmit = async (data: ResetPasswordForm) => {
     if (!token) return;
@@ -65,22 +61,16 @@ export function ResetPassword() {
       <p className="text-secondary mt-2 text-center text-sm">Enter your new password below.</p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
-        {error && (
-          <div className="border-error-border bg-error-bg text-error-text rounded-lg border p-3 text-sm">
-            {error}
-          </div>
-        )}
+        {error && <Alert>{error}</Alert>}
 
         <div>
-          <label htmlFor="password" className="text-primary mb-1.5 block text-sm font-medium">
-            New Password
-          </label>
-          <input
+          <Input
             id="password"
             type="password"
+            label="New Password"
             autoComplete="new-password"
-            className="border-border text-primary placeholder:text-muted focus:ring-accent w-full rounded-lg border px-4 py-2.5 focus:border-transparent focus:ring-2 focus:outline-none"
             placeholder="••••••••"
+            error={errors.password?.message}
             {...register('password', {
               required: 'Password is required',
               minLength: { value: 8, message: 'Minimum 8 characters' },
@@ -92,56 +82,25 @@ export function ResetPassword() {
               },
             })}
           />
-
-          <div className="mt-2 space-y-1 text-sm">
-            <p className={passwordRules.minLength ? 'text-success-text' : 'text-muted'}>
-              {passwordRules.minLength ? '✓' : '○'} 8+ characters
-            </p>
-            <p className={passwordRules.hasUppercase ? 'text-success-text' : 'text-muted'}>
-              {passwordRules.hasUppercase ? '✓' : '○'} 1 uppercase letter
-            </p>
-            <p className={passwordRules.hasLowercase ? 'text-success-text' : 'text-muted'}>
-              {passwordRules.hasLowercase ? '✓' : '○'} 1 uppercase letter
-            </p>
-            <p className={passwordRules.hasNumber ? 'text-success-text' : 'text-muted'}>
-              {passwordRules.hasNumber ? '✓' : '○'} 1 number
-            </p>
-            <p className={passwordRules.hasSpecial ? 'text-success-text' : 'text-muted'}>
-              {passwordRules.hasSpecial ? '✓' : '○'} 1 special character
-            </p>
-          </div>
+          <PasswordStrength password={password} />
         </div>
 
-        <div>
-          <label
-            htmlFor="confirmPassword"
-            className="text-primary mb-1.5 block text-sm font-medium"
-          >
-            Confirm Password
-          </label>
-          <input
-            id="confirmPassword"
-            type="password"
-            autoComplete="new-password"
-            className="border-border text-primary placeholder:text-muted focus:ring-accent w-full rounded-lg border px-4 py-2.5 focus:border-transparent focus:ring-2 focus:outline-none"
-            placeholder="••••••••"
-            {...register('confirmPassword', {
-              required: 'Please confirm your password',
-              validate: (value) => value === password || 'Passwords do not match',
-            })}
-          />
-          {errors.confirmPassword && (
-            <p className="text-error-text mt-1 text-sm">{errors.confirmPassword.message}</p>
-          )}
-        </div>
+        <Input
+          id="confirmPassword"
+          type="password"
+          label="Confirm Password"
+          autoComplete="new-password"
+          placeholder="••••••••"
+          error={errors.confirmPassword?.message}
+          {...register('confirmPassword', {
+            required: 'Please confirm your password',
+            validate: (value) => value === password || 'Passwords do not match',
+          })}
+        />
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="bg-accent hover:bg-accent-hover w-full rounded-lg py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isLoading ? 'Resetting...' : 'Reset Password'}
-        </button>
+        <Button type="submit" isLoading={isLoading}>
+          Reset Password
+        </Button>
       </form>
     </div>
   );
