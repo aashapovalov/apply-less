@@ -1,7 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
 
 import { AuthLayout, MainLayout } from '@/layout';
-import { Landing, Login, Register } from '@/pages';
+import { ForgotPassword, Landing, Login, Register, ResetPassword, VerifyEmail } from '@/pages';
 
 function App() {
   return (
@@ -15,6 +15,9 @@ function App() {
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
       </Route>
     </Routes>
   );
