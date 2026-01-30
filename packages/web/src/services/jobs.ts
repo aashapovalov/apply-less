@@ -1,10 +1,10 @@
-import type { Job, JobQueryParams, JobResponse } from '@/types';
+import type { JobDetail, JobsQueryParams, JobsResponse } from '@/types';
 
-import { api } from './api.ts';
+import { api } from './api';
 
 export const jobsApi = api.injectEndpoints({
   endpoints: (builder) => ({
-    getJobs: builder.query<JobResponse, JobQueryParams>({
+    getJobs: builder.query<JobsResponse, JobsQueryParams>({
       query: (params) => ({
         url: '/jobs',
         params: {
@@ -17,8 +17,8 @@ export const jobsApi = api.injectEndpoints({
       providesTags: ['Jobs'],
     }),
 
-    getJob: builder.query<{ job: Job }, number>({
-      query: (id) => `jobs/${id}`,
+    getJob: builder.query<JobDetail, number>({
+      query: (id) => `/jobs/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Jobs', id }],
     }),
   }),

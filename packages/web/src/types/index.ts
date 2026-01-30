@@ -56,13 +56,13 @@ export interface JobDetail extends Job {
   department: string | null;
 }
 
-export interface JobResponse {
+export interface JobsResponse {
   jobs: Job[];
   total: number;
   has_more: boolean;
 }
 
-export interface JobQueryParams {
+export interface JobsQueryParams {
   limit?: number;
   offset?: number;
   search?: string;
