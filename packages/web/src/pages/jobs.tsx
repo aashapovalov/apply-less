@@ -1,18 +1,26 @@
 import { useSearchParams } from 'react-router-dom';
 
-import { JobCard, JobsSkeleton, Pagination, SearchInput } from '@/components/jobs';
-import { useGetJobsQuery } from '@/services/jobs.ts';
+import { JobsSkeleton } from '@/components/jobs';
+import { JobCard, Pagination, SearchInput } from '@/components/jobs';
+import { useGetJobsQuery } from '@/services/jobs';
+
+const LIMIT = 20;
 
 export function Jobs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
 
+  const offset = (page - 1) * LIMIT;
+
   const { data, isLoading, isError } = useGetJobsQuery({
-    page,
-    limit: 20,
-    search: search || undefined,
+    limit: LIMIT,
+    offset,
+    location: search || undefined,
+    company: search || undefined,
   });
+
+  const totalPages = data ? Math.ceil(data.total / LIMIT) : 0;
 
   const handlePageChange = (newPage: number) => {
     setSearchParams((prev) => {
@@ -40,8 +48,8 @@ export function Jobs() {
       <div className="mb-8">
         <h1 className="text-primary text-3xl font-semibold">Browse Jobs</h1>
         <p className="text-secondary mt-2">
-          {data?.pagination.total
-            ? `${data.pagination.total.toLocaleString()} jobs available`
+          {data?.total
+            ? `${data.total.toLocaleString()} jobs available`
             : 'Find your next opportunity'}
         </p>
       </div>
@@ -50,7 +58,7 @@ export function Jobs() {
       <SearchInput
         value={search}
         onChange={handleSearchChange}
-        placeholder="Search by title, company, or skills..."
+        placeholder="Search by location or company..."
         className="mb-8"
       />
 
@@ -76,7 +84,7 @@ export function Jobs() {
           ) : (
             <div className="space-y-4">
               {data.jobs.map((job) => (
-                <JobCard key={job.id} job={job} />
+                <JobCard key={job.job_id} job={job} />
               ))}
             </div>
           )}
@@ -84,7 +92,7 @@ export function Jobs() {
           {/* Pagination */}
           <Pagination
             page={page}
-            totalPages={data.pagination.totalPages}
+            totalPages={totalPages}
             onPageChange={handlePageChange}
             className="mt-8"
           />
