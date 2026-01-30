@@ -6,7 +6,7 @@ interface FeatureCardProps {
 
 export function FeatureCard({ title, description, backgroundImage }: FeatureCardProps) {
   return (
-    <div className="group relative aspect-square overflow-hidden rounded-2xl border-2 border-border-light bg-white shadow-md transition-all duration-300 ease-out hover:shadow-xl hover:shadow-black/10">
+    <div className="group border-border-light relative aspect-square overflow-hidden rounded-2xl border-2 bg-white shadow-md transition-all duration-300 ease-out hover:shadow-xl hover:shadow-black/10">
       {/* Background image layer - cropped 1px from top */}
       <div
         className="absolute -top-px right-0 bottom-0 left-0 bg-cover bg-center transition-all duration-500 ease-out group-hover:scale-110 group-hover:brightness-95"
