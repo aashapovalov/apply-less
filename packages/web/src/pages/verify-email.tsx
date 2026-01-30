@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 
+import { Button } from '@/components/ui';
 import { useResendVerificationMutation } from '@/services/auth.ts';
 
 export function VerifyEmail() {
@@ -26,13 +27,15 @@ export function VerifyEmail() {
 
       <div className="mt-8">
         <p className="text-muted text-sm">Didn't receive it?</p>
-        <button
+        <Button
+          variant="secondary"
           onClick={handleResend}
-          disabled={isLoading || isSuccess}
-          className="border-border text-primary hover:bg-background mt-2 rounded-lg border px-6 py-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          isLoading={isLoading}
+          disabled={isSuccess}
+          className="mt-2 w-auto px-6"
         >
-          {isLoading ? 'Sending...' : isSuccess ? 'Email Sent!' : 'Resend Email'}
-        </button>
+          {isSuccess ? 'Email Sent!' : 'Resend Email'}
+        </Button>
       </div>
 
       <Link to="/login" className="text-accent mt-6 inline-block hover:underline">
