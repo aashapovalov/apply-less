@@ -1,15 +1,18 @@
 // JOBS AND MATCHES ROUTES TYPES
 export interface Job {
-    jobId: number;
+    job_id: number;
     title: string;
     company_name: string;
     location: string | null;
+    region: string | null;
+    city: string | null;
     tags: string[];
     url: string;
     posted_date: string | null;
 }
 
 export interface JobDetail extends Job {
+    country: string | null;
     description: string | null;
     requirements: string | null;
     department: string | null;
@@ -23,9 +26,13 @@ export interface JobListParams {
     limit?: number;
     offset?: number;
     location?: string;
+    region?: string;
+    city?: string;
     company?: string;
     tags?: string[];
+    search?: string;
     sort?: "posted_date" | "company" | "title";
+    countryFilter?: string; // Default: "IL"
 }
 
 export interface MatchParams {
@@ -33,6 +40,7 @@ export interface MatchParams {
     limit?: number;
     offset?: number;
     threshold?: number;
+    countryFilter?: string; // Default: "IL"
 }
 
 export interface MatchRequest {
@@ -46,6 +54,16 @@ export interface MatchResponse {
     matches: JobMatch[];
     total: number;
     has_more: boolean;
+}
+
+export interface RegionCount {
+    region: string;
+    count: number;
+}
+
+export interface CityCount {
+    city: string;
+    count: number;
 }
 
 // AUTH ROUTES TYPES
