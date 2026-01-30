@@ -13,8 +13,8 @@ interface AlertProps {
 export function Alert({ variant = 'error', children, className }: AlertProps) {
   const variants: Record<AlertVariant, string> = {
     error: 'bg-error-bg border-error-border text-error-text',
-    success: 'bg-green-50 border-green-200 text-success-text',
-    info: 'bg-blue-50 border-blue-200 text-accent',
+    success: 'bg-success-bg border-success-border text-success-text',
+    info: 'bg-info-bg border-info-border text-info-text',
   };
 
   return (
