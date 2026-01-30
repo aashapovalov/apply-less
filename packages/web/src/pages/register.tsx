@@ -42,7 +42,6 @@ export function Register() {
   return (
     <div className="bg-card rounded-xl p-8 shadow-sm">
       <h1 className="text-primary text-center text-2xl font-semibold">Create Account</h1>
-
       <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
         {/* Error message */}
         {error && (
@@ -149,7 +148,6 @@ export function Register() {
           {isLoading ? 'Creating account...' : 'Register'}
         </button>
       </form>
-
       {/* Login link */}
       <p className="text-secondary mt-6 text-center text-sm">
         Already have an account?{' '}
