@@ -1,9 +1,10 @@
 import israeliCitiesData from "../data/israeli-cities.json" with { type: "json" };
 
 export interface NormalizedLocation {
-  country: string | null;
-  region: string | null;
-  normalized: string | null;
+  country: string | undefined;
+  region: string | undefined;
+  city: string | undefined; // Added
+  normalized: string | undefined;
   isIsraeli: boolean;
 }
 
@@ -16,21 +17,21 @@ interface CityData {
 }
 
 // Build lookup map for faster search
-const cityLookup = new Map<string, { region: string; normalized: string }>();
+const cityLookup = new Map<string, { region: string; city: string }>();
 
-for (const city of israeliCitiesData.cities as CityData[]) {
-  const normalized = city.name;
-  const region = city.region;
+for (const cityData of israeliCitiesData.cities as CityData[]) {
+  const city = cityData.name;
+  const region = cityData.region;
 
   // Add main name
-  cityLookup.set(city.name.toLowerCase(), { region, normalized });
+  cityLookup.set(cityData.name.toLowerCase(), { region, city });
 
   // Add Hebrew name
-  cityLookup.set(city.name_he, { region, normalized });
+  cityLookup.set(cityData.name_he, { region, city });
 
   // Add all aliases
-  for (const alias of city.aliases) {
-    cityLookup.set(alias.toLowerCase(), { region, normalized });
+  for (const alias of cityData.aliases) {
+    cityLookup.set(alias.toLowerCase(), { region, city });
   }
 }
 
@@ -44,7 +45,13 @@ export function normalizeLocation(
   raw: string | null | undefined,
 ): NormalizedLocation {
   if (!raw || raw.trim() === "") {
-    return { country: null, region: null, normalized: null, isIsraeli: false };
+    return {
+      country: undefined,
+      region: undefined,
+      city: undefined,
+      normalized: undefined,
+      isIsraeli: false,
+    };
   }
 
   const original = raw.trim();
@@ -53,13 +60,14 @@ export function normalizeLocation(
   // Check for remote/hybrid
   for (const indicator of remoteIndicators) {
     if (lower.includes(indicator)) {
-      // Check if it's Israeli remote
+      // Check if it's Israeli remote with city mentioned
       for (const [cityKey, data] of cityLookup.entries()) {
         if (lower.includes(cityKey)) {
           return {
             country: "IL",
             region: "remote",
-            normalized: "Remote",
+            city: data.city,
+            normalized: `Remote (${data.city})`,
             isIsraeli: true,
           };
         }
@@ -69,6 +77,7 @@ export function normalizeLocation(
         return {
           country: "IL",
           region: "remote",
+          city: undefined,
           normalized: "Remote",
           isIsraeli: true,
         };
@@ -80,6 +89,7 @@ export function normalizeLocation(
           return {
             country: code,
             region: "remote",
+            city: undefined,
             normalized: original,
             isIsraeli: false,
           };
@@ -90,6 +100,7 @@ export function normalizeLocation(
       return {
         country: "IL",
         region: "remote",
+        city: undefined,
         normalized: "Remote",
         isIsraeli: true,
       };
@@ -102,7 +113,8 @@ export function normalizeLocation(
       return {
         country: "IL",
         region: data.region,
-        normalized: data.normalized,
+        city: data.city,
+        normalized: data.city,
         isIsraeli: true,
       };
     }
@@ -113,6 +125,7 @@ export function normalizeLocation(
     return {
       country: "IL",
       region: "other",
+      city: undefined,
       normalized: original,
       isIsraeli: true,
     };
@@ -123,7 +136,8 @@ export function normalizeLocation(
     if (code !== "IL" && indicators.some((ind) => lower.includes(ind))) {
       return {
         country: code,
-        region: null,
+        region: undefined,
+        city: undefined,
         normalized: original,
         isIsraeli: false,
       };
@@ -133,7 +147,8 @@ export function normalizeLocation(
   // Unknown
   return {
     country: "unknown",
-    region: null,
+    region: undefined,
+    city: undefined,
     normalized: original,
     isIsraeli: false,
   };
