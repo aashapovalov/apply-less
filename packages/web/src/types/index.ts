@@ -45,12 +45,15 @@ export interface Job {
   title: string;
   company_name: string;
   location: string | null;
+  region: string | null;
+  city: string | null;
   tags: string[];
   url: string;
   posted_date: string;
 }
 
 export interface JobDetail extends Job {
+  country: string | null;
   description: string;
   requirements: string | null;
   department: string | null;
@@ -67,5 +70,25 @@ export interface JobsQueryParams {
   offset?: number;
   search?: string;
   location?: string;
+  region?: string;
+  city?: string;
   company?: string;
+}
+
+export interface RegionCount {
+  region: string;
+  count: number;
+}
+
+export interface RegionsResponse {
+  regions: RegionCount[];
+}
+
+export interface CityCount {
+  city: string;
+  count: number;
+}
+
+export interface CitiesResponse {
+  cities: CityCount[];
 }
