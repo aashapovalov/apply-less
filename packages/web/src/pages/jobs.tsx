@@ -2,23 +2,35 @@ import { useSearchParams } from 'react-router-dom';
 
 import { JobsSkeleton } from '@/components/jobs';
 import { JobCard, Pagination, SearchInput } from '@/components/jobs';
-import { useGetJobsQuery } from '@/services/jobs';
+import { useGetJobsQuery, useGetRegionsQuery } from '@/services/jobs';
 
 const LIMIT = 20;
+
+const REGION_LABELS: Record<string, string> = {
+  central: 'Central',
+  north: 'North',
+  south: 'South',
+  jerusalem: 'Jerusalem',
+  remote: 'Remote',
+  other: 'Other',
+};
 
 export function Jobs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get('page')) || 1;
   const search = searchParams.get('search') || '';
+  const region = searchParams.get('region') || '';
 
   const offset = (page - 1) * LIMIT;
 
   const { data, isLoading, isError } = useGetJobsQuery({
     limit: LIMIT,
     offset,
-    location: search || undefined,
-    company: search || undefined,
+    search: search || undefined,
+    region: region || undefined,
   });
+
+  const { data: regionsData } = useGetRegionsQuery();
 
   const totalPages = data ? Math.ceil(data.total / LIMIT) : 0;
 
@@ -42,6 +54,18 @@ export function Jobs() {
     });
   };
 
+  const handleRegionChange = (value: string) => {
+    setSearchParams((prev) => {
+      if (value) {
+        prev.set('region', value);
+      } else {
+        prev.delete('region');
+      }
+      prev.set('page', '1');
+      return prev;
+    });
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       {/* Header */}
@@ -49,18 +73,72 @@ export function Jobs() {
         <h1 className="text-primary text-3xl font-semibold">Browse Jobs</h1>
         <p className="text-secondary mt-2">
           {data?.total
-            ? `${data.total.toLocaleString()} jobs available`
+            ? `${data.total.toLocaleString()} jobs in Israel`
             : 'Find your next opportunity'}
         </p>
       </div>
 
-      {/* Search */}
-      <SearchInput
-        value={search}
-        onChange={handleSearchChange}
-        placeholder="Search by location or company..."
-        className="mb-8"
-      />
+      {/* Filters */}
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row">
+        {/* Search */}
+        <SearchInput
+          value={search}
+          onChange={handleSearchChange}
+          placeholder="Search jobs or companies..."
+          className="flex-1"
+        />
+
+        {/* Region filter */}
+        <select
+          value={region}
+          onChange={(e) => handleRegionChange(e.target.value)}
+          className="bg-card border-border text-primary focus:border-accent h-12 rounded-xl border px-4 text-sm outline-none"
+        >
+          <option value="">All Regions</option>
+          {regionsData?.regions.map((r) => (
+            <option key={r.region} value={r.region}>
+              {REGION_LABELS[r.region] || r.region} ({r.count})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Active filters */}
+      {(search || region) && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {search && (
+            <span className="bg-accent/10 text-accent inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm">
+              Search: {search}
+              <button
+                onClick={() => handleSearchChange('')}
+                className="hover:bg-accent/20 ml-1 rounded-full p-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          {region && (
+            <span className="bg-accent/10 text-accent inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm">
+              Region: {REGION_LABELS[region] || region}
+              <button
+                onClick={() => handleRegionChange('')}
+                className="hover:bg-accent/20 ml-1 rounded-full p-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          <button
+            onClick={() => {
+              handleSearchChange('');
+              handleRegionChange('');
+            }}
+            className="text-secondary hover:text-primary text-sm underline"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
 
       {/* Loading state */}
       {isLoading && <JobsSkeleton />}
@@ -79,7 +157,7 @@ export function Jobs() {
             <div className="py-12 text-center">
               <span className="text-5xl">🔍</span>
               <h2 className="text-primary mt-4 text-xl font-medium">No jobs found</h2>
-              <p className="text-secondary mt-2">Try adjusting your search terms</p>
+              <p className="text-secondary mt-2">Try adjusting your filters</p>
             </div>
           ) : (
             <div className="space-y-4">
