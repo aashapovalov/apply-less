@@ -1,10 +1,13 @@
 import { Link, Outlet } from 'react-router-dom';
 
 import { logoTitleSvg } from '@/assets';
+import { GridBackground } from '@/components/ui';
 
 export function AuthLayout() {
   return (
     <div className="bg-background flex min-h-screen flex-col">
+      <GridBackground />
+
       {/* Header */}
       <header className="bg-card border-border border-b">
         <div className="mx-auto flex h-16 max-w-6xl items-center px-4">
