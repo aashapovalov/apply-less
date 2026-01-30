@@ -1,5 +1,6 @@
-import { Landing } from '@/pages/landing.tsx';
-import { Login } from '@/pages/login.tsx';
-import { Register } from '@/pages/register.tsx';
+import { ForgotPassword } from './forgot-password.tsx';
+import { Landing } from './landing.tsx';
+import { Login } from './login.tsx';
+import { Register } from './register.tsx';
 
-export { Login, Landing, Register };
+export { Login, Landing, Register, ForgotPassword };
