@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 
+import { Alert, Button, Input } from '@/components/ui';
 import { useForgotPasswordMutation } from '@/services/auth.ts';
 import type { ForgotPasswordForm } from '@/types';
 import { getErrorMessage } from '@/utils';
@@ -50,41 +51,29 @@ export function ForgotPassword() {
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
-        {error && (
-          <div className="bg-error-bg border-error-border text-error-tex rounded-lg border p-3 text-sm">
-            {error}
-          </div>
-        )}
+        {error && <Alert>{error}</Alert>}
 
-        <div>
-          <label htmlFor="email" className="text-primary mb-1.5 block text-sm font-medium">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            className="border-border text-primary placeholder:text-muted focus:ring-accent w-full rounded-lg border px-4 py-2.5 focus:border-transparent focus:ring-2 focus:outline-none"
-            placeholder="your@example.email"
-            {...register('email', {
-              required: 'Email is required',
-              pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: 'Invalid email address',
-              },
-            })}
-          />
-          {errors.email && <p className="text-error-text mt-1 text-sm">{errors.email.message}</p>}
-        </div>
+        <Input
+          id="email"
+          type="email"
+          label="Email"
+          autoComplete="email"
+          placeholder="you@example.com"
+          error={errors.email?.message}
+          {...register('email', {
+            required: 'Email is required',
+            pattern: {
+              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+              message: 'Invalid email address',
+            },
+          })}
+        />
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="bg-accent hover:bg-accent-hover w-full rounded-lg py-2.5 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isLoading ? 'Sending...' : 'Send Reset Link'}
-        </button>
+        <Button type="submit" isLoading={isLoading}>
+          Send Reset Link
+        </Button>
       </form>
+
       <p className="text-secondary mt-6 text-center text-sm">
         Remember your password?{' '}
         <Link to="/login" className="text-accent hover:underline">
