@@ -7,18 +7,17 @@ import { getTimeAgo } from '@/utils';
 
 export function JobDetails() {
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading, isError } = useGetJobQuery(Number(id));
+  const { data: job, isLoading, isError } = useGetJobQuery(Number(id));
 
   if (isLoading) {
     return <JobSkeleton />;
   }
 
-  if (isError || !data) {
+  if (isError || !job) {
     return <JobFetchError />;
   }
 
-  const { job } = data;
-  const timeAgo = getTimeAgo(job.postedAt);
+  const timeAgo = getTimeAgo(job.posted_date);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -35,7 +34,7 @@ export function JobDetails() {
         <h1 className="text-primary text-3xl font-semibold">{job.title}</h1>
 
         <div className="text-secondary mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-          <span className="font-medium">{job.company}</span>
+          <span className="font-medium">{job.company_name}</span>
           {job.location && (
             <>
               <span className="text-muted">•</span>
@@ -46,44 +45,34 @@ export function JobDetails() {
           <span>📅 {timeAgo}</span>
         </div>
 
-        {/* Meta info */}
-        <div className="mt-4 flex flex-wrap gap-3">
-          {job.jobType && (
+        {/* Department */}
+        {job.department && (
+          <div className="mt-4">
             <span className="bg-background text-secondary rounded-lg px-3 py-1 text-sm">
-              {job.jobType}
+              {job.department}
             </span>
-          )}
-          {job.experienceLevel && (
-            <span className="bg-background text-secondary rounded-lg px-3 py-1 text-sm">
-              {job.experienceLevel}
-            </span>
-          )}
-          {job.salary && (
-            <span className="bg-background text-secondary rounded-lg px-3 py-1 text-sm">
-              💰 {job.salary}
-            </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Action buttons */}
         <div className="mt-6 flex flex-wrap gap-3">
-          <a href={job.sourceUrl} target="_blank" rel="noopener noreferrer">
+          <a href={job.url} target="_blank" rel="noopener noreferrer">
             <Button className="w-auto px-6">Apply on Site →</Button>
           </a>
         </div>
       </div>
 
-      {/* Skills */}
-      {job.skills.length > 0 && (
+      {/* Skills/Tags */}
+      {job.tags.length > 0 && (
         <div className="bg-card mt-6 rounded-xl p-8 shadow-sm">
           <h2 className="text-primary text-lg font-medium">Skills</h2>
           <div className="mt-4 flex flex-wrap gap-2">
-            {job.skills.map((skill) => (
+            {job.tags.map((tag) => (
               <span
-                key={skill}
+                key={tag}
                 className="bg-background text-secondary rounded-lg px-3 py-1.5 text-sm font-medium"
               >
-                {skill}
+                {tag}
               </span>
             ))}
           </div>
@@ -91,12 +80,14 @@ export function JobDetails() {
       )}
 
       {/* Description */}
-      <div className="bg-card mt-8 rounded-xl p-8 shadow-sm">
-        <h2 className="text-primary text-lg font-medium">About the Role</h2>
-        <div className="text-secondary loading-relaxed mt-4 whitespace-pre-wrap">
-          {job.description}
+      {job.description && (
+        <div className="bg-card mt-6 rounded-xl p-8 shadow-sm">
+          <h2 className="text-primary text-lg font-medium">About the Role</h2>
+          <div className="text-secondary mt-4 leading-relaxed whitespace-pre-wrap">
+            {job.description}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Requirements */}
       {job.requirements && (
