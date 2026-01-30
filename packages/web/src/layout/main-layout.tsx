@@ -1,12 +1,15 @@
 import { Link, Outlet } from 'react-router-dom';
 
 import { logoTitleSvg } from '@/assets';
+import { AnimatedGrid } from '@/components/ui';
 
 export function MainLayout() {
   return (
     <div className="bg-background min-h-screen">
+      <AnimatedGrid />
+
       {/* Header */}
-      <header className="bg-card border-border border-b">
+      <header className="bg-card border-border relative z-20 border-b">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           {/* Logo */}
           <Link to="/">
@@ -26,7 +29,7 @@ export function MainLayout() {
       </header>
 
       {/* Page content */}
-      <main>
+      <main className="relative z-10">
         <Outlet />
       </main>
     </div>
