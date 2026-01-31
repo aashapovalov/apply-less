@@ -10,7 +10,7 @@ import {
   Register,
   ResetPassword,
   VerifyEmail,
-} from '@/pages';
+} from '@/pages/general';
 
 function App() {
   return (

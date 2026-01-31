@@ -9,7 +9,7 @@ import {
   RegionFilter,
   RoleInput,
 } from '@/components/jobs';
-import { useGetJobsQuery, useGetRegionsQuery } from '@/services/jobs';
+import { useGetJobsQuery, useGetRegionsQuery } from '@/services/jobs.ts';
 
 const LIMIT = 20;
 
