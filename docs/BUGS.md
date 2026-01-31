@@ -10,6 +10,39 @@
 
 ## Open Issues
 
+### BUG-010: Missing Error Boundary
+**Status:** 🟡 Medium  
+**Component:** Frontend  
+
+**Current behavior:**  
+When a React component crashes, the entire app goes blank with no feedback.
+
+**Expected behavior:**  
+Show a friendly error message with option to reload or go home.
+
+**Proposed fix:**
+1. Create `ErrorBoundary` component using React error boundary pattern
+2. Wrap app routes in error boundary
+3. Show user-friendly error page with "Go Home" / "Reload" buttons
+
+---
+
+### BUG-011: Missing 404 Page
+**Status:** 🟡 Medium  
+**Component:** Frontend  
+
+**Current behavior:**  
+Unmatched routes show blank screen with console error.
+
+**Expected behavior:**  
+Show a proper 404 page with navigation back to home.
+
+**Proposed fix:**
+1. Create `NotFound` page component
+2. Add catch-all route `<Route path="*" element={<NotFound />} />`
+
+---
+
 ### BUG-002: Job cards missing description preview
 **Status:** 🟢 Low  
 **Component:** Backend  
@@ -56,24 +89,11 @@ Some entries are not actual job postings (generic career pages).
 
 ## Pages Not Yet Built
 
-### Profile Page
-**Status:** 🔲 Not started  
-**Page:** `/profile`
-
-Features needed:
-- Display current profile text
-- Edit/save profile
-- Profile completeness score
-- Suggested improvements
-
----
-
 ### Match Results Page
 **Status:** 🔲 Not started  
-**Page:** `/match`
+**Page:** `/matches`
 
 Features needed:
-- Input/paste profile text
 - Display matched jobs ranked by similarity
 - Show match score for each job
 - Save to favorites
@@ -93,6 +113,36 @@ Features needed:
 ---
 
 ## Completed Fixes
+
+### ✅ BUG-009: Reset password route typo
+**Status:** ✅ Fixed (Jan 31, 2026)  
+**Component:** Frontend  
+**Page:** `/reset-password`
+
+**Problem:** Route was defined as `/reset password` (with space) instead of `/reset-password`.
+
+**Symptom:** Clicking password reset link showed blank screen with console error:
+```
+No routes matched location "/reset-password?token=..."
+```
+
+**Fix:** Corrected route path in `App.tsx`.
+
+---
+
+### ✅ Profile Page
+**Status:** ✅ Completed (Jan 31, 2026)  
+**Page:** `/profile`
+
+Features implemented:
+- Display/edit profile text
+- Drag & drop file upload (PDF, DOC, DOCX)
+- File parsing with unpdf and mammoth
+- Word count indicator
+- Protected route (requires login)
+- Smart redirect after login (→ /profile if no profile, → /jobs if exists)
+
+---
 
 ### ✅ BUG-008: Job filters UI implementation
 **Status:** ✅ Fixed (Jan 31, 2026)  
@@ -207,6 +257,10 @@ GET /api/jobs/:id
 GET /api/jobs/regions
 GET /api/jobs/cities
 GET /api/jobs/companies?search=&limit=20
+GET /api/profile
+POST /api/profile
+POST /api/profile/parse (file upload)
+DELETE /api/profile
 POST /api/match
 ```
 
@@ -225,9 +279,12 @@ companies:
 
 job_embeddings_simple:
   - job_id, embedding (768d vector)
+
+users:
+  - id, email, password_hash, profile_text, updated_at
 ```
 
-### Frontend Filter Components
+### Frontend Components
 
 | Component | File | Description |
 |-----------|------|-------------|
@@ -235,3 +292,5 @@ job_embeddings_simple:
 | CompanySearch | `company-search.tsx` | Autocomplete dropdown with debounced API search |
 | RegionFilter | `region-filter.tsx` | Custom dropdown with job counts |
 | DateFilter | `date-filter.tsx` | Dropdown for date buckets |
+| FileDropzone | `file-dropzone.tsx` | Drag & drop file upload |
+| ProtectedRoute | `protected-route.tsx` | Auth guard for protected pages |
