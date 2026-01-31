@@ -157,7 +157,9 @@ profileRouter.post(
       let pages: number | undefined;
 
       if (mimetype === "application/pdf") {
-        const { text: pdfText, totalPages } = await extractText(buffer);
+        // Convert Buffer to Uint8Array for unpdf
+        const uint8Array = new Uint8Array(buffer);
+        const { text: pdfText, totalPages } = await extractText(uint8Array);
         text = pdfText.join("\n\n"); // Join all pages
         pages = totalPages;
       } else {
