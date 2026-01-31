@@ -49,6 +49,58 @@ export class ComeetClient {
     }
 
     /**
+     * Fetch single position details (includes full description with details=true)
+     */
+    async fetchPositionDetail(companyUid: string, positionUid: string, token?: string): Promise<ComeetJob | null> {
+        let url = `${BASE_URL}/company/${companyUid}/positions/${positionUid}`;
+        const params = new URLSearchParams();
+        if (token) {
+            params.append('token', token);
+        }
+        params.append('details', 'true'); // This returns the full job description!
+        
+        url += '?' + params.toString();
+
+        try {
+            const response = await this.httpClient.get(url);
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) {
+                return null;
+            }
+            console.error(`  ⚠️  Failed to fetch position detail: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
+     * Extract text description from Comeet details array
+     * The API returns details as an array: [{name, value (HTML), order}, ...]
+     */
+    parseDetailsToDescription(details: Array<{name: string; value: string; order: number}> | undefined): string {
+        if (!details || !Array.isArray(details) || details.length === 0) {
+            return '';
+        }
+
+        // Sort by order and combine all sections
+        const sorted = [...details].sort((a, b) => a.order - b.order);
+        
+        const sections: string[] = [];
+        for (const section of sorted) {
+            if (section.value) {
+                // Parse HTML to text
+                const $ = cheerio.load(section.value);
+                const text = $('body').text().trim();
+                if (text) {
+                    sections.push(`${section.name}:\n${text}`);
+                }
+            }
+        }
+
+        return sections.join('\n\n');
+    }
+
+    /**
      * Scrape positions from page HTML
      */
     scrapeFromHTML(html: string, baseUrl: string): ComeetJob[]{
