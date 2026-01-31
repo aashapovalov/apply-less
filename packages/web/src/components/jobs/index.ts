@@ -5,6 +5,7 @@ import { JobFetchError } from './job-fetch-error';
 import { JobSkeleton } from './job-skeleton';
 import { JobsSkeleton } from './jobs-skeleton.tsx';
 import { Pagination } from './pagination';
+import { RegionFilter } from './region-filter';
 import { RoleInput } from './role-input';
 import { SafeHtml } from './safe-html.tsx';
 import { SearchInput } from './search-input';
@@ -17,6 +18,7 @@ export {
   JobSkeleton,
   JobsSkeleton,
   Pagination,
+  RegionFilter,
   RoleInput,
   SafeHtml,
   SearchInput,
