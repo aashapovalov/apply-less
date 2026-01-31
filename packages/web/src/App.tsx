@@ -1,16 +1,12 @@
 import { Route, Routes } from 'react-router-dom';
 
 import { AuthLayout, MainLayout } from '@/layout';
-import {
-  ForgotPassword,
-  JobDetails,
-  Jobs,
-  Landing,
-  Login,
-  Register,
-  ResetPassword,
-  VerifyEmail,
-} from '@/pages/general';
+import { ForgotPassword, Login, Register, ResetPassword, VerifyEmail } from '@/pages/auth';
+import { Landing } from '@/pages/general';
+import { JobDetails, Jobs } from '@/pages/jobs';
+import { Profile } from '@/pages/profile';
+
+import { ProtectedRoute } from './components/auth';
 
 function App() {
   return (
@@ -20,6 +16,16 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/jobs" element={<Jobs />} />
         <Route path="/jobs/:id" element={<JobDetails />} />
+
+        {/* Protected routes */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       {/* Auth routes with auth layout*/}
