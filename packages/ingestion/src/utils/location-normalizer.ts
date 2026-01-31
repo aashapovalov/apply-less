@@ -133,6 +133,34 @@ export function normalizeLocation(
 
   // If explicitly mentions Israel but no city
   if (explicitlyIsraeli) {
+    // Check for "Israel South", "Israel North", etc. patterns
+    if (lower.includes("israel south") || lower.includes("south israel")) {
+      return {
+        country: "IL",
+        region: "south",
+        city: undefined,
+        normalized: "Israel South",
+        isIsraeli: true,
+      };
+    }
+    if (lower.includes("israel north") || lower.includes("north israel")) {
+      return {
+        country: "IL",
+        region: "north",
+        city: undefined,
+        normalized: "Israel North",
+        isIsraeli: true,
+      };
+    }
+    if (lower.includes("israel central") || lower.includes("central israel")) {
+      return {
+        country: "IL",
+        region: "central",
+        city: undefined,
+        normalized: "Israel Central",
+        isIsraeli: true,
+      };
+    }
     return {
       country: "IL",
       region: isRemote ? "remote" : "other",
