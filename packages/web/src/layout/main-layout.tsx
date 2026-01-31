@@ -48,6 +48,9 @@ export function MainLayout() {
             ) : isAuthenticated ? (
               <>
                 <span className="text-border">|</span>
+                <Link to="/jobs?sort=relevance" className="hover:text-primary">
+                  My Matches
+                </Link>
                 <Link to="/profile" className="hover:text-primary">
                   Profile
                 </Link>
