@@ -4,7 +4,7 @@ import { api } from './api';
 
 export const matchApi = api.injectEndpoints({
   endpoints: (builder) => ({
-    matchJobs: builder.mutation<MatchResponse, MatchRequest>({
+    matchJobs: builder.query<MatchResponse, MatchRequest>({
       query: (body) => ({
         url: '/match',
         method: 'POST',
@@ -14,4 +14,4 @@ export const matchApi = api.injectEndpoints({
   }),
 });
 
-export const { useMatchJobsMutation } = matchApi;
+export const { useMatchJobsQuery } = matchApi;
