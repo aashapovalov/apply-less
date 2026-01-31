@@ -121,7 +121,7 @@ export async function runStageE(
               continue;
             }
 
-            // Extract location
+            // Extract location from list response first (for filtering)
             const rawLocation = position.location?.city
               ? `${position.location.city}, ${position.location.country || ""}`
               : position.location?.name || "";
@@ -137,26 +137,53 @@ export async function runStageE(
               continue;
             }
 
+            // Fetch full position details (includes description with details=true)
+            const positionDetail = await comeetClient.fetchPositionDetail(
+              uid,
+              position.uid,
+              token,
+            );
+
+            // Extract description from details array
+            let description = "";
+            if (positionDetail?.details) {
+              description = comeetClient.parseDetailsToDescription(positionDetail.details);
+            }
+
+            // Log if no description found
+            if (!description || description.length < 50) {
+              console.log(`    ⚠️  No description found: ${position.name}`);
+            }
+
             // Create job object
+            const getDepartment = (dept: any) => {
+              if (!dept) return undefined;
+              if (typeof dept === 'string') return dept;
+              if (typeof dept === 'object' && dept.name) return dept.name;
+              return undefined;
+            };
+
             const job = {
               company_id: company.id,
-              title: position.name,
-              normalized_title: normalizeText(position.name),
+              title: positionDetail?.name || position.name,
+              normalized_title: normalizeText(positionDetail?.name || position.name),
               location: locationResult.normalized,
               country: locationResult.country,
               region: locationResult.region,
               city: locationResult.city,
-              department: position.department?.name,
-              employment_type: position.employment_type,
-              description: position.description || "",
-              requirements: position.requirements,
+              department: getDepartment(positionDetail?.department) || getDepartment(position.department),
+              employment_type: positionDetail?.employment_type || position.employment_type,
+              description: description,
+              requirements: undefined,
               benefits: undefined,
               canonical_url:
-                position.url_active_page || position.url_comeet_page,
+                positionDetail?.url_active_page || position.url_active_page || position.url_comeet_hosted_page || '',
               external_id: `comeet_${position.uid}`,
-              posted_date: position.time_updated
-                ? new Date(position.time_updated)
-                : undefined,
+              posted_date: positionDetail?.time_updated
+                ? new Date(positionDetail.time_updated)
+                : position.time_updated
+                  ? new Date(position.time_updated)
+                  : undefined,
               status: "active" as const,
             };
 
@@ -171,8 +198,8 @@ export async function runStageE(
               console.log(`    ♻️  Updated: ${job.title}`);
             }
 
-            // Small delay to be polite
-            await new Promise((resolve) => setTimeout(resolve, 100));
+            // Small delay to be polite (longer since we're fetching details)
+            await new Promise((resolve) => setTimeout(resolve, 300));
           } catch (jobError: any) {
             stats.failedRecords++;
             stats.errors.push({
