@@ -100,12 +100,14 @@ export class UserService {
      * Update password
      */
     async updatePassword(userId: number, newPassword: string): Promise<void> {
+        const passwordHashed = await hashPassword(newPassword);
+        
         await this.db.query(
             `UPDATE users
                             SET password_hash = $1,
                             updated_at = NOW()
                             WHERE id = $2`,
-            [newPassword, userId]
+            [passwordHashed, userId]
         );
     }
 
