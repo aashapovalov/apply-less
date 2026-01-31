@@ -21,6 +21,8 @@ jobsRouter.get("/", async (req: Request, res: Response) => {
             company,
             tags,
             search,
+            title,
+            postedAfter,
             sort = "posted_date",
         } = req.query;
 
@@ -35,6 +37,8 @@ jobsRouter.get("/", async (req: Request, res: Response) => {
             company: company as string | undefined,
             tags: tags ? (Array.isArray(tags) ? tags as string[] : [tags as string]) : undefined,
             search: search as string | undefined,
+            title: title as string | undefined,
+            postedAfter: postedAfter as string | undefined,
             sort: (sort as "posted_date" | "company" | "title") || "posted_date",
             countryFilter: "IL", // Israel-only by default
         });
@@ -78,6 +82,25 @@ jobsRouter.get("/cities", async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error("Error fetching cities:", error.message);
         res.status(500).json({ error: "Failed to fetch cities" });
+    }
+});
+
+/**
+ * GET /api/jobs/companies
+ * Get companies with active jobs (for autocomplete)
+ */
+jobsRouter.get("/companies", async (req: Request, res: Response) => {
+    try {
+        const { search, limit = "20" } = req.query;
+        const jobService = new JobService(getDb());
+        const companies = await jobService.getCompanies(
+            search as string | undefined,
+            Math.min(parseInt(limit as string) || 20, 50)
+        );
+        res.json({ companies });
+    } catch (error: any) {
+        console.error("Error fetching companies:", error.message);
+        res.status(500).json({ error: "Failed to fetch companies" });
     }
 });
 
