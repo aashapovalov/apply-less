@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 
-import { JobFetchError, JobSkeleton } from '@/components/jobs';
+import { JobFetchError, JobSkeleton, SafeHtml } from '@/components/jobs';
 import { Button } from '@/components/ui';
 import { useGetJobQuery } from '@/services/jobs.ts';
 import { getTimeAgo } from '@/utils';
@@ -83,9 +83,10 @@ export function JobDetails() {
       {job.description && (
         <div className="bg-card mt-6 rounded-xl p-8 shadow-sm">
           <h2 className="text-primary text-lg font-medium">About the Role</h2>
-          <div className="text-secondary mt-4 leading-relaxed whitespace-pre-wrap">
-            {job.description}
-          </div>
+          <SafeHtml
+            html={job.description}
+            className="job-description text-secondary mt-4 leading-relaxed"
+          />
         </div>
       )}
 
@@ -93,9 +94,10 @@ export function JobDetails() {
       {job.requirements && (
         <div className="bg-card mt-6 rounded-xl p-8 shadow-sm">
           <h2 className="text-primary text-lg font-medium">Requirements</h2>
-          <div className="text-secondary mt-4 leading-relaxed whitespace-pre-wrap">
-            {job.requirements}
-          </div>
+          <SafeHtml
+            html={job.requirements}
+            className="job-description text-secondary mt-4 leading-relaxed"
+          />
         </div>
       )}
     </div>
