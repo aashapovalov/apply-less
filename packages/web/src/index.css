@@ -40,7 +40,21 @@
   --color-info-text: #2563eb;
 
   /* Colors - Warning */
-  --color-warning-text: #f59e0b;
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-warning-text: #d97706;
+
+  /* Colors - Match Score */
+  --color-match-high-bg: #f0fdf4;
+  --color-match-high-text: #16a34a;
+  --color-match-mid-bg: #fffbeb;
+  --color-match-mid-text: #d97706;
+  --color-match-low-bg: #f3f4f6;
+  --color-match-low-text: #6b7280;
+
+  /* Colors - Favorite */
+  --color-favorite: #ef4444;
+  --color-favorite-hover: #dc2626;
 
   /* Fonts */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
