@@ -1,8 +1,28 @@
 import { Router, Request, Response } from "express";
+import multer from "multer";
+import { extractText } from "unpdf";
+import mammoth from "mammoth";
 
 import { getDb } from "../config/db.js";
-import {authMiddleware} from "../middleware/auth-middleware.js";
-import {ProfileService} from "../services/index.js";
+import { authMiddleware } from "../middleware/auth-middleware.js";
+import { ProfileService } from "../services/index.js";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Allowed: PDF, DOC, DOCX") as any);
+    }
+  },
+});
 
 /**
  * Profile API router.
@@ -36,65 +56,133 @@ profileRouter.use(authMiddleware);
  * @returns 404 { error: string } - Profile not found.
  * @returns 500 { error: string } - Internal error while retrieving profile.
  */
-profileRouter.get("/", async (req:Request, res:Response) => {
-    try {
-        const profileService = new ProfileService(getDb());
-        const profile = await profileService.getProfile(req.userId!);
+profileRouter.get("/", async (req: Request, res: Response) => {
+  try {
+    const profileService = new ProfileService(getDb());
+    const profile = await profileService.getProfile(req.userId!);
 
-        if (!profile) {
-            res.status(404).json({ error: "Profile not found" });
-            return;
-        }
-
-        res.json({ profile });
-    } catch (error: any) {
-        console.error("Get profile error", error);
-        res.status(500).json({ error: "Failed to get profile" });
+    if (!profile) {
+      res.status(404).json({ error: "Profile not found" });
+      return;
     }
-})
+
+    res.json({ profile });
+  } catch (error: any) {
+    console.error("Get profile error", error);
+    res.status(500).json({ error: "Failed to get profile" });
+  }
+});
 
 /**
-* POST /api/profile
-*
-* Create or update the authenticated user's profile text.
-*
-* This endpoint requires authentication. Validates the provided profile text,
-* enforces a maximum length limit, and saves the profile content for the user.
-* Can be used both for initial profile creation and subsequent updates.
-*
-* @route POST /api/profile
-* @middleware authMiddleware
-* @bodyparam profileText - Profile text content (required, max 50 000 characters).
-*
-* @returns 200 { profile: Profile, message: string }
-*          - Updated profile data and confirmation message.
-* @returns 400 { error: string } - Missing or invalid profileText, or text too long.
-* @returns 401 { error: string } - Missing, invalid, or expired access token.
-* @returns 500 { error: string } - Internal error while saving profile.
-*/
-profileRouter.post("/", async (req:Request, res:Response) => {
-    try {
-        const { profileText } = req.body;
+ * POST /api/profile
+ *
+ * Create or update the authenticated user's profile text.
+ *
+ * This endpoint requires authentication. Validates the provided profile text,
+ * enforces a maximum length limit, and saves the profile content for the user.
+ * Can be used both for initial profile creation and subsequent updates.
+ *
+ * @route POST /api/profile
+ * @middleware authMiddleware
+ * @bodyparam profileText - Profile text content (required, max 50 000 characters).
+ *
+ * @returns 200 { profile: Profile, message: string }
+ *          - Updated profile data and confirmation message.
+ * @returns 400 { error: string } - Missing or invalid profileText, or text too long.
+ * @returns 401 { error: string } - Missing, invalid, or expired access token.
+ * @returns 500 { error: string } - Internal error while saving profile.
+ */
+profileRouter.post("/", async (req: Request, res: Response) => {
+  try {
+    const { profileText } = req.body;
 
-        if (!profileText || typeof profileText !== "string") {
-            res.status(400).json({ error: "profileText is required" });
-            return;
-        }
-
-        if (profileText.length > 50000) {
-            res.status(400).json({ error: "ProfileText too long (max 50 000 chars)" });
-            return;
-        }
-
-        const profileService = new ProfileService(getDb());
-        const profile = await profileService.saveProfile(req.userId!, profileText);
-
-        res.json({ profile, message: "Profile saved successfully" });
-    } catch (error: any) {
-        console.error("Save profile error", error);
-        res.status(500).json({ error: "Failed to save profile" });
+    if (!profileText || typeof profileText !== "string") {
+      res.status(400).json({ error: "profileText is required" });
+      return;
     }
+
+    if (profileText.length > 50000) {
+      res
+        .status(400)
+        .json({ error: "ProfileText too long (max 50 000 chars)" });
+      return;
+    }
+
+    const profileService = new ProfileService(getDb());
+    const profile = await profileService.saveProfile(req.userId!, profileText);
+
+    res.json({ profile, message: "Profile saved successfully" });
+  } catch (error: any) {
+    console.error("Save profile error", error);
+    res.status(500).json({ error: "Failed to save profile" });
+  }
 });
+
+/**
+ * POST /api/profile/parse
+ *
+ * Parse an uploaded file (PDF/DOC/DOCX) and extract plain text.
+ *
+ * This endpoint requires authentication. Accepts a single file upload via
+ * multipart/form-data, extracts text content, normalizes whitespace/line breaks,
+ * and returns the extracted text along with basic metadata.
+ *
+ * @route POST /api/profile/parse
+ * @middleware authMiddleware
+ * @middleware upload.single("file")
+ * @bodyparam file - Uploaded CV file (required). Supported: PDF, DOCX (DOC may not be supported by mammoth).
+ *
+ * @returns 200 { text: string, filename: string, pages?: number }
+ *          - Extracted plain text, original filename, and optional PDF page count.
+ * @returns 400 { error: string }
+ *          - No file uploaded.
+ * @returns 401 { error: string }
+ *          - Missing, invalid, or expired access token.
+ * @returns 500 { error: string }
+ *          - Internal error while parsing the file.
+ */
+profileRouter.post(
+  "/parse",
+  authMiddleware,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ error: "No file uploaded" });
+        return;
+      }
+
+      const { buffer, mimetype, originalname } = req.file;
+      let text = "";
+      let pages: number | undefined;
+
+      if (mimetype === "application/pdf") {
+        const { text: pdfText, totalPages } = await extractText(buffer);
+        text = pdfText.join("\n\n"); // Join all pages
+        pages = totalPages;
+      } else {
+        // DOC/DOCX
+        const result = await mammoth.extractRawText({ buffer });
+        text = result.value;
+      }
+
+      // Clean up text
+      text = text
+        .replace(/\r\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+
+      res.json({
+        text,
+        filename: originalname,
+        pages,
+      });
+    } catch (error: any) {
+      console.error("Parse file error:", error);
+      res.status(500).json({ error: "Failed to parse file" });
+    }
+  },
+);
 
 /**
  * DELETE /api/profile
@@ -112,14 +200,14 @@ profileRouter.post("/", async (req:Request, res:Response) => {
  * @returns 401 { error: string } - Missing, invalid, or expired access token.
  * @returns 500 { error: string } - Internal error while deleting profile.
  */
-profileRouter.delete("/", async (req:Request, res:Response) => {
-    try {
-        const profileService = new ProfileService(getDb());
-        await profileService.deleteProfile(req.userId!);
+profileRouter.delete("/", async (req: Request, res: Response) => {
+  try {
+    const profileService = new ProfileService(getDb());
+    await profileService.deleteProfile(req.userId!);
 
-        res.json({ message: "Profile deleted successfully" });
-    } catch (error: any) {
-        console.error("Delete profile error", error);
-        res.status(500).json({ error: "Failed to delete profile" });
-    }
+    res.json({ message: "Profile deleted successfully" });
+  } catch (error: any) {
+    console.error("Delete profile error", error);
+    res.status(500).json({ error: "Failed to delete profile" });
+  }
 });
