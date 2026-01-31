@@ -31,6 +31,8 @@ export interface JobListParams {
     company?: string;
     tags?: string[];
     search?: string;
+    title?: string;
+    postedAfter?: string;
     sort?: "posted_date" | "company" | "title";
     countryFilter?: string; // Default: "IL"
 }
