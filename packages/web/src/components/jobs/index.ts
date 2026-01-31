@@ -3,6 +3,7 @@ import { JobFetchError } from './job-fetch-error';
 import { JobSkeleton } from './job-skeleton';
 import { JobsSkeleton } from './jobs-skeleton.tsx';
 import { Pagination } from './pagination';
+import { SafeHtml } from './safe-html.tsx';
 import { SearchInput } from './search-input';
 
-export { JobCard, JobFetchError, JobSkeleton, JobsSkeleton, Pagination, SearchInput };
+export { JobCard, JobFetchError, JobSkeleton, JobsSkeleton, Pagination, SafeHtml, SearchInput };
