@@ -1,10 +1,13 @@
 import { Pool } from "pg";
-import * as cheerio from "cheerio";
 
 import { IngestionStats } from "../types/index.js";
 import { GreenhouseClient } from "../clients/index.js";
 import { JobService } from "../services/index.js";
-import { normalizeLocation, normalizeText } from "../utils/index.js";
+import {
+  decodeHtmlEntities,
+  normalizeLocation,
+  normalizeText,
+} from "../utils/index.js";
 
 export interface StageDOptions {
   dryRun?: boolean; // Run without writing to DB
@@ -141,9 +144,10 @@ export async function runStageD(
               continue;
             }
 
-            // Parse HTML content to extract text
-            const $ = cheerio.load(jobDetail.content);
-            const description = $("body").text().trim();
+            // Keep HTML content for proper formatting in frontend
+            // Decode HTML entities (Greenhouse returns encoded HTML)
+            // The frontend will sanitize it with DOMPurify
+            const description = decodeHtmlEntities(jobDetail.content || "");
 
             // Extract department
             const department =
