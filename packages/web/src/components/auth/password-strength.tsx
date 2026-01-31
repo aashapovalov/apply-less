@@ -14,8 +14,8 @@ export function PasswordStrength({ password }: PasswordStrengthProps) {
   return (
     <div className="mt-2 space-y-1 text-sm">
       {rules.map((rule) => (
-        <p key={rule.label} className={rule.valid ? 'text-success' : 'text-muted'}>
-          {rule.valid ? '✓' : '○'}
+        <p key={rule.label} className={rule.valid ? 'text-success-text' : 'text-muted'}>
+          {rule.valid ? '✓' : '○'} {rule.label}
         </p>
       ))}
     </div>
