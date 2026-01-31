@@ -7,7 +7,7 @@
 | `api` | ✅ Production | Express/TS | REST API: auth, jobs, matching, profile, favorites |
 | `ingestion` | ✅ Production | Node.js/TS | CLI: scraping, ATS detection, job fetching, location normalization |
 | `ml-service` | ✅ Production | FastAPI/Python | ML: embeddings, skill extraction, CV generation |
-| `web` | ✅ Working | React/Vite | Frontend UI: jobs with filters, auth, landing |
+| `web` | ✅ Working | React/Vite | Frontend UI: jobs, profile, auth, landing |
 
 ---
 
@@ -48,7 +48,7 @@ api/
 │   │   ├── auth-router.ts       # /api/auth/* (register, login, etc.)
 │   │   ├── jobs-router.ts       # /api/jobs (list, regions, cities, companies)
 │   │   ├── match-router.ts      # /api/match
-│   │   ├── profile-router.ts    # /api/profile
+│   │   ├── profile-router.ts    # /api/profile (incl. file parsing)
 │   │   └── favorites-router.ts  # /api/favorites
 │   ├── services/
 │   │   ├── auth-service.ts      # Auth orchestration
@@ -77,6 +77,15 @@ api/
 | `GET /api/jobs/regions` | Get regions with job counts |
 | `GET /api/jobs/cities` | Get cities with job counts |
 | `GET /api/jobs/companies` | Get companies for autocomplete |
+
+### Profile API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/profile` | Get user profile text |
+| `POST /api/profile` | Save/update profile |
+| `POST /api/profile/parse` | Parse uploaded file (PDF/DOC/DOCX) |
+| `DELETE /api/profile` | Delete profile |
 
 ---
 
@@ -189,14 +198,16 @@ web/
 ├── src/
 │   ├── main.tsx                 # App entry point
 │   ├── App.tsx                  # Router setup
-│   ├── index.css                # Global styles + job-description CSS
+│   ├── index.css                # Global styles + theme colors
 │   ├── components/
 │   │   ├── auth/
-│   │   │   └── password-strength.tsx
+│   │   │   ├── password-strength.tsx
+│   │   │   ├── protected-route.tsx    # Auth guard
+│   │   │   └── index.ts
 │   │   ├── jobs/
 │   │   │   ├── company-search.tsx     # Company autocomplete dropdown
 │   │   │   ├── date-filter.tsx        # Date bucket dropdown
-│   │   │   ├── job-card.tsx
+│   │   │   ├── job-card.tsx           # Card with heart + score badge
 │   │   │   ├── job-fetch-error.tsx
 │   │   │   ├── job-skeleton.tsx
 │   │   │   ├── jobs-skeleton.tsx
@@ -216,24 +227,38 @@ web/
 │   │       └── index.ts
 │   ├── config/
 │   │   └── api.ts               # API URL configuration
+│   ├── constants/
+│   │   └── index.ts             # JOBS_PER_PAGE, REGION_LABELS
 │   ├── hooks/
-│   │   └── index.ts             # Custom hooks
+│   │   ├── use-auth-status.ts   # Auth + profile state
+│   │   └── index.ts
 │   ├── layout/
 │   │   ├── auth-layout.tsx
-│   │   └── main-layout.tsx
+│   │   └── main-layout.tsx      # Header with auth-aware nav
 │   ├── pages/
-│   │   ├── landing.tsx          # Home page
-│   │   ├── jobs.tsx             # Jobs list with filters
-│   │   ├── job-details.tsx      # Single job with HTML description
-│   │   ├── login.tsx
-│   │   ├── register.tsx
-│   │   ├── forgot-password.tsx
-│   │   ├── reset-password.tsx
-│   │   └── verify-email.tsx
+│   │   ├── auth/
+│   │   │   ├── login.tsx
+│   │   │   ├── register.tsx
+│   │   │   ├── forgot-password.tsx
+│   │   │   ├── reset-password.tsx
+│   │   │   ├── verify-email.tsx
+│   │   │   └── index.ts
+│   │   ├── jobs/
+│   │   │   ├── jobs.tsx          # List with filters + sort toggle
+│   │   │   ├── job-details.tsx   # Single job view
+│   │   │   └── index.ts
+│   │   ├── profile/
+│   │   │   ├── profile.tsx       # Profile with file upload
+│   │   │   └── index.ts
+│   │   ├── landing.tsx           # Home page
+│   │   └── index.ts
 │   ├── services/
 │   │   ├── api.ts               # RTK Query base
 │   │   ├── auth.ts              # Auth API
-│   │   └── jobs.ts              # Jobs API (list, regions, cities, companies)
+│   │   ├── jobs.ts              # Jobs API
+│   │   ├── profile.ts           # Profile API
+│   │   ├── favorites.ts         # Favorites API
+│   │   └── match.ts             # Match API
 │   ├── store/
 │   │   ├── index.ts             # Redux store
 │   │   └── authSlice.ts         # Auth state
@@ -252,13 +277,30 @@ web/
 
 | Component | Purpose |
 |-----------|---------|
+| `JobCard` | Job list item with heart button and match score badge |
 | `SafeHtml` | Renders HTML descriptions with DOMPurify sanitization |
-| `JobCard` | Job list item with company, location, tags |
 | `CompanySearch` | Autocomplete dropdown with debounced search |
 | `DateFilter` | Date bucket dropdown (Today, This week, This month) |
 | `RegionFilter` | Region dropdown with job counts |
 | `RoleInput` | Role search input with localStorage history |
+| `ProtectedRoute` | Auth guard that redirects to login |
 | `Pagination` | Page navigation for jobs list |
+
+### Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `useAuthStatus` | Returns `{ isAuthenticated, hasProfile, profileText, user, isLoading }` |
+
+### Theme Colors (index.css)
+
+| Category | Variables |
+|----------|-----------|
+| Match High (>70%) | `--color-match-high-bg`, `--color-match-high-text` |
+| Match Mid (50-70%) | `--color-match-mid-bg`, `--color-match-mid-text` |
+| Match Low (<50%) | `--color-match-low-bg`, `--color-match-low-text` |
+| Warning | `--color-warning-bg`, `--color-warning-border`, `--color-warning-text` |
+| Favorite | `--color-favorite`, `--color-favorite-hover` |
 
 ---
 

@@ -1,6 +1,6 @@
 # ApplyLess
 
-AI-powered job matching platform for Israel hi-tech candidates. Automatically ingests jobs from company career pages and ATS systems, uses semantic matching to recommend relevant positions, and generates tailored CVs.
+AI-powered job matching platform for Israeli tech candidates. Automatically ingests jobs from company career pages and ATS systems, uses semantic matching to recommend relevant positions, and generates tailored CVs.
 
 ## 🚀 Current Status
 
@@ -12,8 +12,30 @@ AI-powered job matching platform for Israel hi-tech candidates. Automatically in
 | **Embeddings** | ✅ Working | BGE 768d vectors for semantic search |
 | **API** | ✅ Complete | Auth, Jobs, Match, Profile, Favorites |
 | **ML Service** | ✅ Production | Embeddings, Skills, CV Generation |
-| **Frontend** | ✅ Working | Jobs list, Job details, Auth pages, Landing |
+| **Frontend** | ✅ Working | Jobs, Profile, Auth, Landing |
 | **Location Filter** | ✅ Complete | Israel-only with region classification |
+
+## ✨ Features
+
+### Implemented
+
+- **Job Ingestion** — Automated scraping from Greenhouse and Comeet ATS
+- **Location Normalization** — Israeli cities mapped to regions (Central, North, South, Jerusalem, Remote)
+- **Non-Israeli Filtering** — Automatically filters out US/EU jobs during ingestion
+- **JWT Authentication** — Register, login, email verification, password reset
+- **Job Browsing** — List with filters (region, company, role, date)
+- **Job Matching** — Vector similarity search with pgvector
+- **Sort by Relevance** — Jobs ranked by match score to your profile
+- **Profile Management** — Upload PDF/DOC/DOCX or paste text
+- **Favorites** — Save jobs with heart button
+- **CV Generation** — AI-generated tailored CVs using Claude
+- **HTML Descriptions** — Properly formatted job descriptions
+
+### Coming Soon
+
+- Favorites page with CV generation
+- Improved matching accuracy (title-aware scoring)
+- Production deployment
 
 ## Quick Start
 
@@ -74,26 +96,19 @@ npm run start --workspace=packages/ingestion -- comeet      # Fetch Comeet jobs
 npm run start --workspace=packages/ingestion -- embeddings  # Generate embeddings
 ```
 
-## Features
+## Screenshots
 
-### ✅ Implemented
+### Jobs List with Relevance Sort
 
-- **Job Ingestion** - Automated scraping from Greenhouse and Comeet ATS
-- **Location Normalization** - Israeli cities mapped to regions (Central, North, South, Jerusalem, Remote)
-- **Non-Israeli Filtering** - Automatically filters out US/EU jobs during ingestion
-- **JWT Authentication** - Register, login, email verification, password reset
-- **Job Matching** - Vector similarity search with pgvector
-- **Profile Management** - Save and manage your professional profile
-- **Favorites** - Save jobs for later
-- **CV Generation** - AI-generated tailored CVs using Claude
-- **HTML Descriptions** - Properly formatted job descriptions with lists, headers
+Browse jobs sorted by date or by relevance to your profile. Match percentage badges show how well each job fits your skills.
 
-### 🔜 Upcoming
+### Profile Page
 
-- Profile page UI
-- Match results page
-- Skills extraction per job
-- Advanced search filters
+Upload your CV (PDF, DOC, DOCX) or paste your profile text. Full-page drag & drop support.
+
+### Job Details
+
+Formatted job descriptions with requirements, responsibilities, and company info.
 
 ## Project Structure
 
@@ -108,6 +123,36 @@ apply-less/
 ├── docs/              # Documentation
 └── scripts/           # Database utilities
 ```
+
+## API Endpoints
+
+### Public
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/jobs` | GET | List jobs with filters |
+| `/api/jobs/:id` | GET | Job details |
+| `/api/jobs/regions` | GET | Regions with counts |
+| `/api/jobs/companies` | GET | Company autocomplete |
+| `/api/match` | POST | Match profile to jobs |
+
+### Authenticated
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/profile` | GET/POST/DELETE | Profile CRUD |
+| `/api/profile/parse` | POST | Parse uploaded file |
+| `/api/favorites` | GET | List favorites |
+| `/api/favorites/:jobId` | GET/POST/DELETE | Manage favorites |
+
+### Auth
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/register` | POST | Create account |
+| `/api/auth/login` | POST | Login |
+| `/api/auth/refresh` | POST | Refresh tokens |
+| `/api/auth/me` | GET | Current user |
 
 ## Documentation
 

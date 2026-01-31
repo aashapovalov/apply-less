@@ -18,7 +18,7 @@ Job matching platform that:
 
 ---
 
-## Current Status (Jan 31)
+## Current Status (Jan 31 - Evening)
 
 ### ✅ Completed
 
@@ -33,14 +33,19 @@ Job matching platform that:
 | **Auth API** | Full JWT system with email verification |
 | **Jobs API** | List, search, filters, details with HTML descriptions |
 | **Match API** | Vector similarity search |
-| **Profile API** | CRUD |
+| **Profile API** | CRUD + file parsing (PDF, DOC, DOCX) |
 | **Favorites API** | CRUD |
 | **ML Service** | Python FastAPI with local models |
 | **Chunking** | Job/profile section + skill extraction |
 | **CV Generation** | Claude 3 Haiku integration |
-| **Frontend** | Landing, Jobs list with filters, Job details, Auth pages |
+| **Frontend - Landing** | Redesigned with features |
+| **Frontend - Jobs** | List, filters, details, sort toggle, favorites |
+| **Frontend - Auth** | Login, register, forgot/reset password, verification |
+| **Frontend - Profile** | Page with file upload, drag & drop |
 | **HTML Descriptions** | DOMPurify rendering with CSS formatting |
 | **Job Filters** | Region, date, company (autocomplete), role (with history) |
+| **Relevance Sort** | Sort by date or match score |
+| **Favorites UI** | Heart button on job cards |
 
 ### 🎯 Demo Goals
 
@@ -55,9 +60,36 @@ Job matching platform that:
 | Location Filter | Israel only | ✅ |
 | UI - Jobs | List + filters + details | ✅ |
 | UI - Auth | Login/Register | ✅ |
-| UI - Profile | Page | 🔲 |
-| UI - Match | Results page | 🔲 |
+| UI - Profile | Page with file upload | ✅ |
+| UI - Match | Relevance sort on Jobs page | ✅ |
+| UI - Favorites | Heart button + save | ✅ |
 | Production | Deployed | 🔲 |
+
+---
+
+## Remaining Work
+
+### Day 16 (Feb 1): Final Features + Bug Fixes
+
+- [ ] **BUG-012:** Improve matching accuracy (title-aware scoring)
+- [ ] **Favorites page:** List saved jobs with remove button
+- [ ] **CV generation UI:** Button on favorites to generate CV
+- [ ] **BUG-010:** Error boundary
+- [ ] **BUG-011:** 404 page
+
+### Day 17 (Feb 2): Deployment
+
+- [ ] Deploy Node.js API to Railway
+- [ ] Deploy Python ML to Railway
+- [ ] Deploy Frontend to Vercel
+- [ ] Environment variables
+- [ ] Test end-to-end
+
+### Day 18 (Feb 3): Demo Day 🎉
+
+- [ ] Bug fixes
+- [ ] Demo walkthrough prep
+- [ ] Slides / recording
 
 ---
 
@@ -109,7 +141,7 @@ Job matching platform that:
 
 ---
 
-### ✅ Phase 3: Frontend (Days 13-14)
+### ✅ Phase 3: Frontend (Days 13-15)
 
 #### ✅ Day 13: Core UI
 - [x] Landing page (redesigned)
@@ -118,70 +150,24 @@ Job matching platform that:
 - [x] Job details with HTML description
 - [x] Navigation
 
-#### ✅ Day 14: Job Filters & Additional Pages
+#### ✅ Day 14: Job Filters & Auth Pages
 - [x] Forgot password
 - [x] Reset password
 - [x] Email verification
 - [x] Job filters (region, date, company, role)
 - [x] Company autocomplete with job counts
 - [x] Role search with history
-- [ ] Profile page
-- [ ] Match results page
-- [ ] Favorites page
 
----
-
-### Phase 4: Deploy (Days 15-17)
-
-#### Day 15: Final Features
-- [ ] Profile page UI
-- [ ] Match results page
-- [ ] Favorites page with CV generation
-
-#### Day 16: Deployment
-- [ ] Deploy Node.js API to Railway
-- [ ] Deploy Python ML to Railway
-- [ ] Deploy Frontend to Vercel
-- [ ] Test end-to-end
-
-#### Day 17: Demo Prep
-- [ ] Bug fixes
-- [ ] Record demo video
-- [ ] Prepare slides
-
----
-
-### Feb 3: Demo Day 🎉
-
----
-
-## Recent Fixes (Jan 31)
-
-### Job Filters UI
-- ✅ Region dropdown (custom component)
-- ✅ Date filter (Today, This week, This month)
-- ✅ Company search with autocomplete
-- ✅ Role input with search history (localStorage)
-- ✅ Active filter pills with clear buttons
-- ✅ Backend: /api/jobs/companies endpoint
-
-### Location Normalization
-- ✅ Added 90+ Israeli cities to dictionary
-- ✅ Added Hebrew spelling variations
-- ✅ Classified cities into 5 regions
-- ✅ Non-Israeli jobs filtered during ingestion
-- ✅ Added country/region/city columns to jobs table
-
-### Comeet Descriptions
-- ✅ Fixed missing descriptions (was 100%, now <4%)
-- ✅ Discovered `?details=true` API parameter
-- ✅ Cleaned up stale jobs (404 from API)
-
-### HTML Descriptions
-- ✅ Greenhouse keeps HTML instead of stripping
-- ✅ Comeet combines sections as HTML with headers
-- ✅ Frontend renders with DOMPurify
-- ✅ Added CSS for lists, headings, paragraphs
+#### ✅ Day 15: Profile & Match UI
+- [x] Profile page with file upload
+- [x] Drag & drop (full page)
+- [x] File parsing (PDF, DOC, DOCX)
+- [x] Sort toggle (Date / Relevance)
+- [x] Match scores on job cards
+- [x] Favorites heart button
+- [x] Auth-aware header (Login vs Profile/Logout)
+- [x] Protected routes
+- [x] Smart redirect after login
 
 ---
 
@@ -215,7 +201,10 @@ Job matching platform that:
 - [x] Jobs list UI with filters
 - [x] Job details with formatted descriptions
 - [x] Auth UI (login, register, password reset)
-- [ ] Profile UI
-- [ ] Match results UI
+- [x] Profile UI with file upload
+- [x] Match results (relevance sort)
+- [x] Favorites UI (heart button)
+- [ ] Favorites page (list)
+- [ ] CV generation UI
 - [ ] Production deployment
 - [ ] No crashes during demo

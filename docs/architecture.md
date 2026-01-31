@@ -10,11 +10,12 @@
 │   • Landing     │     │   • /auth/*      │     │   • /api/embed   │
 │   • Jobs list   │     │   • /jobs        │     │   • /api/chunk/* │
 │   • Job details │     │   • /match       │     │   • /api/cv      │
-│   • Auth pages  │     │   • /profile     │     │                  │
-│                 │     │   • /favorites   │     │   Models:        │
-│   ✅ WORKING    │     │                  │     │   • BGE-base-en  │
-└─────────────────┘     └────────┬─────────┘     │   • hirly-ner    │
-                                 │               └────────┬─────────┘
+│   • Profile     │     │   • /profile     │     │                  │
+│   • Auth pages  │     │   • /favorites   │     │   Models:        │
+│                 │     │                  │     │   • BGE-base-en  │
+│   ✅ WORKING    │     │   ✅ WORKING     │     │   • hirly-ner    │
+└─────────────────┘     └────────┬─────────┘     └────────┬─────────┘
+                                 │                        │
          ┌───────────────────────┼────────────────────────┘
          │                       │
          ▼                       ▼
@@ -68,10 +69,18 @@ Non-Israeli locations (US, UK, EU, etc.) are detected and **skipped during inges
 ### 3. Profile Matching
 
 ```
-Profile Text → ML Service → Chunk + Embed → pgvector Search → Ranked Jobs
+Profile Text → ML Service → Embed → pgvector Search → Ranked Jobs with Scores
 ```
 
-### 4. CV Generation
+### 4. User Flow
+
+```
+Landing → Browse Jobs → (Sort by Date)
+                     → Login → Profile → (Sort by Relevance)
+                                      → Favorites → CV Generation
+```
+
+### 5. CV Generation
 
 ```
 Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
@@ -105,7 +114,7 @@ Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
 | `/cities` | GET | No | Get cities with job counts |
 | `/companies` | GET | No | Get companies for autocomplete |
 
-**Query params for `/`:** `limit`, `offset`, `region`, `company`, `title`, `postedAfter`, `sort`
+**Query params for `/`:** `limit`, `offset`, `region`, `company`, `title`, `postedAfter`
 
 **Note:** All jobs are Israeli only (filtered during ingestion).
 
@@ -117,6 +126,8 @@ Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
 
 **Body:** `{ profile, limit?, offset?, threshold? }`
 
+**Response:** `{ matches: [{job_id, title, company_name, score, ...}], total, has_more }`
+
 ### Profile (`/api/profile`)
 
 | Endpoint | Method | Auth | Description |
@@ -124,6 +135,7 @@ Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
 | `/` | GET | Yes | Get user profile text |
 | `/` | POST | Yes | Save/update profile (max 50K chars) |
 | `/` | DELETE | Yes | Delete profile text |
+| `/parse` | POST | Yes | Parse uploaded file (PDF/DOC/DOCX) |
 
 ### Favorites (`/api/favorites`)
 
@@ -160,6 +172,50 @@ Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
 | `/api/generate-cv` | POST | Generate tailored CV via Claude |
 
 **Validation:** Profile must have 200+ words and completeness score ≥ 0.4
+
+---
+
+## Frontend Pages
+
+| Route | Auth | Description |
+|-------|------|-------------|
+| `/` | No | Landing page |
+| `/jobs` | No | Jobs list with filters |
+| `/jobs?sort=relevance` | Profile | Jobs sorted by match score |
+| `/jobs/:id` | No | Job details |
+| `/profile` | Yes | Profile management with file upload |
+| `/login` | No | Login form |
+| `/register` | No | Registration form |
+| `/forgot-password` | No | Request password reset |
+| `/reset-password` | No | Reset password form |
+| `/verify-email` | No | Email verification handler |
+
+### Frontend Components
+
+| Component | Description |
+|-----------|-------------|
+| `JobCard` | Job card with heart button and match score badge |
+| `CompanySearch` | Autocomplete dropdown with debounced search |
+| `DateFilter` | Date bucket dropdown (Today, This week, This month) |
+| `RegionFilter` | Region dropdown with job counts |
+| `RoleInput` | Role search input with localStorage history |
+| `SafeHtml` | Renders HTML descriptions with DOMPurify |
+| `ProtectedRoute` | Auth guard for protected pages |
+
+### Frontend Hooks
+
+| Hook | Description |
+|------|-------------|
+| `useAuthStatus` | Returns `{ isAuthenticated, hasProfile, profileText, user }` |
+
+### Theme Colors
+
+Match score badges use semantic colors:
+- **Green** (`--color-match-high-*`): >70% match
+- **Amber** (`--color-match-mid-*`): 50-70% match
+- **Gray** (`--color-match-low-*`): <50% match
+
+Favorites use `--color-favorite` (red).
 
 ---
 
@@ -223,7 +279,7 @@ city VARCHAR(100)     -- Normalized city name
 ### Auth Tables
 
 ```sql
-users                  -- User accounts
+users                  -- User accounts with profile_text
 refresh_tokens         -- JWT refresh tokens (30d expiry)
 verification_tokens    -- Email verification (24h expiry)
 password_reset_tokens  -- Password reset (1h expiry)

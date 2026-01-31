@@ -10,6 +10,34 @@
 
 ## Open Issues
 
+### BUG-012: Job matching not title-aware
+**Status:** 🟡 Medium  
+**Component:** ML/Backend  
+**Page:** `/jobs?sort=relevance`
+
+**Current behavior:**  
+Full-document embeddings average everything together. A "Senior Product Manager" profile matches "Software Engineer" at 70% because of shared technical keywords (AI, ML, data), while "AI Product Manager" only scores 69%.
+
+**Expected behavior:**  
+Job title should be weighted more heavily. A PM profile should rank PM jobs higher than engineering roles.
+
+**Proposed fix (Option B - Chunk jobs only):**
+1. Extract job title as separate chunk during embedding ingestion
+2. Store title embedding alongside full document embedding
+3. At match time, compute weighted score:
+   ```
+   final_score = 0.4 * title_similarity + 0.6 * full_doc_similarity
+   ```
+4. Schema change:
+   ```sql
+   ALTER TABLE job_embeddings_simple 
+   ADD COLUMN title_embedding vector(768);
+   ```
+
+**Effort:** ~1 day
+
+---
+
 ### BUG-010: Missing Error Boundary
 **Status:** 🟡 Medium  
 **Component:** Frontend  
@@ -89,17 +117,6 @@ Some entries are not actual job postings (generic career pages).
 
 ## Pages Not Yet Built
 
-### Match Results Page
-**Status:** 🔲 Not started  
-**Page:** `/matches`
-
-Features needed:
-- Display matched jobs ranked by similarity
-- Show match score for each job
-- Save to favorites
-
----
-
 ### Favorites Page
 **Status:** 🔲 Not started  
 **Page:** `/favorites`
@@ -114,6 +131,42 @@ Features needed:
 
 ## Completed Fixes
 
+### ✅ Jobs Page - Relevance Sort & Favorites
+**Status:** ✅ Completed (Jan 31, 2026)  
+**Page:** `/jobs`
+
+Features implemented:
+- Sort toggle: Date / Relevance
+- Relevance sort requires profile (shows prompt if missing)
+- Match percentage badge on each job (color-coded: green >70%, amber >50%, gray <50%)
+- Heart button to save/remove favorites
+- Heart redirects to login if not authenticated
+- Profile prompt banner for logged-in users without profile
+
+**Components created:**
+- `useAuthStatus` hook - reusable auth + profile state
+- `constants/index.ts` - JOBS_PER_PAGE, REGION_LABELS
+- `services/favorites.ts` - RTK Query endpoints
+- `services/match.ts` - RTK Query endpoint
+
+---
+
+### ✅ Profile Page
+**Status:** ✅ Completed (Jan 31, 2026)  
+**Page:** `/profile`
+
+Features implemented:
+- Display/edit profile text
+- Full-page drag & drop file upload (PDF, DOC, DOCX)
+- File parsing with unpdf and mammoth
+- Word count indicator
+- Tooltip with "Why we need your profile" info
+- Protected route (requires login)
+- Redirect to `/jobs?sort=relevance` after save
+- Smart redirect after login (→ /profile if no profile, → /jobs?sort=relevance if exists)
+
+---
+
 ### ✅ BUG-009: Reset password route typo
 **Status:** ✅ Fixed (Jan 31, 2026)  
 **Component:** Frontend  
@@ -127,20 +180,6 @@ No routes matched location "/reset-password?token=..."
 ```
 
 **Fix:** Corrected route path in `App.tsx`.
-
----
-
-### ✅ Profile Page
-**Status:** ✅ Completed (Jan 31, 2026)  
-**Page:** `/profile`
-
-Features implemented:
-- Display/edit profile text
-- Drag & drop file upload (PDF, DOC, DOCX)
-- File parsing with unpdf and mammoth
-- Word count indicator
-- Protected route (requires login)
-- Smart redirect after login (→ /profile if no profile, → /jobs if exists)
 
 ---
 
@@ -252,16 +291,23 @@ Row 2: [Region Filter] [Date Filter]
 ### API Endpoints
 
 ```
-GET /api/jobs?limit=20&offset=0&region=&company=&title=&postedAfter=
-GET /api/jobs/:id
-GET /api/jobs/regions
-GET /api/jobs/cities
-GET /api/jobs/companies?search=&limit=20
-GET /api/profile
+GET  /api/jobs?limit=20&offset=0&region=&company=&title=&postedAfter=
+GET  /api/jobs/:id
+GET  /api/jobs/regions
+GET  /api/jobs/cities
+GET  /api/jobs/companies?search=&limit=20
+
+GET  /api/profile
 POST /api/profile
 POST /api/profile/parse (file upload)
 DELETE /api/profile
+
 POST /api/match
+
+GET  /api/favorites
+GET  /api/favorites/:jobId
+POST /api/favorites/:jobId
+DELETE /api/favorites/:jobId
 ```
 
 ### Database Schema
@@ -282,15 +328,34 @@ job_embeddings_simple:
 
 users:
   - id, email, password_hash, profile_text, updated_at
+
+favorites:
+  - id, user_id, job_id, created_at
 ```
 
 ### Frontend Components
 
 | Component | File | Description |
 |-----------|------|-------------|
+| JobCard | `job-card.tsx` | Job card with heart button and match score |
 | RoleInput | `role-input.tsx` | Text input with localStorage history |
 | CompanySearch | `company-search.tsx` | Autocomplete dropdown with debounced API search |
 | RegionFilter | `region-filter.tsx` | Custom dropdown with job counts |
 | DateFilter | `date-filter.tsx` | Dropdown for date buckets |
-| FileDropzone | `file-dropzone.tsx` | Drag & drop file upload |
 | ProtectedRoute | `protected-route.tsx` | Auth guard for protected pages |
+
+### Hooks
+
+| Hook | File | Description |
+|------|------|-------------|
+| useAuthStatus | `use-auth-status.ts` | Returns isAuthenticated, hasProfile, profileText |
+
+### Theme Colors (index.css)
+
+| Variable | Usage |
+|----------|-------|
+| `--color-match-high-*` | Green badge for >70% match |
+| `--color-match-mid-*` | Amber badge for 50-70% match |
+| `--color-match-low-*` | Gray badge for <50% match |
+| `--color-warning-*` | Profile prompt banner |
+| `--color-favorite` | Heart button color |
