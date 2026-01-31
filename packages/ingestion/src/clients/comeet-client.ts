@@ -74,30 +74,27 @@ export class ComeetClient {
     }
 
     /**
-     * Extract text description from Comeet details array
+     * Extract HTML description from Comeet details array
      * The API returns details as an array: [{name, value (HTML), order}, ...]
+     * We combine the HTML sections for proper formatting in frontend
      */
     parseDetailsToDescription(details: Array<{name: string; value: string; order: number}> | undefined): string {
         if (!details || !Array.isArray(details) || details.length === 0) {
             return '';
         }
 
-        // Sort by order and combine all sections
+        // Sort by order and combine all sections as HTML
         const sorted = [...details].sort((a, b) => a.order - b.order);
         
         const sections: string[] = [];
         for (const section of sorted) {
-            if (section.value) {
-                // Parse HTML to text
-                const $ = cheerio.load(section.value);
-                const text = $('body').text().trim();
-                if (text) {
-                    sections.push(`${section.name}:\n${text}`);
-                }
+            if (section.value && section.value.trim()) {
+                // Keep HTML, add section header
+                sections.push(`<h3>${section.name}</h3>${section.value}`);
             }
         }
 
-        return sections.join('\n\n');
+        return sections.join('');
     }
 
     /**
