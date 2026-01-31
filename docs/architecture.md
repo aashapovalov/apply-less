@@ -7,12 +7,12 @@
 │   React Web     │     │   Node.js API    │     │  Python ML       │
 │   (Vercel)      │────▶│   (Express)      │────▶│  (FastAPI)       │
 │                 │     │                  │     │                  │
-│   • Jobs list   │     │   • /auth/*      │     │   • /api/embed   │
-│   • Matching    │     │   • /jobs        │     │   • /api/chunk/* │
-│   • Favorites   │     │   • /match       │     │   • /api/cv      │
-│   • CV gen      │     │   • /profile     │     │                  │
+│   • Landing     │     │   • /auth/*      │     │   • /api/embed   │
+│   • Jobs list   │     │   • /jobs        │     │   • /api/chunk/* │
+│   • Job details │     │   • /match       │     │   • /api/cv      │
+│   • Auth pages  │     │   • /profile     │     │                  │
 │                 │     │   • /favorites   │     │   Models:        │
-│   IN PROGRESS   │     │                  │     │   • BGE-base-en  │
+│   ✅ WORKING    │     │                  │     │   • BGE-base-en  │
 └─────────────────┘     └────────┬─────────┘     │   • hirly-ner    │
                                  │               └────────┬─────────┘
          ┌───────────────────────┼────────────────────────┘
@@ -30,7 +30,7 @@
 └─────────────────┘     └──────────────────┘     └──────────────────┘
 ```
 
-**Current Stats:** 1496 companies, 683 job sources, 1716 jobs, 682 embeddings
+**Current Stats:** 1496 companies, 683 job sources, ~770 Israeli jobs, ~750 embeddings
 
 ---
 
@@ -39,22 +39,39 @@
 ### 1. Job Ingestion
 
 ```
-SNC API → Companies → ATS Detection → Job Fetching → ML Chunking → Embeddings → DB
+SNC API → Companies → ATS Detection → Job Fetching → Location Filter → DB
+                                            ↓
+                                    (Non-Israeli jobs skipped)
 ```
 
 1. **SNC Scraping:** Fetch Israeli startups from StartupNationCentral
-2. **ATS Detection:** Identify career page type (Greenhouse, Comeet, Lever, etc.)
+2. **ATS Detection:** Identify career page type (Greenhouse, Comeet, etc.)
 3. **Job Fetching:** Pull jobs from detected ATS APIs
-4. **Chunking:** Split job into sections, extract skills
-5. **Embedding:** Generate vectors for similarity search
+4. **Location Normalization:** Classify Israeli cities into regions
+5. **Non-Israeli Filter:** Skip jobs outside Israel during ingestion
+6. **Embedding:** Generate vectors for similarity search
 
-### 2. Profile Matching
+### 2. Location Normalization
+
+Jobs are automatically filtered and classified during ingestion:
+
+| Region | Cities |
+|--------|--------|
+| **Central** | Tel Aviv, Ramat Gan, Herzliya, Ra'anana, Petah Tikva, Netanya, Holon, Rehovot, Rishon LeZion, Bnei Brak, Hod Hasharon, Kfar Saba, Rosh HaAyin, Givatayim, etc. |
+| **North** | Haifa, Yokneam, Caesarea, Nahariya, Karmiel, Nazareth, Acre |
+| **South** | Beer Sheva, Eilat, Ashkelon, Kiryat Gat, Sderot |
+| **Jerusalem** | Jerusalem, Beit Shemesh, Modi'in |
+| **Remote** | Remote, Hybrid, Work from home |
+
+Non-Israeli locations (US, UK, EU, etc.) are detected and **skipped during ingestion**.
+
+### 3. Profile Matching
 
 ```
 Profile Text → ML Service → Chunk + Embed → pgvector Search → Ranked Jobs
 ```
 
-### 3. CV Generation
+### 4. CV Generation
 
 ```
 Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
@@ -83,9 +100,11 @@ Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/` | GET | No | List jobs (paginated, filterable) |
-| `/:id` | GET | No | Get job details |
+| `/:id` | GET | No | Get job details with HTML description |
 
-**Query params:** `limit`, `offset`, `location`, `company`, `tags`, `sort`
+**Query params:** `limit`, `offset`, `location`, `company`, `tags`, `region`, `sort`
+
+**Note:** All jobs are Israeli only (filtered during ingestion).
 
 ### Match (`/api/match`)
 
@@ -158,24 +177,22 @@ Detection runs in order (first match wins):
 - `--recheck` — Re-check companies with no job_source
 - `--force` — Process all companies
 - `--deep-crawl` — Follow job links recursively
-- `-c, --company <name>` — Single company
+- `-c, --company <n>` — Single company
 
 ---
 
-## Skill Extraction
+## Ingestion: Description Handling
 
-**NER Model:** `feliponi/hirly-ner-multi`
+### Greenhouse
+- Fetches `jobDetail.content` (HTML) from API
+- Stores HTML directly for proper formatting
+- Frontend renders with DOMPurify sanitization
 
-| Entity | Examples |
-|--------|----------|
-| SKILL | Python, AWS, React |
-| SOFT_SKILL | Leadership, communication |
-| LANG | English, Hebrew |
-| CERT | AWS Certified |
-
-**Level Detection:** Analyzes sentence context to classify as `mandatory` or `preferred`
-
-**Keyword Fallback:** 100+ patterns for skills NER misses (Docker, Kubernetes, etc.)
+### Comeet
+- Uses `?details=true` parameter to fetch full description
+- API returns array of sections: `[{name, value (HTML), order}, ...]`
+- Combined into HTML with `<h3>` section headers
+- Frontend renders with DOMPurify sanitization
 
 ---
 
@@ -184,11 +201,20 @@ Detection runs in order (first match wins):
 ### Core Tables
 
 ```sql
-companies        -- 1496 records: company info, careers URL, ATS status
+companies        -- 1496 records: company info, careers URL
 job_sources      -- 683 records: detected ATS with slugs/tokens
-jobs             -- 1716 records: job postings
+jobs             -- ~770 records: Israeli job postings only
+                 -- Columns: country, region, city for location classification
 job_chunks       -- Section-level job content
-job_embeddings   -- 682 records: 768d vectors (BGE)
+job_embeddings   -- ~750 records: 768d vectors (BGE)
+```
+
+### Location Columns in Jobs Table
+
+```sql
+country VARCHAR(50)   -- 'Israel' or NULL (non-Israeli skipped)
+region VARCHAR(50)    -- 'central', 'north', 'south', 'jerusalem', 'remote', 'other'
+city VARCHAR(100)     -- Normalized city name
 ```
 
 ### Auth Tables
@@ -200,14 +226,6 @@ verification_tokens    -- Email verification (24h expiry)
 password_reset_tokens  -- Password reset (1h expiry)
 rate_limits            -- Rate limiting state
 favorites              -- User saved jobs
-```
-
-### Future Tables
-
-```sql
-profile_chunks         -- User profile sections
-profile_embeddings     -- Profile vectors
-generated_resumes      -- Tailored CVs
 ```
 
 ---
@@ -236,6 +254,12 @@ generated_resumes      -- Tailored CVs
 | Email verification | 24 hours |
 | Password reset | 1 hour |
 
+### HTML Sanitization
+
+Job descriptions may contain HTML. Frontend uses DOMPurify with whitelist:
+- Allowed tags: `p, br, b, i, em, strong, u, s, h1-h6, ul, ol, li, a, span, div, table, thead, tbody, tr, th, td, blockquote, pre, code`
+- Allowed attributes: `href, target, rel, class`
+
 ---
 
 ## Environment Variables
@@ -249,6 +273,7 @@ JWT_REFRESH_SECRET=<32+ chars>
 RESEND_API_KEY=re_xxxxx
 FROM_EMAIL=onboarding@resend.dev
 FRONTEND_URL=http://localhost:5173
+ML_SERVICE_URL=http://localhost:8000
 ```
 
 ### Python ML Service
@@ -286,5 +311,5 @@ SNC_REFRESH_TOKEN=...
 | Database | PostgreSQL 17, pgvector |
 | Email | Resend API |
 | Scraping | Playwright |
-| Frontend | React 19, Vite, TailwindCSS |
+| Frontend | React 19, Vite, TailwindCSS 4, Redux Toolkit |
 | Hosting | Railway (API, ML, DB), Vercel (web) |

@@ -4,11 +4,10 @@
 
 | Package | Status | Technology | Responsibility |
 |---------|--------|------------|----------------|
-| `api` | ✅ Working | Express/TS | REST API: auth, jobs, matching, profile, favorites |
-| `ingestion` | ✅ Working | Node.js/TS | CLI: scraping, ATS detection, job fetching, embeddings |
-| `ml-service` | ✅ Working | FastAPI/Python | ML: embeddings, skill extraction, CV generation |
-| `web` | 🔄 In Progress | React/Vite | Frontend UI |
-| `shared` | 🔲 Empty | TypeScript | Shared types (planned) |
+| `api` | ✅ Production | Express/TS | REST API: auth, jobs, matching, profile, favorites |
+| `ingestion` | ✅ Production | Node.js/TS | CLI: scraping, ATS detection, job fetching, location normalization |
+| `ml-service` | ✅ Production | FastAPI/Python | ML: embeddings, skill extraction, CV generation |
+| `web` | ✅ Working | React/Vite | Frontend UI: jobs, auth, landing |
 
 ---
 
@@ -20,11 +19,9 @@ apply-less/
 │   ├── api/
 │   ├── ingestion/
 │   ├── ml-service/
-│   ├── web/
-│   └── shared/
+│   └── web/
 ├── db/
-│   ├── migrations/
-│   └── seed/
+│   └── migrations/
 ├── docs/
 ├── scripts/
 ├── .env.example
@@ -63,6 +60,10 @@ api/
 │   │   ├── match-service.ts     # Profile matching
 │   │   ├── profile-service.ts   # Profile CRUD
 │   │   └── favorites-service.ts # Favorites CRUD
+│   ├── scripts/
+│   │   ├── analyze-descriptions.ts    # DB analysis
+│   │   ├── normalize-locations.ts     # Location backfill
+│   │   └── check-other-locations.ts   # Data quality checks
 │   ├── types/
 │   │   └── index.ts             # TypeScript interfaces
 │   └── utils/
@@ -75,7 +76,7 @@ api/
 
 ## packages/ingestion
 
-CLI tool for job data pipeline.
+CLI tool for job data pipeline with location normalization.
 
 ```
 ingestion/
@@ -84,11 +85,13 @@ ingestion/
 │   ├── clients/
 │   │   ├── snc-client-playwright.ts   # SNC scraper
 │   │   ├── greenhouse-client.ts       # Greenhouse API
-│   │   ├── comeet-client.ts           # Comeet API
+│   │   ├── comeet-client.ts           # Comeet API (with details=true)
 │   │   ├── embedding-client.ts        # ML service client
 │   │   └── playwright-client.ts       # Browser automation
 │   ├── config/
 │   │   └── db.ts
+│   ├── data/
+│   │   └── israeli-cities.json        # 90+ cities with regions/aliases
 │   ├── detectors/
 │   │   ├── ats-detector.ts            # HTML/URL pattern detection
 │   │   ├── ats-patterns.ts            # Vendor-specific patterns
@@ -105,12 +108,13 @@ ingestion/
 │   ├── stages/
 │   │   ├── stage-a-snc.ts             # SNC company scraping
 │   │   ├── stage-b-detect-ats.ts      # ATS detection
-│   │   ├── stage-d-greenhouse.ts      # Greenhouse jobs
-│   │   ├── stage-e-comeet.ts          # Comeet jobs
+│   │   ├── stage-d-greenhouse.ts      # Greenhouse jobs (keeps HTML)
+│   │   ├── stage-e-comeet.ts          # Comeet jobs (details=true)
 │   │   └── stage-g-embeddings.ts      # Embedding generation
 │   ├── types/
 │   │   └── index.ts
 │   └── utils/
+│       ├── location-normalizer.ts     # Israeli location classification
 │       ├── prepare-job-text.ts
 │       ├── stage-b-query-builder.ts
 │       ├── text-normalizer.ts
@@ -129,6 +133,14 @@ ingestion/
 | `comeet` | E | Fetch jobs from Comeet API |
 | `embeddings` | G | Generate job embeddings |
 | `debug` | — | Debug detection for single company |
+
+### Location Normalization
+
+The `location-normalizer.ts` handles:
+- City name variations (Hebrew, English spellings)
+- Region classification (central, north, south, jerusalem, remote)
+- Country detection (Israel vs US/UK/EU)
+- Non-Israeli job filtering during ingestion
 
 ---
 
@@ -172,24 +184,76 @@ ml-service/
 
 ## packages/web
 
-React frontend (in progress).
+React frontend with TailwindCSS.
 
 ```
 web/
 ├── src/
-│   ├── main.tsx
-│   ├── App.tsx
-│   ├── components/      # (empty)
-│   ├── pages/           # (empty)
-│   ├── hooks/           # (empty)
-│   ├── services/        # (empty)
-│   ├── types/           # (empty)
-│   └── utils/           # (empty)
+│   ├── main.tsx                 # App entry point
+│   ├── App.tsx                  # Router setup
+│   ├── index.css                # Global styles + job-description CSS
+│   ├── components/
+│   │   ├── auth/
+│   │   │   └── password-strength.tsx
+│   │   ├── jobs/
+│   │   │   ├── job-card.tsx
+│   │   │   ├── job-fetch-error.tsx
+│   │   │   ├── job-skeleton.tsx
+│   │   │   ├── jobs-skeleton.tsx
+│   │   │   ├── pagination.tsx
+│   │   │   ├── search-input.tsx
+│   │   │   └── index.ts
+│   │   └── ui/
+│   │       ├── alert.tsx
+│   │       ├── animated-grid.tsx
+│   │       ├── button.tsx
+│   │       ├── feature-card.tsx
+│   │       ├── grid-background.tsx
+│   │       ├── input.tsx
+│   │       ├── safe-html.tsx          # DOMPurify HTML renderer
+│   │       └── index.ts
+│   ├── config/
+│   │   └── api.ts               # API URL configuration
+│   ├── hooks/
+│   │   └── index.ts             # Custom hooks
+│   ├── layout/
+│   │   ├── auth-layout.tsx
+│   │   └── main-layout.tsx
+│   ├── pages/
+│   │   ├── landing.tsx          # Home page
+│   │   ├── jobs.tsx             # Jobs list with pagination
+│   │   ├── job-details.tsx      # Single job with HTML description
+│   │   ├── login.tsx
+│   │   ├── register.tsx
+│   │   ├── forgot-password.tsx
+│   │   ├── reset-password.tsx
+│   │   └── verify-email.tsx
+│   ├── services/
+│   │   ├── api.ts               # RTK Query base
+│   │   ├── auth.ts              # Auth API
+│   │   └── jobs.ts              # Jobs API
+│   ├── store/
+│   │   ├── index.ts             # Redux store
+│   │   └── authSlice.ts         # Auth state
+│   ├── types/
+│   │   └── index.ts             # TypeScript types
+│   └── utils/
+│       └── index.ts             # Utility functions
 ├── index.html
 ├── vite.config.ts
+├── tailwind.config.js
 ├── package.json
 └── tsconfig.json
 ```
+
+### Key Components
+
+| Component | Purpose |
+|-----------|---------|
+| `SafeHtml` | Renders HTML descriptions with DOMPurify sanitization |
+| `JobCard` | Job list item with company, location, tags |
+| `SearchInput` | Debounced search input |
+| `Pagination` | Page navigation for jobs list |
 
 ---
 
@@ -211,6 +275,7 @@ SQL migrations (PostgreSQL + pgvector).
 | 010 | Add ats_identifier field |
 | 011 | Make website_url nullable |
 | 012 | Add ats_checked_at timestamp |
+| 013 | Add country, region, city columns for location normalization |
 
 ---
 
@@ -233,8 +298,8 @@ SQL migrations (PostgreSQL + pgvector).
 └─────────────┘     └──────┬──────┘     └─────────────┘
                            │
                     ┌──────▼──────┐
-                    │   shared    │
-                    │   (types)   │
+                    │  PostgreSQL │
+                    │  + pgvector │
                     └──────▲──────┘
                            │
                     ┌──────┴──────┐

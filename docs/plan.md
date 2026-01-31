@@ -1,58 +1,66 @@
-# ApplyLess Implementation Plan v3
+# ApplyLess Implementation Plan v4
 
 ## Timeline
 
 **Demo Day:** February 3, 2026  
-**Today:** January 26, 2026  
-**Working days:** 6 (+ 2 days video prep buffer)
+**Today:** January 31, 2026  
+**Working days:** 3 (including demo prep)
 
 ---
 
 ## Vision
 
 Job matching platform that:
-1. Scales to thousands of jobs via automated daily ingestion
+1. Scales to thousands of Israeli jobs via automated daily ingestion
 2. Uses local ML models (Python + HuggingFace transformers)
 3. Generates tailored CVs for favorite jobs
 4. Simple but functional UI
 
 ---
 
-## Current Status (Jan 26)
+## Current Status (Jan 31)
 
 ### ✅ Completed
 
 | Component | Details |
 |-----------|---------|
-| Database | Railway PostgreSQL + pgvector |
-| Companies | 1496 from SNC |
-| Job Sources | 683 detected |
-| Jobs | 1716 (Greenhouse + Comeet) |
-| Embeddings | 682 jobs (BGE 768d) |
-| Auth API | Full JWT system with email verification |
-| Jobs API | List, search, details |
-| Match API | Vector similarity search |
-| Profile API | CRUD |
-| Favorites API | CRUD |
-| ML Service | Python FastAPI with local models |
-| Chunking | Job/profile section + skill extraction |
-| CV Generation | Claude 3 Haiku integration |
+| **Database** | Railway PostgreSQL + pgvector |
+| **Companies** | 1496 from SNC |
+| **Job Sources** | 683 detected (Greenhouse + Comeet) |
+| **Jobs** | ~770 Israeli positions (non-Israeli filtered) |
+| **Location Normalization** | 90+ Israeli cities with regions |
+| **Embeddings** | ~750 jobs with BGE 768d vectors |
+| **Auth API** | Full JWT system with email verification |
+| **Jobs API** | List, search, details with HTML descriptions |
+| **Match API** | Vector similarity search |
+| **Profile API** | CRUD |
+| **Favorites API** | CRUD |
+| **ML Service** | Python FastAPI with local models |
+| **Chunking** | Job/profile section + skill extraction |
+| **CV Generation** | Claude 3 Haiku integration |
+| **Frontend** | Landing, Jobs list, Job details, Auth pages |
+| **HTML Descriptions** | DOMPurify rendering with CSS formatting |
 
 ### 🎯 Demo Goals
 
 | Goal | Target | Status |
 |------|--------|--------|
-| Jobs | 2000+ | 🔲 1716 |
+| Jobs | 500+ Israeli | ✅ ~770 |
 | Auth | JWT + refresh | ✅ |
 | Profile & Favorites | CRUD | ✅ |
 | ML Service | Local models | ✅ |
 | Chunking | Sections + skills | ✅ |
 | CV Generation | Working | ✅ |
-| UI | Simple, functional | 🔲 |
+| Location Filter | Israel only | ✅ |
+| UI - Jobs | List + details | ✅ |
+| UI - Auth | Login/Register | ✅ |
+| UI - Profile | Page | 🔲 |
+| UI - Match | Results page | 🔲 |
+| Production | Deployed | 🔲 |
 
 ---
 
-## Roadmap
+## Completed Phases
 
 ### ✅ Phase 1: Backend (Days 7-9)
 
@@ -85,12 +93,12 @@ Job matching platform that:
 - [x] Skill level detection
 - [x] Profile feedback & scoring
 
-#### Day 11: Scaled Ingestion
-- [ ] Run Greenhouse for all companies
-- [ ] Comeet scraper improvements
-- [ ] Full ingestion pipeline
-- [ ] Chunk all jobs
-- [ ] Target: 2000+ jobs
+#### ✅ Day 11: Scaled Ingestion
+- [x] Greenhouse ingestion (keeps HTML)
+- [x] Comeet ingestion (details=true for descriptions)
+- [x] Location normalization at ingestion
+- [x] Non-Israeli job filtering
+- [x] ~770 Israeli jobs
 
 #### ✅ Day 12: CV Generation
 - [x] Skill gap analysis
@@ -100,30 +108,39 @@ Job matching platform that:
 
 ---
 
-### Phase 3: Frontend (Days 13-14)
+### ✅ Phase 3: Frontend (Days 13-14)
 
-#### Day 13: Core UI
-- [ ] Login/Register pages
-- [ ] Jobs list (paginated)
-- [ ] Match page
-- [ ] Navigation
+#### ✅ Day 13: Core UI
+- [x] Landing page (redesigned)
+- [x] Login/Register pages
+- [x] Jobs list (paginated)
+- [x] Job details with HTML description
+- [x] Navigation
 
-#### Day 14: Favorites + CV
+#### 🔄 Day 14: Additional Pages
+- [x] Forgot password
+- [x] Reset password
+- [x] Email verification
+- [ ] Profile page
+- [ ] Match results page
 - [ ] Favorites page
-- [ ] Generate CV button
-- [ ] CV preview/download
-- [ ] Loading states
 
 ---
 
 ### Phase 4: Deploy (Days 15-17)
 
-#### Day 15: Deployment
+#### Day 15: Final Features
+- [ ] Profile page UI
+- [ ] Match results page
+- [ ] Favorites page with CV generation
+
+#### Day 16: Deployment
 - [ ] Deploy Node.js API to Railway
 - [ ] Deploy Python ML to Railway
 - [ ] Deploy Frontend to Vercel
+- [ ] Test end-to-end
 
-#### Days 16-17: Demo Prep
+#### Day 17: Demo Prep
 - [ ] Bug fixes
 - [ ] Record demo video
 - [ ] Prepare slides
@@ -131,6 +148,28 @@ Job matching platform that:
 ---
 
 ### Feb 3: Demo Day 🎉
+
+---
+
+## Recent Fixes (Jan 31)
+
+### Location Normalization
+- ✅ Added 90+ Israeli cities to dictionary
+- ✅ Added Hebrew spelling variations
+- ✅ Classified cities into 5 regions
+- ✅ Non-Israeli jobs filtered during ingestion
+- ✅ Added country/region/city columns to jobs table
+
+### Comeet Descriptions
+- ✅ Fixed missing descriptions (was 100%, now <4%)
+- ✅ Discovered `?details=true` API parameter
+- ✅ Cleaned up stale jobs (404 from API)
+
+### HTML Descriptions
+- ✅ Greenhouse keeps HTML instead of stripping
+- ✅ Comeet combines sections as HTML with headers
+- ✅ Frontend renders with DOMPurify
+- ✅ Added CSS for lists, headings, paragraphs
 
 ---
 
@@ -159,7 +198,12 @@ Job matching platform that:
 - [x] Python ML service with local model
 - [x] Job/profile chunking with skill extraction
 - [x] CV generation
-- [ ] 2000+ jobs
-- [ ] Functional UI
+- [x] 500+ Israeli jobs
+- [x] Location normalization
+- [x] Jobs list UI
+- [x] Job details with formatted descriptions
+- [x] Auth UI (login, register, password reset)
+- [ ] Profile UI
+- [ ] Match results UI
 - [ ] Production deployment
 - [ ] No crashes during demo
