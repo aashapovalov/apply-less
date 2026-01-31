@@ -1,4 +1,11 @@
-import type { CitiesResponse, CompaniesResponse, JobDetail, JobsQueryParams, JobsResponse, RegionsResponse } from '@/types';
+import type {
+  CitiesResponse,
+  CompaniesResponse,
+  JobDetail,
+  JobsQueryParams,
+  JobsResponse,
+  RegionsResponse,
+} from '@/types';
 
 import { api } from './api';
 
@@ -53,10 +60,10 @@ export const jobsApi = api.injectEndpoints({
   }),
 });
 
-export const { 
-  useGetJobsQuery, 
-  useGetJobQuery, 
-  useGetRegionsQuery, 
+export const {
+  useGetJobsQuery,
+  useGetJobQuery,
+  useGetRegionsQuery,
   useGetCitiesQuery,
   useGetCompaniesQuery,
 } = jobsApi;
