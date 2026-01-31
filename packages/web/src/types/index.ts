@@ -134,3 +134,50 @@ export interface ParseFileResponse {
   filename: string;
   pages?: number;
 }
+
+// Favorites types
+export interface FavoriteJob {
+  favoriteId: number;
+  jobId: number;
+  title: string;
+  companyName: string;
+  location: string | null;
+  tags: string[];
+  url: string;
+  postedDate: string | null;
+  savedAt: string;
+}
+
+export interface FavoritesResponse {
+  favorites: FavoriteJob[];
+  count: number;
+}
+
+export interface IsFavoriteResponse {
+  isFavorite: boolean;
+}
+
+export interface AddFavoriteResponse {
+  message: string;
+  favoriteId: number;
+}
+
+// Match types
+export interface JobMatch {
+  job_id: number;
+  title: string;
+  company_name: string;
+  location: string | null;
+  region: string | null;
+  city: string | null;
+  tags: string[];
+  url: string;
+  posted_date: string | null;
+  score: number;
+}
+
+export interface MatchResponse {
+  matches: JobMatch[];
+  total: number;
+  has_more: boolean;
+}
