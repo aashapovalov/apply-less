@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { Alert, Button, Input } from '@/components/ui';
 import { useLoginMutation } from '@/services/auth.ts';
@@ -9,8 +9,10 @@ import { getErrorMessage } from '@/utils';
 
 export function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [login, { isLoading }] = useLoginMutation();
   const [error, setError] = useState<string | null>(null);
+  const [checkingProfile, setCheckingProfile] = useState(false);
 
   const {
     register,
@@ -22,9 +24,40 @@ export function Login() {
     try {
       setError(null);
       await login(data).unwrap();
-      navigate('/');
+
+      // Check where to redirect
+      const from = (location.state as any)?.from?.pathname;
+      if (from && from !== '/login' && from !== '/register') {
+        navigate(from, { replace: true });
+      } else {
+        // Smart redirect: check if profile exists
+        setCheckingProfile(true);
+        try {
+          const response = await fetch(
+            `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/profile`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+              },
+            }
+          );
+          if (response.ok) {
+            const profileData = await response.json();
+            if (profileData.profile?.profileText) {
+              navigate('/jobs', { replace: true });
+            } else {
+              navigate('/profile', { replace: true });
+            }
+          } else {
+            navigate('/profile', { replace: true });
+          }
+        } catch {
+          navigate('/profile', { replace: true });
+        }
+      }
     } catch (error: unknown) {
       setError(getErrorMessage(error));
+      setCheckingProfile(false);
     }
   };
 
@@ -69,8 +102,8 @@ export function Login() {
           </Link>
         </div>
 
-        <Button type="submit" isLoading={isLoading}>
-          Login
+        <Button type="submit" isLoading={isLoading || checkingProfile}>
+          {checkingProfile ? 'Redirecting...' : 'Login'}
         </Button>
       </form>
 
