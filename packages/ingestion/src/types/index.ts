@@ -110,14 +110,16 @@ export interface ComeetJob {
   };
   department: {
     name: string;
-  };
+  } | string;
   employment_type?: string;
   experience_level?: string;
-  description: string;
+  description?: string;
+  details?: Array<{name: string; value: string; order: number}>; // Full description sections from API with details=true
   requirements?: string;
-  url_active_page: string;
-  url_comeet_page: string;
-  time_updated: string;
+  url_active_page?: string;
+  url_comeet_page?: string;
+  url_comeet_hosted_page?: string;
+  time_updated?: string;
   picture_url?: string;
 }
 
