@@ -73,6 +73,8 @@ export interface JobsQueryParams {
   region?: string;
   city?: string;
   company?: string;
+  title?: string;
+  postedAfter?: string;
 }
 
 export interface RegionCount {
@@ -91,4 +93,13 @@ export interface CityCount {
 
 export interface CitiesResponse {
   cities: CityCount[];
+}
+
+export interface CompanyCount {
+  company_name: string;
+  count: number;
+}
+
+export interface CompaniesResponse {
+  companies: CompanyCount[];
 }
