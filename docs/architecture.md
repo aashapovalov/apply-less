@@ -101,8 +101,11 @@ Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
 |----------|--------|------|-------------|
 | `/` | GET | No | List jobs (paginated, filterable) |
 | `/:id` | GET | No | Get job details with HTML description |
+| `/regions` | GET | No | Get regions with job counts |
+| `/cities` | GET | No | Get cities with job counts |
+| `/companies` | GET | No | Get companies for autocomplete |
 
-**Query params:** `limit`, `offset`, `location`, `company`, `tags`, `region`, `sort`
+**Query params for `/`:** `limit`, `offset`, `region`, `company`, `title`, `postedAfter`, `sort`
 
 **Note:** All jobs are Israeli only (filtered during ingestion).
 

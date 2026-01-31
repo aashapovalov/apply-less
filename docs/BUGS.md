@@ -10,25 +10,6 @@
 
 ## Open Issues
 
-### BUG-001: Search doesn't work properly
-**Status:** 🟡 Medium  
-**Component:** Frontend + Backend  
-**Page:** `/jobs`
-
-**Current behavior:**  
-Search input sends `location` and `company` params to API, but:
-- API uses `ILIKE %value%` which requires exact substring match
-- No title search supported
-
-**Expected behavior:**  
-Search should find jobs by title, company, or location with fuzzy matching.
-
-**Proposed fix:**
-1. Add `search` param to backend that searches across title, company_name, location
-2. Use PostgreSQL full-text search or multiple ILIKE conditions
-
----
-
 ### BUG-002: Job cards missing description preview
 **Status:** 🟢 Low  
 **Component:** Backend  
@@ -113,6 +94,48 @@ Features needed:
 
 ## Completed Fixes
 
+### ✅ BUG-008: Job filters UI implementation
+**Status:** ✅ Fixed (Jan 31, 2026)  
+**Component:** Frontend + Backend
+
+**Solution implemented:**
+
+**Backend:**
+1. Added `/api/jobs/companies` endpoint for company autocomplete
+2. Added `title` and `postedAfter` query params to `/api/jobs`
+3. Company filter uses exact match for dropdown selection
+
+**Frontend:**
+1. Created `RoleInput` - text input with localStorage search history
+2. Created `CompanySearch` - autocomplete dropdown with debounced search
+3. Created `RegionFilter` - custom dropdown (consistent styling)
+4. Created `DateFilter` - dropdown for Today/This week/This month
+5. All dropdowns have consistent styling (custom components, not native select)
+6. Active filter pills with individual clear buttons
+7. "Clear all" button to reset filters
+
+**Filter layout:**
+```
+Row 1: [Role Input] [Company Search]
+Row 2: [Region Filter] [Date Filter]
+```
+
+---
+
+### ✅ BUG-001: Search/filter functionality
+**Status:** ✅ Fixed (Jan 31, 2026)  
+**Component:** Frontend + Backend
+
+**Previous issue:** Search input was basic, no proper filtering.
+
+**Solution:** Replaced generic search with dedicated filters:
+- **Role search:** `title` param with ILIKE matching
+- **Company filter:** Exact match dropdown with autocomplete
+- **Region filter:** Dropdown with job counts
+- **Date filter:** Posted within Today/Week/Month
+
+---
+
 ### ✅ BUG-005: Location normalization & Israel-only filter
 **Status:** ✅ Fixed (Jan 31, 2026)  
 **Component:** Backend + Ingestion + Database
@@ -166,32 +189,32 @@ Features needed:
 
 **Solution:**
 1. Updated Greenhouse stage to keep `jobDetail.content` HTML
-2. Updated Comeet to combine HTML sections with `<h3>` headers
-3. Created `SafeHtml` component with DOMPurify sanitization
-4. Added CSS styles for `.job-description` (lists, headings, paragraphs)
-5. Need to re-run ingestion to update existing jobs
+2. Added `decodeHtmlEntities()` to fix encoded HTML from Greenhouse API
+3. Updated Comeet to combine HTML sections with `<h3>` headers
+4. Created `SafeHtml` component with DOMPurify sanitization
+5. Added CSS styles for `.job-description` (lists, headings, paragraphs)
+6. Created fix script to decode HTML entities in existing jobs
 
 ---
 
 ## Notes
 
-### Re-ingestion Required
+### API Endpoints
 
-After fixing HTML descriptions, existing jobs need to be re-ingested:
-
-```bash
-# Re-fetch Greenhouse jobs with HTML descriptions
-cd packages/ingestion && npm run start -- greenhouse
-
-# Re-fetch Comeet jobs with details=true
-cd packages/ingestion && npm run start -- comeet
+```
+GET /api/jobs?limit=20&offset=0&region=&company=&title=&postedAfter=
+GET /api/jobs/:id
+GET /api/jobs/regions
+GET /api/jobs/cities
+GET /api/jobs/companies?search=&limit=20
+POST /api/match
 ```
 
 ### Database Schema
 
 ```sql
 jobs (relevant columns):
-  - id, title, description (now HTML), location
+  - id, title, description (HTML), location
   - country VARCHAR(50)  -- 'Israel' or NULL
   - region VARCHAR(50)   -- 'central', 'north', 'south', 'jerusalem', 'remote'
   - city VARCHAR(100)    -- Normalized city name
@@ -204,7 +227,11 @@ job_embeddings_simple:
   - job_id, embedding (768d vector)
 ```
 
-### API Endpoints
-- `GET /api/jobs?limit=20&offset=0&location=&company=&region=`
-- `GET /api/jobs/:id` — Returns full HTML description
-- `POST /api/match` — Profile embedding similarity search
+### Frontend Filter Components
+
+| Component | File | Description |
+|-----------|------|-------------|
+| RoleInput | `role-input.tsx` | Text input with localStorage history |
+| CompanySearch | `company-search.tsx` | Autocomplete dropdown with debounced API search |
+| RegionFilter | `region-filter.tsx` | Custom dropdown with job counts |
+| DateFilter | `date-filter.tsx` | Dropdown for date buckets |

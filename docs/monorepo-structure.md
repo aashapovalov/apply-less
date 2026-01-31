@@ -7,7 +7,7 @@
 | `api` | ✅ Production | Express/TS | REST API: auth, jobs, matching, profile, favorites |
 | `ingestion` | ✅ Production | Node.js/TS | CLI: scraping, ATS detection, job fetching, location normalization |
 | `ml-service` | ✅ Production | FastAPI/Python | ML: embeddings, skill extraction, CV generation |
-| `web` | ✅ Working | React/Vite | Frontend UI: jobs, auth, landing |
+| `web` | ✅ Working | React/Vite | Frontend UI: jobs with filters, auth, landing |
 
 ---
 
@@ -46,7 +46,7 @@ api/
 │   │   └── auth-middleware.ts   # JWT verification
 │   ├── routes/
 │   │   ├── auth-router.ts       # /api/auth/* (register, login, etc.)
-│   │   ├── jobs-router.ts       # /api/jobs
+│   │   ├── jobs-router.ts       # /api/jobs (list, regions, cities, companies)
 │   │   ├── match-router.ts      # /api/match
 │   │   ├── profile-router.ts    # /api/profile
 │   │   └── favorites-router.ts  # /api/favorites
@@ -56,14 +56,10 @@ api/
 │   │   ├── user-service.ts      # User CRUD
 │   │   ├── email-service.ts     # Resend email client
 │   │   ├── rate-limit-service.ts
-│   │   ├── job-service.ts       # Job queries
+│   │   ├── job-service.ts       # Job queries + filters
 │   │   ├── match-service.ts     # Profile matching
 │   │   ├── profile-service.ts   # Profile CRUD
 │   │   └── favorites-service.ts # Favorites CRUD
-│   ├── scripts/
-│   │   ├── analyze-descriptions.ts    # DB analysis
-│   │   ├── normalize-locations.ts     # Location backfill
-│   │   └── check-other-locations.ts   # Data quality checks
 │   ├── types/
 │   │   └── index.ts             # TypeScript interfaces
 │   └── utils/
@@ -71,6 +67,16 @@ api/
 ├── package.json
 └── tsconfig.json
 ```
+
+### Jobs API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/jobs` | List jobs with filters (region, company, title, postedAfter) |
+| `GET /api/jobs/:id` | Get single job details |
+| `GET /api/jobs/regions` | Get regions with job counts |
+| `GET /api/jobs/cities` | Get cities with job counts |
+| `GET /api/jobs/companies` | Get companies for autocomplete |
 
 ---
 
@@ -134,14 +140,6 @@ ingestion/
 | `embeddings` | G | Generate job embeddings |
 | `debug` | — | Debug detection for single company |
 
-### Location Normalization
-
-The `location-normalizer.ts` handles:
-- City name variations (Hebrew, English spellings)
-- Region classification (central, north, south, jerusalem, remote)
-- Country detection (Israel vs US/UK/EU)
-- Non-Israeli job filtering during ingestion
-
 ---
 
 ## packages/ml-service
@@ -196,11 +194,16 @@ web/
 │   │   ├── auth/
 │   │   │   └── password-strength.tsx
 │   │   ├── jobs/
+│   │   │   ├── company-search.tsx     # Company autocomplete dropdown
+│   │   │   ├── date-filter.tsx        # Date bucket dropdown
 │   │   │   ├── job-card.tsx
 │   │   │   ├── job-fetch-error.tsx
 │   │   │   ├── job-skeleton.tsx
 │   │   │   ├── jobs-skeleton.tsx
 │   │   │   ├── pagination.tsx
+│   │   │   ├── region-filter.tsx      # Region dropdown
+│   │   │   ├── role-input.tsx         # Role search with history
+│   │   │   ├── safe-html.tsx          # DOMPurify HTML renderer
 │   │   │   ├── search-input.tsx
 │   │   │   └── index.ts
 │   │   └── ui/
@@ -210,7 +213,6 @@ web/
 │   │       ├── feature-card.tsx
 │   │       ├── grid-background.tsx
 │   │       ├── input.tsx
-│   │       ├── safe-html.tsx          # DOMPurify HTML renderer
 │   │       └── index.ts
 │   ├── config/
 │   │   └── api.ts               # API URL configuration
@@ -221,7 +223,7 @@ web/
 │   │   └── main-layout.tsx
 │   ├── pages/
 │   │   ├── landing.tsx          # Home page
-│   │   ├── jobs.tsx             # Jobs list with pagination
+│   │   ├── jobs.tsx             # Jobs list with filters
 │   │   ├── job-details.tsx      # Single job with HTML description
 │   │   ├── login.tsx
 │   │   ├── register.tsx
@@ -231,7 +233,7 @@ web/
 │   ├── services/
 │   │   ├── api.ts               # RTK Query base
 │   │   ├── auth.ts              # Auth API
-│   │   └── jobs.ts              # Jobs API
+│   │   └── jobs.ts              # Jobs API (list, regions, cities, companies)
 │   ├── store/
 │   │   ├── index.ts             # Redux store
 │   │   └── authSlice.ts         # Auth state
@@ -252,7 +254,10 @@ web/
 |-----------|---------|
 | `SafeHtml` | Renders HTML descriptions with DOMPurify sanitization |
 | `JobCard` | Job list item with company, location, tags |
-| `SearchInput` | Debounced search input |
+| `CompanySearch` | Autocomplete dropdown with debounced search |
+| `DateFilter` | Date bucket dropdown (Today, This week, This month) |
+| `RegionFilter` | Region dropdown with job counts |
+| `RoleInput` | Role search input with localStorage history |
 | `Pagination` | Page navigation for jobs list |
 
 ---

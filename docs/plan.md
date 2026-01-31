@@ -31,15 +31,16 @@ Job matching platform that:
 | **Location Normalization** | 90+ Israeli cities with regions |
 | **Embeddings** | ~750 jobs with BGE 768d vectors |
 | **Auth API** | Full JWT system with email verification |
-| **Jobs API** | List, search, details with HTML descriptions |
+| **Jobs API** | List, search, filters, details with HTML descriptions |
 | **Match API** | Vector similarity search |
 | **Profile API** | CRUD |
 | **Favorites API** | CRUD |
 | **ML Service** | Python FastAPI with local models |
 | **Chunking** | Job/profile section + skill extraction |
 | **CV Generation** | Claude 3 Haiku integration |
-| **Frontend** | Landing, Jobs list, Job details, Auth pages |
+| **Frontend** | Landing, Jobs list with filters, Job details, Auth pages |
 | **HTML Descriptions** | DOMPurify rendering with CSS formatting |
+| **Job Filters** | Region, date, company (autocomplete), role (with history) |
 
 ### 🎯 Demo Goals
 
@@ -52,7 +53,7 @@ Job matching platform that:
 | Chunking | Sections + skills | ✅ |
 | CV Generation | Working | ✅ |
 | Location Filter | Israel only | ✅ |
-| UI - Jobs | List + details | ✅ |
+| UI - Jobs | List + filters + details | ✅ |
 | UI - Auth | Login/Register | ✅ |
 | UI - Profile | Page | 🔲 |
 | UI - Match | Results page | 🔲 |
@@ -117,10 +118,13 @@ Job matching platform that:
 - [x] Job details with HTML description
 - [x] Navigation
 
-#### 🔄 Day 14: Additional Pages
+#### ✅ Day 14: Job Filters & Additional Pages
 - [x] Forgot password
 - [x] Reset password
 - [x] Email verification
+- [x] Job filters (region, date, company, role)
+- [x] Company autocomplete with job counts
+- [x] Role search with history
 - [ ] Profile page
 - [ ] Match results page
 - [ ] Favorites page
@@ -152,6 +156,14 @@ Job matching platform that:
 ---
 
 ## Recent Fixes (Jan 31)
+
+### Job Filters UI
+- ✅ Region dropdown (custom component)
+- ✅ Date filter (Today, This week, This month)
+- ✅ Company search with autocomplete
+- ✅ Role input with search history (localStorage)
+- ✅ Active filter pills with clear buttons
+- ✅ Backend: /api/jobs/companies endpoint
 
 ### Location Normalization
 - ✅ Added 90+ Israeli cities to dictionary
@@ -200,7 +212,7 @@ Job matching platform that:
 - [x] CV generation
 - [x] 500+ Israeli jobs
 - [x] Location normalization
-- [x] Jobs list UI
+- [x] Jobs list UI with filters
 - [x] Job details with formatted descriptions
 - [x] Auth UI (login, register, password reset)
 - [ ] Profile UI
