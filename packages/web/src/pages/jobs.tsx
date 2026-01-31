@@ -1,7 +1,14 @@
 import { useSearchParams } from 'react-router-dom';
 
 import { JobsSkeleton } from '@/components/jobs';
-import { CompanySearch, DateFilter, JobCard, Pagination, RoleInput } from '@/components/jobs';
+import {
+  CompanySearch,
+  DateFilter,
+  JobCard,
+  Pagination,
+  RegionFilter,
+  RoleInput,
+} from '@/components/jobs';
 import { useGetJobsQuery, useGetRegionsQuery } from '@/services/jobs';
 
 const LIMIT = 20;
@@ -92,11 +99,7 @@ export function Jobs() {
       <div className="mb-6 space-y-4">
         {/* Row 1: Role and Company */}
         <div className="flex flex-col gap-4 sm:flex-row">
-          <RoleInput
-            value={title}
-            onChange={(v) => updateFilter('title', v)}
-            className="flex-1"
-          />
+          <RoleInput value={title} onChange={(v) => updateFilter('title', v)} className="flex-1" />
           <CompanySearch
             value={company}
             onChange={(v) => updateFilter('company', v)}
@@ -106,19 +109,12 @@ export function Jobs() {
 
         {/* Row 2: Region and Date */}
         <div className="flex flex-col gap-4 sm:flex-row">
-          <select
+          <RegionFilter
             value={region}
-            onChange={(e) => updateFilter('region', e.target.value)}
-            className="bg-card border-border text-primary focus:border-accent h-12 flex-1 rounded-xl border px-4 text-sm outline-none"
-          >
-            <option value="">All Regions</option>
-            {regionsData?.regions.map((r) => (
-              <option key={r.region} value={r.region}>
-                {REGION_LABELS[r.region] || r.region} ({r.count})
-              </option>
-            ))}
-          </select>
-
+            onChange={(v) => updateFilter('region', v)}
+            regions={regionsData?.regions || []}
+            className="flex-1"
+          />
           <DateFilter
             value={postedAfter}
             onChange={(v) => updateFilter('postedAfter', v)}
