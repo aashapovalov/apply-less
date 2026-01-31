@@ -181,3 +181,9 @@ export interface MatchResponse {
   total: number;
   has_more: boolean;
 }
+
+export interface MatchRequest {
+  profile: string;
+  limit?: number;
+  offset?: number;
+}
