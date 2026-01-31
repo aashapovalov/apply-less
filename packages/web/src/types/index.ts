@@ -112,8 +112,8 @@ export interface CompaniesResponse {
 // Profile types
 export interface Profile {
   userId: number;
-  profile_text: string | null;
-  updated_at: string;
+  profileText: string | null;
+  updatedAt: string;
 }
 
 export interface ProfileResponse {
