@@ -1,3 +1,4 @@
+// Auth types
 export interface User {
   id: number;
   email: string;
@@ -40,6 +41,7 @@ export interface ResetPasswordForm {
   confirmPassword: string;
 }
 
+// Job types
 export interface Job {
   job_id: number;
   title: string;
@@ -77,6 +79,7 @@ export interface JobsQueryParams {
   postedAfter?: string;
 }
 
+// Job region types
 export interface RegionCount {
   region: string;
   count: number;
@@ -86,6 +89,7 @@ export interface RegionsResponse {
   regions: RegionCount[];
 }
 
+// Job city types
 export interface CityCount {
   city: string;
   count: number;
@@ -95,6 +99,7 @@ export interface CitiesResponse {
   cities: CityCount[];
 }
 
+// Job company types
 export interface CompanyCount {
   company_name: string;
   count: number;
@@ -102,4 +107,30 @@ export interface CompanyCount {
 
 export interface CompaniesResponse {
   companies: CompanyCount[];
+}
+
+// Profile types
+export interface Profile {
+  userId: number;
+  profile_text: string | null;
+  updated_at: string;
+}
+
+export interface ProfileResponse {
+  profile: Profile;
+}
+
+export interface SaveProfileRequest {
+  profile_text: string;
+}
+
+export interface SaveProfileResponse {
+  profile: Profile;
+  message: string;
+}
+
+export interface ParseFileResponse {
+  text: string;
+  filename: string;
+  pages?: number;
 }
