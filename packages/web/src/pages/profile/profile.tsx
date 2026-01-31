@@ -119,6 +119,9 @@ export function Profile() {
       await saveProfile({ profileText }).unwrap();
       setLocalText(null);
       setSuccess('Profile saved successfully!');
+
+      // Redirect to jobs with relevance sort
+      setTimeout(() => navigate('/jobs?sort=relevance'), 1000);
     } catch (err) {
       setError(getErrorMessage(err));
     }
