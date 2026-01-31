@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { FileDropzone } from '@/components/profile';
@@ -12,7 +12,8 @@ import { getErrorMessage } from '@/utils';
 
 export function Profile() {
   const navigate = useNavigate();
-  const [profileText, setProfileText] = useState('');
+  // Track local edits only - null means "use server data"
+  const [localText, setLocalText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -20,12 +21,12 @@ export function Profile() {
   const [saveProfile, { isLoading: isSaving }] = useSaveProfileMutation();
   const [parseFile, { isLoading: isParsing }] = useParseFileMutation();
 
-  // Load existing profile
-  useEffect(() => {
-    if (profileData?.profile?.profileText) {
-      setProfileText(profileData.profile.profileText);
-    }
-  }, [profileData]);
+  // Use local text if edited, otherwise use server data
+  const profileText = localText ?? profileData?.profile?.profileText ?? '';
+
+  const handleTextChange = (text: string) => {
+    setLocalText(text);
+  };
 
   const handleFileSelect = async (file: File) => {
     try {
@@ -35,7 +36,7 @@ export function Profile() {
       formData.append('file', file);
 
       const result = await parseFile(formData).unwrap();
-      setProfileText(result.text);
+      setLocalText(result.text);
       setSuccess(`Imported from ${result.filename}${result.pages ? ` (${result.pages})` : ''}`);
     } catch (error) {
       setError(getErrorMessage(error));
@@ -142,7 +143,7 @@ export function Profile() {
       <div className="mb-6">
         <textarea
           value={profileText}
-          onChange={(e) => setProfileText(e.target.value)}
+          onChange={(e) => handleTextChange(e.target.value)}
           placeholder="Paste your work experience, skills, education, achievements...
 
 Example:
