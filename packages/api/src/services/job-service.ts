@@ -21,12 +21,14 @@ export class JobService {
             company,
             tags,
             search,
+            title,
+            postedAfter,
             sort = "posted_date",
-            countryFilter = "IL", // Default to Israel-only
+            countryFilter = "IL",
         } = params;
 
-        let whereConditions: string[] = ["j.status = 'active'"];
-        let queryParams: any[] = [];
+        const whereConditions: string[] = ["j.status = 'active'"];
+        const queryParams: any[] = [];
         let paramIndex = 1;
 
         // Country filter (default: Israel only)
@@ -57,10 +59,10 @@ export class JobService {
             paramIndex++;
         }
 
-        // Company filter
+        // Company filter (exact match for dropdown selection)
         if (company) {
-            whereConditions.push(`c.company_name ILIKE $${paramIndex}`);
-            queryParams.push(`%${company}%`);
+            whereConditions.push(`c.company_name = $${paramIndex}`);
+            queryParams.push(company);
             paramIndex++;
         }
 
@@ -71,10 +73,24 @@ export class JobService {
             paramIndex++;
         }
 
-        // Search filter (title or company)
+        // Search filter (legacy - title or company)
         if (search) {
             whereConditions.push(`(j.title ILIKE $${paramIndex} OR c.company_name ILIKE $${paramIndex})`);
             queryParams.push(`%${search}%`);
+            paramIndex++;
+        }
+
+        // Title filter (role search)
+        if (title) {
+            whereConditions.push(`j.title ILIKE $${paramIndex}`);
+            queryParams.push(`%${title}%`);
+            paramIndex++;
+        }
+
+        // Posted after filter (date bucket)
+        if (postedAfter) {
+            whereConditions.push(`j.posted_date >= $${paramIndex}`);
+            queryParams.push(postedAfter);
             paramIndex++;
         }
 
@@ -201,6 +217,33 @@ export class JobService {
     }
 
     /**
+     * Get companies with active jobs (for autocomplete)
+     */
+    async getCompanies(search?: string, limit: number = 20): Promise<{ company_name: string; count: number }[]> {
+        let query = `
+            SELECT c.company_name, COUNT(j.id) as count
+            FROM companies c
+            JOIN jobs j ON j.company_id = c.id
+            WHERE j.country = 'IL' AND j.status = 'active'
+        `;
+        const params: any[] = [];
+        
+        if (search && search.length > 0) {
+            query += ` AND c.company_name ILIKE $1`;
+            params.push(`%${search}%`);
+        }
+        
+        query += ` GROUP BY c.company_name ORDER BY count DESC LIMIT $${params.length + 1}`;
+        params.push(limit);
+        
+        const result = await this.db.query(query, params);
+        return result.rows.map(row => ({
+            company_name: row.company_name,
+            count: parseInt(row.count)
+        }));
+    }
+
+    /**
      * Find jobs matching a profile embedding using vector similarity
      * Defaults to Israel-only
      */
@@ -210,14 +253,14 @@ export class JobService {
             limit = 20,
             offset = 0,
             threshold = 0.0,
-            countryFilter = "IL", // Default to Israel-only
+            countryFilter = "IL",
         } = params;
 
         const embeddingStr = `[${embedding.join(",")}]`;
 
         // Build WHERE clause
-        let whereConditions: string[] = [`1 - (je.embedding <=> $1::vector) >= $2`];
-        let queryParams: any[] = [embeddingStr, threshold];
+        const whereConditions: string[] = [`1 - (je.embedding <=> $1::vector) >= $2`];
+        const queryParams: any[] = [embeddingStr, threshold];
         let paramIndex = 3;
 
         if (countryFilter) {
