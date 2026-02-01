@@ -30,10 +30,14 @@ from services.skill_extractor_service import SkillExtractorService
 from services.cv_generator_service import CVGeneratorService
 from services.job_chunker_service import JobChunkerService
 from services.profile_chunker_service import ProfileChunkerService
-from api.health import router as health_router
-from api.embed import router as embed_router
-from api.chunk import router as chunk_router
-from api.cv import router as cv_router
+from api import (
+    health_router,
+    embed_router,
+    chunk_router,
+    cv_router,
+    compare_router
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -129,6 +133,7 @@ app.include_router(health_router)
 app.include_router(embed_router, prefix="/api")
 app.include_router(chunk_router, prefix="/api")
 app.include_router(cv_router, prefix="/api")
+app.include_router(compare_router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
