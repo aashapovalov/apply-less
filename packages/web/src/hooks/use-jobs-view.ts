@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 
-import { JOBS_PER_PAGE } from '@/constants';
+import { JOBS_PER_PAGE, MAX_MATCHES } from '@/constants';
 import { useAuthStatus } from '@/hooks/use-auth-status.ts';
 import { useGetFavoritesQuery } from '@/services/favorites.ts';
 import { useGetJobsQuery, useGetRegionsQuery } from '@/services/jobs.ts';
@@ -45,7 +45,7 @@ export function useJobsView() {
     { skip: viewMode !== 'all' }
   );
   const matchQuery = useMatchJobsQuery(
-    { limit: JOBS_PER_PAGE, offset },
+    { limit: MAX_MATCHES, offset: 0 },
     { skip: viewMode !== 'matches' || !hasProfile || isAuthLoading }
   );
   const regionsQuery = useGetRegionsQuery();
