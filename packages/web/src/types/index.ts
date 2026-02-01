@@ -196,3 +196,62 @@ export interface JobFilters {
 }
 
 export type ViewMode = 'all' | 'matches' | 'favorites';
+
+// CV Generation types
+export interface CVGenerateRequest {
+  job_title: string;
+  job_company: string;
+  job_location?: string;
+  job_description: string;
+  profile_text: string;
+}
+
+export interface CVGenerateResponse {
+  cv_markdown: string;
+  match_summary: {
+    matching_skills: string[];
+    missing_skills: string[];
+    preferred_skills_matched: string[];
+    match_rate: {
+      mandatory: string;
+      preferred: string;
+    };
+  };
+  job: {
+    title: string;
+    company: string;
+    location: string;
+  };
+  model: string;
+  time_ms: number;
+  warning: string | null;
+}
+
+// CV Comparison types
+export interface CVCompareRequest {
+  cv_text: string;
+  job_title: string;
+  job_company?: string;
+  job_description: string;
+}
+
+export interface RequirementItem {
+  skill: string;
+  covered: boolean;
+}
+
+export interface CVCompareResponse {
+  score: number;
+  job_requirements: {
+    mandatory: RequirementItem[];
+    preferred: RequirementItem[];
+  };
+  summary: {
+    covered_count: number;
+    total_count: number;
+    mandatory_covered: string;
+    preferred_covered: string;
+  };
+  cv_skills: string[];
+  time_ms: number;
+}
