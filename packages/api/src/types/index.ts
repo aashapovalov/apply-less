@@ -46,7 +46,7 @@ export interface MatchParams {
 }
 
 export interface MatchRequest {
-  profile: string;
+  userId: number;
   limit?: number;
   offset?: number;
   threshold?: number;
@@ -120,6 +120,11 @@ export interface Chunk {
   text: string;
   embedding: number[];
   token_count: number;
+}
+
+export interface JobChunkResponse {
+  chunks: Chunk[];
+  skills: Array<{ skill: string; level: string }>;
 }
 
 export interface ProfileChunkResponse {
