@@ -23,7 +23,7 @@ const POSITION_URL_PATTERNS = [
     /\/position\/[^\/]+\/?$/i,
     /\/job\/[^\/]+\/?$/i,
     /\/jobs\/[^\/]+\/?$/i,
-    /comeet\.co\/jobs\/[^\/]+/i,
+    /comeet\.(co|com)\/jobs\/[^\/]+/i,  // Match both .co and .com
 ];
 
 /**
@@ -179,7 +179,22 @@ export async function extractComeetUID(
         };
     }
 
-    // 2. Check for Comeet iframe
+    // 2. Extract UID directly from comeet.com/comeet.co links on the page
+    // Link format: https://www.comeet.com/jobs/COMPANY/UID/job-title/...
+    const comeetLinkMatch = currentHtml.match(/comeet\.(com|co)\/jobs\/[^\/]+\/([A-Z0-9.]+)/i);
+    if (comeetLinkMatch) {
+        const uid = comeetLinkMatch[2];
+        console.log(`   ✅ Found UID from Comeet link: ${uid}`);
+        return {
+            atsType: 'comeet',
+            confidence: 0.95,
+            detectionMethod: 'comeet_link_extraction',
+            careersUrl,
+            extractedSlug: uid,
+        };
+    }
+
+    // 3. Check for Comeet iframe
     const iframeResult = await checkComeetIframe(page);
     if (iframeResult.uid) {
         console.log(`   ✅ Found UID in iframe: ${iframeResult.uid}`);
@@ -193,7 +208,7 @@ export async function extractComeetUID(
         };
     }
 
-    // 3. Wait for dynamic content
+    // 4. Wait for dynamic content
     await waitForDynamicContent(page);
 
     // Re-check HTML after dynamic load
@@ -211,7 +226,7 @@ export async function extractComeetUID(
         };
     }
 
-    // 4. Find position links (even in header/nav)
+    // 5. Find position links (even in header/nav)
     const positionLinks = await findPositionLinks(page, baseOrigin);
 
     if (positionLinks.length === 0) {
@@ -222,7 +237,7 @@ export async function extractComeetUID(
     console.log(`   📋 Found ${positionLinks.length} position links, checking up to 3...`);
     positionLinks.slice(0, 5).forEach(l => console.log(`      - ${l}`));
 
-    // 5. Visit position pages to find UID
+    // 6. Visit position pages to find UID
     for (const link of positionLinks.slice(0, 3)) {
         try {
             const shortLink = link.length > 70 ? link.substring(0, 70) + '...' : link;
