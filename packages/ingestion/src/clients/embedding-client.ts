@@ -143,7 +143,7 @@ export class EmbeddingClient {
   ): Promise<JobChunkResponse> {
     try {
       const response = await this.httpClient.post<JobChunkResponse>(
-        "/api/embed/job",
+        "/api/chunk/job",
         {
           text,
           title,
