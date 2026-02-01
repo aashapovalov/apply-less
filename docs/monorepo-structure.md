@@ -7,7 +7,7 @@
 | `api` | ✅ Production | Express/TS | REST API: auth, jobs, matching, profile, favorites |
 | `ingestion` | ✅ Production | Node.js/TS | CLI: scraping, ATS detection, job fetching, embeddings |
 | `ml-service` | ✅ Production | FastAPI/Python | ML: embeddings, chunking, skill extraction, CV generation |
-| `web` | ✅ Working | React/Vite | Frontend UI: jobs, profile, auth, landing |
+| `web` | ✅ Working | React/Vite | Frontend UI: jobs (3 views), profile, auth, landing |
 
 ---
 
@@ -145,28 +145,80 @@ web/
 │   │   ├── auth/
 │   │   │   └── protected-route.tsx
 │   │   ├── jobs/
-│   │   │   ├── job-card.tsx     # Heart + score badge
+│   │   │   ├── filters/
+│   │   │   │   ├── view-toggle.tsx      # All/Matches/Favorites tabs
+│   │   │   │   ├── jobs-header.tsx      # Dynamic title based on view
+│   │   │   │   ├── jobs-filters.tsx     # Filter inputs + active pills
+│   │   │   │   ├── region-filter.tsx
+│   │   │   │   ├── date-filter.tsx
+│   │   │   │   └── role-input.tsx
+│   │   │   ├── job-list/
+│   │   │   │   ├── jobs-list.tsx        # List + empty states
+│   │   │   │   └── pagination.tsx
+│   │   │   ├── job-card.tsx             # Card with heart + score badge
 │   │   │   ├── company-search.tsx
-│   │   │   ├── region-filter.tsx
-│   │   │   ├── date-filter.tsx
-│   │   │   ├── role-input.tsx
 │   │   │   └── safe-html.tsx
 │   │   └── ui/
+│   ├── constants/
+│   │   └── index.ts             # JOBS_PER_PAGE, MAX_MATCHES, REGION_LABELS
 │   ├── hooks/
-│   │   └── use-auth-status.ts   # + isLoading for auth state
+│   │   ├── use-auth-status.ts
+│   │   └── use-jobs-view.ts     # All jobs page data logic
 │   ├── pages/
 │   │   ├── auth/
 │   │   ├── jobs/
-│   │   │   └── jobs.tsx         # Sort toggle, cache invalidation
+│   │   │   └── jobs.tsx         # Thin orchestration (uses useJobsView)
 │   │   └── profile/
 │   ├── services/
 │   │   ├── api.ts               # RTK Query base with tags
-│   │   ├── match.ts             # providesTags: ['Match']
-│   │   └── profile.ts           # invalidatesTags: ['Match']
-│   └── types/
-│       └── index.ts             # MatchRequest (no profile text)
+│   │   ├── match.ts             # Fetches all matches (MAX_MATCHES)
+│   │   └── ...
+│   ├── types/
+│   │   └── index.ts             # JobFilters, ViewMode types
+│   └── utils/
+│       └── ...
 └── package.json
 ```
+
+### Key Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `useAuthStatus` | Auth state + profile existence |
+| `useJobsView` | All jobs page logic (view mode, filters, pagination, data) |
+
+### Jobs Page Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      jobs.tsx                           │
+│                (thin orchestration)                     │
+└─────────────────────────┬───────────────────────────────┘
+                          │ uses
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│                   useJobsView()                         │
+│  • URL params (view, page, filters)                     │
+│  • Data queries (jobs, matches, favorites)              │
+│  • Client-side filtering for matches/favorites          │
+│  • Actions (setViewMode, setFilter, setPage)            │
+└─────────────────────────────────────────────────────────┘
+                          │ renders
+          ┌───────────────┼───────────────┐
+          ▼               ▼               ▼
+   ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+   │ ViewToggle  │ │ JobsFilters │ │  JobsList   │
+   │ (3 tabs)    │ │ (inputs)    │ │ (cards)     │
+   └─────────────┘ └─────────────┘ └─────────────┘
+```
+
+### View Modes
+
+| View | URL | Data Source | Filtering |
+|------|-----|-------------|-----------|
+| All Jobs | `/jobs` | `useGetJobsQuery` | Server-side |
+| Matches | `/jobs?view=matches` | `useMatchJobsQuery` | Client-side |
+| Favorites | `/jobs?view=favorites` | `useGetFavoritesQuery` | Client-side |
 
 ### RTK Query Tags
 

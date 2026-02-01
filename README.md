@@ -13,7 +13,7 @@ AI-powered job matching platform for Israeli tech candidates. Automatically inge
 | **Matching** | ✅ Strategy C | Section-based weighted matching |
 | **API** | ✅ Complete | Auth, Jobs, Match, Profile, Favorites |
 | **ML Service** | ✅ Production | Embeddings, Chunking, Skills, CV Generation |
-| **Frontend** | ✅ Working | Jobs, Profile, Auth, Landing |
+| **Frontend** | ✅ Working | Jobs (3 views), Profile, Auth, Landing |
 | **Location Filter** | ✅ Complete | Israel-only with region classification |
 
 ## ✨ Features
@@ -24,20 +24,24 @@ AI-powered job matching platform for Israeli tech candidates. Automatically inge
 - **Location Normalization** — Israeli cities mapped to regions (Central, North, South, Jerusalem, Remote)
 - **Non-Israeli Filtering** — Automatically filters out US/EU jobs during ingestion
 - **JWT Authentication** — Register, login, email verification, password reset
-- **Job Browsing** — List with filters (region, company, role, date)
+- **Unified Jobs Page** — Three views in one page:
+  - **All Jobs** — Browse with server-side pagination
+  - **Matches** — Jobs ranked by relevance to your profile (client-side filtering)
+  - **Favorites** — Saved jobs (client-side filtering)
 - **Smart Job Matching** — Section-based semantic matching (Strategy C)
   - 40% profile title ↔ job header
   - 35% profile experience ↔ job requirements  
   - 25% full profile ↔ full description
-- **Sort by Relevance** — Jobs ranked by weighted match score
+- **Job Filters** — Region, company, role, date (works on all views)
 - **Profile Management** — Upload PDF/DOC/DOCX or paste text
-- **Favorites** — Save jobs with heart button
+- **Favorites** — Save/remove jobs with heart button
 - **CV Generation** — AI-generated tailored CVs using Claude
 - **HTML Descriptions** — Properly formatted job descriptions
+- **Smart Login Redirect** — Goes to Matches if profile exists, Profile page if not
 
 ### Coming Soon
 
-- Favorites page with CV generation
+- CV generation UI on favorites
 - Production deployment
 
 ## Quick Start
@@ -99,6 +103,20 @@ npm run start --workspace=packages/ingestion -- comeet      # Fetch Comeet jobs
 npm run start --workspace=packages/ingestion -- embeddings  # Generate full + chunk embeddings
 ```
 
+## Jobs Page Views
+
+The jobs page (`/jobs`) supports three views via URL parameter:
+
+| URL | View | Description |
+|-----|------|-------------|
+| `/jobs` | All Jobs | Browse all jobs with server-side pagination |
+| `/jobs?view=matches` | Matches | Jobs ranked by profile match (requires profile) |
+| `/jobs?view=favorites` | Favorites | Saved jobs only (requires login) |
+
+**Filters** work on all views:
+- **All Jobs**: Server-side filtering via API
+- **Matches/Favorites**: Client-side filtering (all data loaded upfront)
+
 ## Matching System (Strategy C)
 
 The matching system uses section-based semantic similarity with weighted scoring:
@@ -116,29 +134,12 @@ The matching system uses section-based semantic similarity with weighted scoring
 **Why Strategy C?**
 - Full document embeddings average everything together
 - A PM profile would match "Software Engineer" higher than "AI Product Manager" due to shared keywords
-- Section-based matching compares like-with-like:
-  - Job title compared to profile headline
-  - Job requirements compared to work experience
-  - Full documents for overall fit
+- Section-based matching compares like-with-like
 
 **Embedding Flow:**
-1. **Profile Save** → ML service chunks profile → title + experience embeddings stored in `users` table
-2. **Job Ingestion** → ML service chunks job → header + requirements embeddings stored in `jobs` table
+1. **Profile Save** → ML service chunks profile → embeddings stored in `users` table
+2. **Job Ingestion** → ML service chunks job → embeddings stored in `jobs` table
 3. **Matching** → Weighted SQL query using pre-computed embeddings (fast, no ML calls)
-
-## Screenshots
-
-### Jobs List with Relevance Sort
-
-Browse jobs sorted by date or by relevance to your profile. Match percentage badges show how well each job fits your skills.
-
-### Profile Page
-
-Upload your CV (PDF, DOC, DOCX) or paste your profile text. Full-page drag & drop support.
-
-### Job Details
-
-Formatted job descriptions with requirements, responsibilities, and company info.
 
 ## Project Structure
 
@@ -169,7 +170,7 @@ apply-less/
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/match` | POST | Match profile to jobs (uses pre-computed embeddings) |
+| `/api/match` | POST | Match profile to jobs |
 | `/api/profile` | GET/POST/DELETE | Profile CRUD |
 | `/api/profile/parse` | POST | Parse uploaded file |
 | `/api/favorites` | GET | List favorites |

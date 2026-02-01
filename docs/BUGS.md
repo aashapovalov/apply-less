@@ -87,21 +87,62 @@ Some entries are not actual job postings (generic career pages).
 
 ---
 
-## Pages Not Yet Built
+## Completed Fixes
 
-### Favorites Page
-**Status:** 🔲 Not started  
-**Page:** `/favorites`
+### ✅ Favorites Page → Integrated into Jobs Page
+**Status:** ✅ Completed (Feb 1, 2026)  
+**Page:** `/jobs?view=favorites`
 
-Features needed:
-- List favorited jobs
-- Remove from favorites
-- Generate CV for selected job
-- Download CV as markdown/PDF
+**Original plan:** Create separate `/favorites` page
+
+**Actual implementation:** Integrated as third tab in Jobs page
+- Three views: All Jobs / Matches / Favorites
+- URL param: `?view=favorites`
+- Client-side filtering (all favorites loaded at once)
+- Heart button toggles add/remove
+- Badge shows favorites count on tab
+- Empty state with "Browse Jobs" button
+
+**Benefits:**
+- No code duplication (reuses JobCard, filters, pagination)
+- Consistent UX across all views
+- Filters work on favorites too
+
+**Files created/modified:**
+- `hooks/use-jobs-view.ts` - Centralized data logic
+- `components/jobs/filters/view-toggle.tsx` - Tab buttons
+- `components/jobs/filters/jobs-header.tsx` - Dynamic header
+- `components/jobs/filters/jobs-filters.tsx` - Filter inputs
+- `components/jobs/job-list/jobs-list.tsx` - List with empty states
+- `pages/jobs/jobs.tsx` - Thin orchestration layer
 
 ---
 
-## Completed Fixes
+### ✅ Login redirect bug
+**Status:** ✅ Fixed (Feb 1, 2026)  
+**Component:** Frontend  
+**Page:** `/login`
+
+**Problem:** After login, always redirected to `/profile` even if user already has a profile.
+
+**Root cause:** Two `navigate()` calls in sequence - second one overwrote first:
+```ts
+navigate('/jobs?sort=relevance', { replace: true });
+navigate('/profile', { replace: true });  // This always wins!
+```
+
+**Fix:** Single conditional navigate:
+```ts
+if (profileData.profile?.profileText) {
+  navigate('/jobs?view=matches', { replace: true });
+} else {
+  navigate('/profile', { replace: true });
+}
+```
+
+Also updated URL from `?sort=relevance` to `?view=matches`.
+
+---
 
 ### ✅ BUG-012: Job matching not title-aware (Strategy C Implementation)
 **Status:** ✅ Fixed (Feb 1, 2026)  

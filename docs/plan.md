@@ -18,7 +18,7 @@ Job matching platform that:
 
 ---
 
-## Current Status (Feb 1 - Evening)
+## Current Status (Feb 1 - Night)
 
 ### ✅ Completed
 
@@ -40,13 +40,13 @@ Job matching platform that:
 | **Chunking** | Job/profile section + skill extraction |
 | **CV Generation** | Claude 3 Haiku integration |
 | **Frontend - Landing** | Redesigned with features |
-| **Frontend - Jobs** | List, filters, details, sort toggle, favorites |
+| **Frontend - Jobs** | Unified page with 3 views (All/Matches/Favorites) |
 | **Frontend - Auth** | Login, register, forgot/reset password, verification |
 | **Frontend - Profile** | Page with file upload, drag & drop |
 | **HTML Descriptions** | DOMPurify rendering with CSS formatting |
-| **Job Filters** | Region, date, company (autocomplete), role (with history) |
-| **Relevance Sort** | Sort by date or match score (Strategy C) |
-| **Favorites UI** | Heart button on job cards |
+| **Job Filters** | Region, date, company, role (works on all views) |
+| **Favorites View** | Integrated into Jobs page as tab |
+| **Smart Login** | Redirects to Matches if profile exists |
 
 ### 🎯 Demo Goals
 
@@ -62,8 +62,8 @@ Job matching platform that:
 | UI - Jobs | List + filters + details | ✅ |
 | UI - Auth | Login/Register | ✅ |
 | UI - Profile | Page with file upload | ✅ |
-| UI - Match | Relevance sort (Strategy C) | ✅ |
-| UI - Favorites | Heart button + save | ✅ |
+| UI - Match | Matches view (Strategy C) | ✅ |
+| UI - Favorites | Favorites view + heart button | ✅ |
 | Production | Deployed | 🔲 |
 
 ---
@@ -72,7 +72,7 @@ Job matching platform that:
 
 ### Day 17 (Feb 2): Deployment + Polish
 
-- [ ] **Favorites page:** List saved jobs with remove button
+- [x] ~~**Favorites page**~~ → Integrated as tab in Jobs page
 - [ ] **CV generation UI:** Button on favorites to generate CV
 - [ ] **BUG-010:** Error boundary
 - [ ] **BUG-011:** 404 page
@@ -168,7 +168,7 @@ Job matching platform that:
 
 ---
 
-### ✅ Phase 4: Matching Improvements (Day 16)
+### ✅ Phase 4: Matching & Favorites UI (Days 16-17)
 
 #### ✅ Day 16: Strategy C Implementation
 - [x] Tested 4 matching strategies (A, B1, B2, C)
@@ -188,6 +188,22 @@ score = 0.40 × title_sim + 0.35 × exp_req_sim + 0.25 × full_sim
 ```
 
 **Result:** PM profile now ranks 7 PM jobs in top 10 (up from 5 with baseline)
+
+#### ✅ Day 17: Jobs Page Refactor + Favorites View
+- [x] Refactored jobs.tsx into `useJobsView` hook + components
+- [x] Three views: All Jobs / Matches / Favorites (tabs)
+- [x] URL-based view switching (`?view=matches`, `?view=favorites`)
+- [x] Client-side filtering for Matches and Favorites
+- [x] Favorites badge with count on tab
+- [x] Smart login redirect (profile exists → matches)
+- [x] Removed separate favorites page (integrated into jobs)
+
+**Components created:**
+- `hooks/use-jobs-view.ts` - All data fetching + state logic
+- `components/jobs/filters/view-toggle.tsx` - Tab buttons
+- `components/jobs/filters/jobs-header.tsx` - Dynamic title
+- `components/jobs/filters/jobs-filters.tsx` - Filter inputs + pills
+- `components/jobs/job-list/jobs-list.tsx` - List + empty states
 
 ---
 
@@ -241,9 +257,8 @@ score = 0.40 × title_sim + 0.35 × exp_req_sim + 0.25 × full_sim
 - [x] Job details with formatted descriptions
 - [x] Auth UI (login, register, password reset)
 - [x] Profile UI with file upload
-- [x] Match results (relevance sort) with Strategy C
-- [x] Favorites UI (heart button)
-- [ ] Favorites page (list)
+- [x] Match results (Matches view) with Strategy C
+- [x] Favorites UI (Favorites view + heart button)
 - [ ] CV generation UI
 - [ ] Production deployment
 - [ ] No crashes during demo
