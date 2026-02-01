@@ -220,7 +220,7 @@ export interface ATSPattern {
 export interface Chunk {
   type: string;
   text: string;
-  embeddings: number[];
+  embedding: number[];
   token_count: number;
 }
 
