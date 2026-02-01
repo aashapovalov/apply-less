@@ -187,3 +187,10 @@ export interface MatchRequest {
   offset?: number;
   threshold?: number;
 }
+
+export interface JobFilters {
+  region: string;
+  company: string;
+  title: string;
+  postedAfter: string;
+}
