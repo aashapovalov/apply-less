@@ -1,9 +1,8 @@
 import { Router, Request, Response } from "express";
 
-import { authMiddleware} from "../middleware/auth-middleware.js";
-import {FavoritesError, FavoritesService} from "../services/index.js";
+import { authMiddleware } from "../middleware/auth-middleware.js";
+import { FavoritesError, FavoritesService } from "../services/index.js";
 import { getDb } from "../config/db.js";
-
 
 export const favoritesRouter = Router();
 
@@ -28,16 +27,16 @@ favoritesRouter.use(authMiddleware);
  * @returns 500 { error: string } - Internal error while retrieving favorites.
  */
 favoritesRouter.get("/", async (req: Request, res: Response) => {
-    try {
-        const favoritesService = new FavoritesService(getDb());
-        const favorites = await favoritesService.getFavorites(req.userId!);
-        const count = favorites.length;
+  try {
+    const favoritesService = new FavoritesService(getDb());
+    const favorites = await favoritesService.getFavorites(req.userId!);
+    const count = favorites.length;
 
-        res.json({ favorites, count });
-    } catch (error: any) {
-        console.error("Get favorites error: ", error);
-        res.status(500).json({ error: "Failed to get favorites" });
-    }
+    res.json({ favorites, count });
+  } catch (error: any) {
+    console.error("Get favorites error: ", error);
+    res.status(500).json({ error: "Failed to get favorites" });
+  }
 });
 
 /**
@@ -59,29 +58,29 @@ favoritesRouter.get("/", async (req: Request, res: Response) => {
  * @returns 500 { error: string } - Internal error while checking favorite status.
  */
 favoritesRouter.get("/:jobId", async (req: Request, res: Response) => {
-    try {
-        const jobIdParam = req.params.jobId;
+  try {
+    const jobIdParam = req.params.jobId;
 
-        if (Array.isArray(jobIdParam)) {
-            res.status(400).json({ error: "Invalid job ID" });
-            return;
-        }
-
-        const jobId = parseInt(jobIdParam);
-
-        if (isNaN(jobId)) {
-            res.status(400).json({ error: "Invalid job ID"});
-            return;
-        }
-
-        const favoritesService = new FavoritesService(getDb());
-        const isFavorite = await favoritesService.isFavorite(req.userId!, jobId);
-
-        res.json({ isFavorite });
-    } catch (error: any) {
-        console.error("Get favorites error: ", error);
-        res.status(500).json({ error: "Failed to check favorite status"});
+    if (Array.isArray(jobIdParam)) {
+      res.status(400).json({ error: "Invalid job ID" });
+      return;
     }
+
+    const jobId = parseInt(jobIdParam);
+
+    if (isNaN(jobId)) {
+      res.status(400).json({ error: "Invalid job ID" });
+      return;
+    }
+
+    const favoritesService = new FavoritesService(getDb());
+    const isFavorite = await favoritesService.isFavorite(req.userId!, jobId);
+
+    res.json({ isFavorite });
+  } catch (error: any) {
+    console.error("Get favorites error: ", error);
+    res.status(500).json({ error: "Failed to check favorite status" });
+  }
 });
 
 /**
@@ -106,36 +105,36 @@ favoritesRouter.get("/:jobId", async (req: Request, res: Response) => {
  * @returns 500 { error: string } - Internal error while adding favorite.
  */
 favoritesRouter.post("/:jobId", async (req: Request, res: Response) => {
-    try {
-        const jobIdParam = req.params.jobId;
+  try {
+    const jobIdParam = req.params.jobId;
 
-        if (Array.isArray(jobIdParam)) {
-            res.status(400).json({error: "Invalid job ID"});
-            return;
-        }
-
-        const jobId = parseInt(jobIdParam);
-
-        if (isNaN(jobId)) {
-            res.status(400).json({error: "Invalid job ID"});
-            return;
-        }
-
-        const favoritesService = new FavoritesService(getDb());
-        const result = await favoritesService.addFavorite(req.userId!, jobId);
-
-        res.status(201).json({
-            message: "Job added to favorites",
-            favoriteId: result.favoriteId
-        });
-    } catch (error: any) {
-        if (error instanceof FavoritesError) {
-            res.status(error.statusCode).json({ error: error.message });
-            return;
-        }
-        console.error("Add favorite error: ", error);
-        res.status(500).json({ error: "Failed to add favorite" });
+    if (Array.isArray(jobIdParam)) {
+      res.status(400).json({ error: "Invalid job ID" });
+      return;
     }
+
+    const jobId = parseInt(jobIdParam);
+
+    if (isNaN(jobId)) {
+      res.status(400).json({ error: "Invalid job ID" });
+      return;
+    }
+
+    const favoritesService = new FavoritesService(getDb());
+    const result = await favoritesService.addFavorite(req.userId!, jobId);
+
+    res.status(201).json({
+      message: "Job added to favorites",
+      favoriteId: result.favoriteId,
+    });
+  } catch (error: any) {
+    if (error instanceof FavoritesError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    console.error("Add favorite error: ", error);
+    res.status(500).json({ error: "Failed to add favorite" });
+  }
 });
 
 /**
@@ -158,31 +157,31 @@ favoritesRouter.post("/:jobId", async (req: Request, res: Response) => {
  * @returns 500 { error: string } - Internal error while removing favorite.
  */
 favoritesRouter.delete("/:jobId", async (req: Request, res: Response) => {
-    try {
-        const jobIdParam = req.params.jobId;
+  try {
+    const jobIdParam = req.params.jobId;
 
-        if (Array.isArray(jobIdParam)) {
-            res.status(400).json({error: "Invalid job ID"});
-            return;
-        }
-
-        const jobId = parseInt(jobIdParam);
-
-        if (isNaN(jobId)) {
-            res.status(400).json({error: "Invalid job ID"});
-            return;
-        }
-
-        const favoritesService = new FavoritesService(getDb());
-        const removed = await favoritesService.removeFavorite(req.userId!, jobId);
-
-        if (!removed) {
-            res.status(404).json({ error: "Favorite not found" });
-        }
-
-        res.json({ message: "Job removed from favorites" });
-    } catch (error: any) {
-        console.error("Remove favorite error: ", error);
-        res.status(500).json({ error: "Failed to remove favorite" });
+    if (Array.isArray(jobIdParam)) {
+      res.status(400).json({ error: "Invalid job ID" });
+      return;
     }
+
+    const jobId = parseInt(jobIdParam);
+
+    if (isNaN(jobId)) {
+      res.status(400).json({ error: "Invalid job ID" });
+      return;
+    }
+
+    const favoritesService = new FavoritesService(getDb());
+    const removed = await favoritesService.removeFavorite(req.userId!, jobId);
+
+    if (!removed) {
+      res.status(404).json({ error: "Favorite not found" });
+    }
+
+    res.json({ message: "Job removed from favorites" });
+  } catch (error: any) {
+    console.error("Remove favorite error: ", error);
+    res.status(500).json({ error: "Failed to remove favorite" });
+  }
 });
