@@ -108,13 +108,15 @@ export interface ComeetJob {
     country?: string;
     city?: string;
   };
-  department: {
-    name: string;
-  } | string;
+  department:
+    | {
+        name: string;
+      }
+    | string;
   employment_type?: string;
   experience_level?: string;
   description?: string;
-  details?: Array<{name: string; value: string; order: number}>; // Full description sections from API with details=true
+  details?: Array<{ name: string; value: string; order: number }>; // Full description sections from API with details=true
   requirements?: string;
   url_active_page?: string;
   url_comeet_page?: string;
@@ -212,4 +214,20 @@ export interface ATSPattern {
     html: string,
     url: string,
   ) => { slug?: string; token?: string } | null;
+}
+
+// Types for chunking
+export interface Chunk {
+  type: string;
+  text: string;
+  embeddings: number[];
+  token_count: number;
+}
+
+export interface JobChunkResponse {
+  chunks: Chunk[];
+  skills: Array<{ skill: string; level: string }>;
+  model?: string;
+  dimension?: number;
+  time_ms?: number;
 }
