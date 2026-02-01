@@ -45,7 +45,6 @@ export function Login() {
             const profileData = await response.json();
             if (profileData.profile?.profileText) {
               navigate('/jobs?sort=relevance', { replace: true });
-              navigate('/profile', { replace: true });
             } else {
               navigate('/profile', { replace: true });
             }
