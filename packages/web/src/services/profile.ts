@@ -15,7 +15,7 @@ export const profileApi = api.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Profile'],
+      invalidatesTags: ['Profile', 'Match'],
     }),
 
     deleteProfile: builder.mutation<{ message: string }, void>({

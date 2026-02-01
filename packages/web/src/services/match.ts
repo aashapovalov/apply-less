@@ -10,6 +10,7 @@ export const matchApi = api.injectEndpoints({
         method: 'POST',
         body,
       }),
+      providesTags: ['Match'],
     }),
   }),
 });
