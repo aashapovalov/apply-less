@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { useGetCompaniesQuery } from '@/services/jobs';
+import { useEffect, useRef, useState } from 'react';
+
+import { useGetCompaniesQuery } from '@/services/jobs.ts';
 
 interface CompanySearchProps {
   value: string;
@@ -100,24 +101,23 @@ export function CompanySearch({ value, onChange, className = '' }: CompanySearch
             )}
 
             {/* Companies list */}
-            {!isFetching && data?.companies?.map((company) => (
-              <button
-                key={company.company_name}
-                onClick={() => handleSelect(company.company_name)}
-                className={`hover:bg-accent/10 w-full px-4 py-2 text-left text-sm ${
-                  value === company.company_name ? 'bg-accent/10 text-accent' : 'text-primary'
-                }`}
-              >
-                {company.company_name}
-                <span className="text-secondary ml-2">({company.count})</span>
-              </button>
-            ))}
+            {!isFetching &&
+              data?.companies?.map((company) => (
+                <button
+                  key={company.company_name}
+                  onClick={() => handleSelect(company.company_name)}
+                  className={`hover:bg-accent/10 w-full px-4 py-2 text-left text-sm ${
+                    value === company.company_name ? 'bg-accent/10 text-accent' : 'text-primary'
+                  }`}
+                >
+                  {company.company_name}
+                  <span className="text-secondary ml-2">({company.count})</span>
+                </button>
+              ))}
 
             {/* No results */}
             {!isFetching && data?.companies?.length === 0 && (
-              <div className="text-secondary px-4 py-3 text-center text-sm">
-                No companies found
-              </div>
+              <div className="text-secondary px-4 py-3 text-center text-sm">No companies found</div>
             )}
           </div>
         </div>

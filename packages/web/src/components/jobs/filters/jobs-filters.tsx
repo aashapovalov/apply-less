@@ -1,5 +1,4 @@
-import { CompanySearch } from '@/components/jobs';
-import { DateFilter, RegionFilter, RoleInput } from '@/components/jobs/filters';
+import { CompanySearch, DateFilter, RegionFilter, RoleInput } from '@/components/jobs/filters';
 import { REGION_LABELS } from '@/constants';
 import type { JobFilters, RegionCount } from '@/types';
 import { getDateLabel } from '@/utils';
