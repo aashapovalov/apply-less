@@ -9,3 +9,13 @@ export const REGION_LABELS: Record<string, string> = {
   remote: 'Remote',
   other: 'Other',
 };
+
+export const INITIAL_STEPS: LoadingStep[] = [
+  { label: 'Analyzing job requirements', status: 'pending' },
+  { label: 'Identifying skill gaps', status: 'pending' },
+  { label: 'Tailoring your experience', status: 'pending' },
+  { label: 'Comparing CV with position', status: 'pending' },
+  { label: 'Calculating match score', status: 'pending' },
+];
+
+export const MIN_PROFILE_WORDS = 100;
