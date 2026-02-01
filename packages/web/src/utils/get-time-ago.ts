@@ -12,3 +12,13 @@ export function getTimeAgo(dateString: string): string {
   if (diffDays < 60) return '1 month ago';
   return `${Math.floor(diffDays / 30)} months ago`;
 }
+
+export function getDateLabel(postedAfter: string): string {
+  const date = new Date(postedAfter);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 1) return 'Today';
+  if (diffDays <= 7) return 'This week';
+  if (diffDays <= 30) return 'This month';
+  return 'Custom date';
+}
