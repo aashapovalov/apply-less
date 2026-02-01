@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 
-import { JobFetchError, JobSkeleton, SafeHtml } from '@/components/jobs';
+import { JobFetchError, JobSkeleton, SafeHtml } from '@/components/jobs/job-page';
 import { Button } from '@/components/ui';
 import { useGetJobQuery } from '@/services/jobs.ts';
 import { getTimeAgo } from '@/utils';

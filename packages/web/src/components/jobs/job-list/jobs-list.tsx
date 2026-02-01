@@ -1,7 +1,7 @@
 import type { Job, JobMatch, ViewMode } from '@/types';
 
-import { JobCard } from './job-card';
-import { JobsSkeleton } from './jobs-skeleton';
+import { JobCard } from './job-card.tsx';
+import { JobsSkeleton } from './jobs-skeleton.tsx';
 
 interface JobsListProps {
   jobs: (Job | JobMatch)[];

@@ -8,7 +8,7 @@ import {
   Pagination,
   RegionFilter,
   RoleInput,
-} from '@/components/jobs';
+} from '@/components/jobs/job-list';
 import { JOBS_PER_PAGE, REGION_LABELS } from '@/constants';
 import { useAuthStatus } from '@/hooks';
 import { useGetFavoritesQuery } from '@/services/favorites';
