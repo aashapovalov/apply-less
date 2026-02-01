@@ -56,6 +56,32 @@ export function useJobsView() {
   );
   const favoriteJobs = (favoriteQuery.data?.favorites || []).map(transformFavoriteToJob);
 
+  // Helper function for client-side filtering
+  const applyFilters = (jobList: (Job | JobMatch)[]): (Job | JobMatch)[] => {
+    return jobList.filter((job) => {
+      if (filters.title && !job.title.toLowerCase().includes(filters.title.toLowerCase())) {
+        return false;
+      }
+      if (
+        filters.company &&
+        !job.company_name.toLowerCase().includes(filters.company.toLowerCase())
+      ) {
+        return false;
+      }
+      if (filters.region && job.region !== filters.region) {
+        return false;
+      }
+      if (filters.postedAfter && job.posted_date) {
+        const postedDate = new Date(job.posted_date);
+        const filterDate = new Date(filters.postedAfter);
+        if (postedDate < filterDate) {
+          return false;
+        }
+      }
+      return true;
+    });
+  };
+
   const { jobs, total, isLoading, isError, error } = ((): {
     jobs: (Job | JobMatch)[];
     total: number;
@@ -64,24 +90,29 @@ export function useJobsView() {
     error: string | null;
   } => {
     switch (viewMode) {
-      case 'favorites':
+      case 'favorites': {
+        const filtered = applyFilters(favoriteJobs);
         return {
-          jobs: favoriteJobs.slice(offset, offset + JOBS_PER_PAGE),
-          total: favoriteJobs.length,
+          jobs: filtered.slice(offset, offset + JOBS_PER_PAGE),
+          total: filtered.length,
           isLoading: favoriteQuery.isLoading,
           isError: false,
           error: null,
         };
-      case 'matches':
+      }
+      case 'matches': {
+        const allMatches = matchQuery.data?.matches || [];
+        const filtered = applyFilters(allMatches);
         return {
-          jobs: matchQuery.data?.matches || [],
-          total: matchQuery.data?.total || 0,
+          jobs: filtered.slice(offset, offset + JOBS_PER_PAGE),
+          total: filtered.length,
           isLoading: matchQuery.isLoading || isAuthLoading,
           isError: matchQuery.isError,
           error:
             (matchQuery.error as { data?: { error?: string } })?.data?.error ||
             'Failed to find matches',
         };
+      }
       default:
         return {
           jobs: jobsQuery.data?.jobs || [],
