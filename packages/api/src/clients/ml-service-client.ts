@@ -192,6 +192,125 @@ export class MLServiceClient {
 
     return lines[0]?.trim().substring(0, 200) || profile.substring(0, 100);
   }
+
+  /**
+   * Generate a tailored CV for a specific job based on the user's profile.
+   *
+   * Sends the user's profile and job details to the ML service, which:
+   *  - analyzes job requirements and profile skills
+   *  - generates a job-specific CV in Markdown format
+   *  - computes a skill match summary (mandatory vs preferred)
+   *
+   * @param params - CV generation input parameters.
+   * @param params.job_title - Target job title.
+   * @param params.job_company - Target company name.
+   * @param params.job_location - Job location.
+   * @param params.job_description - Full job description text.
+   * @param params.profile_text - Full user profile / resume text.
+   *
+   * @returns Generated CV and match metadata.
+   * @returns.cv_markdown - Generated CV content in Markdown format.
+   * @returns.match_summary - Skill matching summary.
+   * @returns.match_summary.matching_skills - Mandatory skills covered by the profile.
+   * @returns.match_summary.missing_skills - Mandatory skills missing from the profile.
+   * @returns.match_summary.preferred_skills_matched - Preferred skills covered.
+   * @returns.match_summary.match_rate - Coverage ratios for mandatory and preferred skills.
+   * @returns.job - Job metadata used for generation.
+   * @returns.model - Name of the ML model used.
+   * @returns.time_ms - Total processing time in milliseconds.
+   * @returns.warning - Optional warning message (e.g. low coverage).
+   *
+   * @throws Error if the ML service returns a non-200 response.
+   */
+  async generateCV(params: {
+    job_title: string;
+    job_company: string;
+    job_location: string;
+    job_description: string;
+    profile_text: string;
+  }): Promise<{
+    cv_markdown: string;
+    match_summary: {
+      matching_skills: string[];
+      missing_skills: string[];
+      preferred_skills_matched: string[];
+      match_rate: { mandatory: string; preferred: string };
+    };
+    job: { title: string; company: string; location: string };
+    model: string;
+    time_ms: number;
+    warning: string | null;
+  }> {
+    const response = await fetch(`${this.baseUrl}/api/generate-cv`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `ML service error: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Compare a CV against a job description.
+   *
+   * Sends the CV and job details to the ML service, which:
+   *  - extracts skills from both CV and job description
+   *  - checks coverage of mandatory and preferred requirements
+   *  - computes a semantic similarity score between CV and job
+   *
+   * @param params - CV comparison input parameters.
+   * @param params.cv_text - Full CV / resume text.
+   * @param params.job_title - Job title (optional context).
+   * @param params.job_company - Company name (optional context).
+   * @param params.job_description - Full job description text.
+   *
+   * @returns Comparison result.
+   * @returns.score - Overall semantic match score (0.0–1.0).
+   * @returns.job_requirements - Job requirements grouped by priority with coverage flags.
+   * @returns.summary - Aggregated coverage statistics.
+   * @returns.cv_skills - List of skills extracted from the CV.
+   * @returns.time_ms - Total processing time in milliseconds.
+   *
+   * @throws Error if the ML service returns a non-200 response.
+   */
+  async compareCV(params: {
+    cv_text: string;
+    job_title: string;
+    job_company: string;
+    job_description: string;
+  }): Promise<{
+    score: number;
+    job_requirements: {
+      mandatory: { skill: string; covered: boolean }[];
+      preferred: { skill: string; covered: boolean }[];
+    };
+    summary: {
+      covered_count: number;
+      total_count: number;
+      mandatory_covered: string;
+      preferred_covered: string;
+    };
+    cv_skills: string[];
+    time_ms: number;
+  }> {
+    const response = await fetch(`${this.baseUrl}/api/compare-cv`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `ML service error: ${response.status}`);
+    }
+
+    return response.json();
+  }
 }
 
 /**
