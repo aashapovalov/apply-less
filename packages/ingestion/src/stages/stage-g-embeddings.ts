@@ -2,6 +2,7 @@ import { Pool } from "pg";
 import { IngestionStats, JobForEmbedding, Chunk } from "../types/index.js";
 import { EmbeddingClient } from "../clients/index.js";
 import { prepareJobText } from "../utils/prepare-job-text.js";
+import { getChunkByType, getChunkByTypes } from "../utils/index.js";
 
 export interface StageGOptions {
   dryRun?: boolean;
@@ -11,30 +12,34 @@ export interface StageGOptions {
 }
 
 /**
- * Get chunk by type from chunks array
- */
-function getChunkByType(chunks: Chunk[], type: string): Chunk | undefined {
-  return chunks.find((c) => c.type === type);
-}
-
-/**
- * Get first matching chunk from multiple types
- */
-function getChunkByTypes(chunks: Chunk[], types: string[]): Chunk | undefined {
-  for (const type of types) {
-    const chunk = chunks.find((c) => c.type === type);
-    if (chunk) return chunk;
-  }
-  return undefined;
-}
-
-/**
- * Stage G: generate embeddings for jobs
+ * Stage G: Job Embeddings Generation
  *
- * Generates:
- * - Full document embedding (stored in job_embeddings_simple)
- * - Header embedding (stored in jobs.header_embedding)
- * - Requirements embedding (stored in jobs.requirements_embedding)
+ * Generates and stores vector embeddings for job postings that do not yet
+ * have embeddings in the database.
+ *
+ * This stage produces:
+ *  - Full document embedding (stored in `job_embeddings_simple`)
+ *  - Header embedding (stored in `jobs.header_embedding`)
+ *  - Requirements embedding (stored in `jobs.requirements_embedding`)
+ *
+ * Embeddings are generated using a transformer-based embedding model
+ * (e.g. intfloat/e5-base-v2, 768 dimensions).
+ *
+ * The stage is designed to be:
+ *  - Idempotent (jobs with existing embeddings are skipped)
+ *  - Resilient (chunking failures do not block full embeddings)
+ *  - Batch-oriented with rate limiting protection
+ *
+ * @param db - PostgreSQL connection pool.
+ * @param options - Stage execution options.
+ * @param options.dryRun - If true, does not generate or persist embeddings.
+ * @param options.batchSize - Number of jobs processed per batch (default: 10).
+ * @param options.companyName - Optional company name filter.
+ * @param options.limit - Optional limit on total number of jobs processed.
+ *
+ * @returns Aggregated ingestion statistics for Stage G.
+ *
+ * @throws Error if a fatal error occurs before or during batch processing.
  */
 export async function runStageG(
   db: Pool,
@@ -279,4 +284,70 @@ export async function runStageG(
     console.error("\n❌ Fatal error:", error.message);
     throw error;
   }
+}
+
+/**
+ * Verify job embeddings integrity and basic similarity behavior.
+ *
+ * Performs a lightweight validation of the embeddings pipeline by:
+ *  - Counting total jobs
+ *  - Counting jobs with full embeddings
+ *  - Counting jobs with chunk-level embeddings
+ *  - Identifying jobs missing embeddings
+ *  - Executing a sample similarity query using pgvector
+ *
+ * This function is intended for manual or post-ingestion verification
+ * and does not modify any data.
+ *
+ * @param db - PostgreSQL connection pool.
+ *
+ * @returns void
+ */
+export async function verifyEmbeddings(db: Pool): Promise<void> {
+  console.log("\n🔍 Verifying embeddings...\n");
+
+  // Count jobs and embeddings
+  const jobCount = await db.query("SELECT COUNT(*) FROM jobs");
+  const embeddingCount = await db.query(
+    "SELECT COUNT(*) FROM job_embeddings_simple",
+  );
+  const missingCount = await db.query(`
+    SELECT COUNT(*) FROM jobs j
+    LEFT JOIN job_embeddings_simple je ON j.id = je.job_id
+    WHERE je.id IS NULL
+  `);
+
+  // Count chunk embeddings
+  const chunkCount = await db.query(`
+    SELECT COUNT(*) FROM jobs 
+    WHERE header_embedding IS NOT NULL 
+      AND requirements_embedding IS NOT NULL
+  `);
+
+  console.log(`Total jobs: ${jobCount.rows[0].count}`);
+  console.log(`Full embeddings: ${embeddingCount.rows[0].count}`);
+  console.log(`Chunk embeddings: ${chunkCount.rows[0].count}`);
+  console.log(`Jobs without embeddings: ${missingCount.rows[0].count}`);
+
+  // Test similarity search
+  console.log("\n🔍 Testing similarity search...\n");
+
+  const testResult = await db.query(`
+    SELECT j.title, c.company_name,
+      1 - (je.embedding <=> (SELECT embedding FROM job_embeddings_simple LIMIT 1)) AS similarity
+    FROM jobs j
+    JOIN companies c ON j.company_id = c.id
+    JOIN job_embeddings_simple je ON j.id = je.job_id
+    ORDER BY je.embedding <=> (SELECT embedding FROM job_embeddings_simple LIMIT 1)
+    LIMIT 5
+  `);
+
+  console.log("Top 5 most similar jobs to first job:");
+  testResult.rows.forEach((row, index) => {
+    console.log(
+      `  ${index + 1}. ${row.title} @ ${row.company_name} (similarity: ${(row.similarity * 100).toFixed(1)}%)`,
+    );
+  });
+
+  console.log("\n✅ Verification complete!");
 }
