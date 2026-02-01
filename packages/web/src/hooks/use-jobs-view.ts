@@ -51,7 +51,7 @@ export function useJobsView() {
   const regionsQuery = useGetRegionsQuery();
 
   // Compute derived state
-  const favoritesJobsIds = new Set(
+  const favoriteJobIds = new Set(
     favoriteQuery.data?.favorites?.map((favorite) => favorite.jobId) || []
   );
   const favoriteJobs = (favoriteQuery.data?.favorites || []).map(transformFavoriteToJob);
@@ -153,7 +153,7 @@ export function useJobsView() {
     isAuthenticated,
     hasProfile,
     // Favorites
-    favoritesJobsIds,
+    favoriteJobIds,
     favoritesCount: favoriteJobs.length,
     refetchFavorites: favoriteQuery.refetch,
     // Regions
