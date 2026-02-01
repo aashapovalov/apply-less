@@ -183,7 +183,7 @@ export interface MatchResponse {
 }
 
 export interface MatchRequest {
-  profile: string;
   limit?: number;
   offset?: number;
+  threshold?: number;
 }
