@@ -194,3 +194,5 @@ export interface JobFilters {
   title: string;
   postedAfter: string;
 }
+
+export type ViewMode = 'all' | 'matches' | 'favorites';
