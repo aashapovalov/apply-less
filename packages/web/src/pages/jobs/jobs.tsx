@@ -53,16 +53,14 @@ export function Jobs() {
         </div>
       )}
 
-      {/* Filters - only for "All Jobs" view */}
-      {viewMode === 'all' && (
-        <JobsFilters
-          filters={filters}
-          regions={regions}
-          hasActiveFilters={hasActiveFilters}
-          onFilterChange={setFilter}
-          onClearFilters={clearFilters}
-        />
-      )}
+      {/* Filters - show on all views */}
+      <JobsFilters
+        filters={filters}
+        regions={regions}
+        hasActiveFilters={hasActiveFilters}
+        onFilterChange={setFilter}
+        onClearFilters={clearFilters}
+      />
 
       {/* Jobs list */}
       <JobsList
