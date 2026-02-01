@@ -30,7 +30,7 @@ export function Jobs() {
   const offset = (page - 1) * JOBS_PER_PAGE;
 
   // Auth & profile state
-  const { isAuthenticated, hasProfile, profileText } = useAuthStatus();
+  const { isAuthenticated, hasProfile, isLoading: isAuthLoading } = useAuthStatus();
 
   // Favorites state
   const { data: favoritesData, refetch: refetchFavorites } = useGetFavoritesQuery(undefined, {
@@ -66,11 +66,10 @@ export function Jobs() {
     error: matchQueryError,
   } = useMatchJobsQuery(
     {
-      profile: profileText || '',
       limit: JOBS_PER_PAGE,
       offset,
     },
-    { skip: sort !== 'relevance' || !profileText }
+    { skip: sort !== 'relevance' || !hasProfile || isAuthLoading }
   );
 
   const matchedJobs = matchData?.matches || [];
@@ -84,7 +83,7 @@ export function Jobs() {
   // Determine current data source
   const jobs: (Job | JobMatch)[] = sort === 'relevance' ? matchedJobs : jobsData?.jobs || [];
   const total = sort === 'relevance' ? matchTotal : jobsData?.total || 0;
-  const isLoading = sort === 'relevance' ? isMatching : isLoadingJobs;
+  const isLoading = sort === 'relevance' ? isMatching || isAuthLoading : isLoadingJobs;
   const isError = sort === 'relevance' ? isMatchError : isJobsError;
   const totalPages = Math.ceil(total / JOBS_PER_PAGE);
 
