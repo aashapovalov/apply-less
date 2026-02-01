@@ -255,3 +255,18 @@ export interface CVCompareResponse {
   cv_skills: string[];
   time_ms: number;
 }
+
+export interface CVJob {
+  job_id: number;
+  title: string;
+  company_name: string;
+  location?: string | null;
+  description: string;
+}
+
+export type ModalState = 'initial' | 'loading' | 'success' | 'error';
+
+export interface LoadingStep {
+  label: string;
+  status: 'pending' | 'active' | 'done';
+}

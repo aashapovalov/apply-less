@@ -1,3 +1,5 @@
+import type { LoadingStep } from '@/types';
+
 export const JOBS_PER_PAGE = 20;
 export const MAX_MATCHES = 500;
 
