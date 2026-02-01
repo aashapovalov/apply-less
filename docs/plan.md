@@ -3,8 +3,8 @@
 ## Timeline
 
 **Demo Day:** February 3, 2026  
-**Today:** January 31, 2026  
-**Working days:** 3 (including demo prep)
+**Today:** February 1, 2026  
+**Working days:** 2 (including demo prep)
 
 ---
 
@@ -18,7 +18,7 @@ Job matching platform that:
 
 ---
 
-## Current Status (Jan 31 - Evening)
+## Current Status (Feb 1 - Evening)
 
 ### ✅ Completed
 
@@ -29,11 +29,12 @@ Job matching platform that:
 | **Job Sources** | 683 detected (Greenhouse + Comeet) |
 | **Jobs** | ~770 Israeli positions (non-Israeli filtered) |
 | **Location Normalization** | 90+ Israeli cities with regions |
-| **Embeddings** | ~750 jobs with BGE 768d vectors |
+| **Embeddings** | Full + chunk embeddings for jobs and profiles |
+| **Matching** | Strategy C: Section-based weighted matching |
 | **Auth API** | Full JWT system with email verification |
 | **Jobs API** | List, search, filters, details with HTML descriptions |
-| **Match API** | Vector similarity search |
-| **Profile API** | CRUD + file parsing (PDF, DOC, DOCX) |
+| **Match API** | Authenticated, uses pre-computed embeddings |
+| **Profile API** | CRUD + file parsing + embedding generation |
 | **Favorites API** | CRUD |
 | **ML Service** | Python FastAPI with local models |
 | **Chunking** | Job/profile section + skill extraction |
@@ -44,7 +45,7 @@ Job matching platform that:
 | **Frontend - Profile** | Page with file upload, drag & drop |
 | **HTML Descriptions** | DOMPurify rendering with CSS formatting |
 | **Job Filters** | Region, date, company (autocomplete), role (with history) |
-| **Relevance Sort** | Sort by date or match score |
+| **Relevance Sort** | Sort by date or match score (Strategy C) |
 | **Favorites UI** | Heart button on job cards |
 
 ### 🎯 Demo Goals
@@ -61,7 +62,7 @@ Job matching platform that:
 | UI - Jobs | List + filters + details | ✅ |
 | UI - Auth | Login/Register | ✅ |
 | UI - Profile | Page with file upload | ✅ |
-| UI - Match | Relevance sort on Jobs page | ✅ |
+| UI - Match | Relevance sort (Strategy C) | ✅ |
 | UI - Favorites | Heart button + save | ✅ |
 | Production | Deployed | 🔲 |
 
@@ -69,16 +70,12 @@ Job matching platform that:
 
 ## Remaining Work
 
-### Day 16 (Feb 1): Final Features + Bug Fixes
+### Day 17 (Feb 2): Deployment + Polish
 
-- [ ] **BUG-012:** Improve matching accuracy (title-aware scoring)
 - [ ] **Favorites page:** List saved jobs with remove button
 - [ ] **CV generation UI:** Button on favorites to generate CV
 - [ ] **BUG-010:** Error boundary
 - [ ] **BUG-011:** 404 page
-
-### Day 17 (Feb 2): Deployment
-
 - [ ] Deploy Node.js API to Railway
 - [ ] Deploy Python ML to Railway
 - [ ] Deploy Frontend to Vercel
@@ -171,6 +168,29 @@ Job matching platform that:
 
 ---
 
+### ✅ Phase 4: Matching Improvements (Day 16)
+
+#### ✅ Day 16: Strategy C Implementation
+- [x] Tested 4 matching strategies (A, B1, B2, C)
+- [x] Strategy C wins: Section-based weighted matching
+- [x] Migration 014: chunk embedding columns
+- [x] ML Service Client for API
+- [x] Profile service: embedding generation on save
+- [x] Match service: weighted query with pre-computed embeddings
+- [x] Match router: requires authentication
+- [x] Frontend: cache invalidation on profile save
+- [x] Ingestion: chunk embeddings for jobs
+- [x] Bug fixes (8+ bugs discovered and fixed)
+
+**Strategy C Formula:**
+```
+score = 0.40 × title_sim + 0.35 × exp_req_sim + 0.25 × full_sim
+```
+
+**Result:** PM profile now ranks 7 PM jobs in top 10 (up from 5 with baseline)
+
+---
+
 ## Architecture
 
 ```
@@ -189,6 +209,25 @@ Job matching platform that:
 
 ---
 
+## Matching System (Strategy C)
+
+```
+┌─────────────────────┐         ┌─────────────────────┐
+│   USER PROFILE      │         │   JOB POSTING       │
+├─────────────────────┤         ├─────────────────────┤
+│ Title Embedding     │◄──40%──►│ Header Embedding    │
+│ Experience Embedding│◄──35%──►│ Requirements Embed. │
+│ Full Embedding      │◄──25%──►│ Full Embedding      │
+└─────────────────────┘         └─────────────────────┘
+```
+
+**Data Flow:**
+1. Profile saved → embeddings generated → stored in users table
+2. Jobs ingested → chunk embeddings generated → stored in jobs table
+3. Match request → SQL query with pre-computed embeddings → instant results
+
+---
+
 ## Success Criteria
 
 - [x] JWT auth working
@@ -202,7 +241,7 @@ Job matching platform that:
 - [x] Job details with formatted descriptions
 - [x] Auth UI (login, register, password reset)
 - [x] Profile UI with file upload
-- [x] Match results (relevance sort)
+- [x] Match results (relevance sort) with Strategy C
 - [x] Favorites UI (heart button)
 - [ ] Favorites page (list)
 - [ ] CV generation UI

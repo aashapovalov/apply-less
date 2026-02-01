@@ -9,9 +9,10 @@ AI-powered job matching platform for Israeli tech candidates. Automatically inge
 | **Database** | ✅ Production | Railway PostgreSQL + pgvector |
 | **Companies** | ✅ 1496 | Scraped from StartupNationCentral |
 | **Jobs** | ✅ ~770 | Israeli positions only (Greenhouse + Comeet) |
-| **Embeddings** | ✅ Working | BGE 768d vectors for semantic search |
+| **Embeddings** | ✅ Working | BGE 768d vectors + chunk embeddings |
+| **Matching** | ✅ Strategy C | Section-based weighted matching |
 | **API** | ✅ Complete | Auth, Jobs, Match, Profile, Favorites |
-| **ML Service** | ✅ Production | Embeddings, Skills, CV Generation |
+| **ML Service** | ✅ Production | Embeddings, Chunking, Skills, CV Generation |
 | **Frontend** | ✅ Working | Jobs, Profile, Auth, Landing |
 | **Location Filter** | ✅ Complete | Israel-only with region classification |
 
@@ -24,8 +25,11 @@ AI-powered job matching platform for Israeli tech candidates. Automatically inge
 - **Non-Israeli Filtering** — Automatically filters out US/EU jobs during ingestion
 - **JWT Authentication** — Register, login, email verification, password reset
 - **Job Browsing** — List with filters (region, company, role, date)
-- **Job Matching** — Vector similarity search with pgvector
-- **Sort by Relevance** — Jobs ranked by match score to your profile
+- **Smart Job Matching** — Section-based semantic matching (Strategy C)
+  - 40% profile title ↔ job header
+  - 35% profile experience ↔ job requirements  
+  - 25% full profile ↔ full description
+- **Sort by Relevance** — Jobs ranked by weighted match score
 - **Profile Management** — Upload PDF/DOC/DOCX or paste text
 - **Favorites** — Save jobs with heart button
 - **CV Generation** — AI-generated tailored CVs using Claude
@@ -34,7 +38,6 @@ AI-powered job matching platform for Israeli tech candidates. Automatically inge
 ### Coming Soon
 
 - Favorites page with CV generation
-- Improved matching accuracy (title-aware scoring)
 - Production deployment
 
 ## Quick Start
@@ -58,7 +61,7 @@ cp .env.example .env
 # Run database migrations
 npm run db:migrate
 
-# Start API server (port 3001)
+# Start API server (port 8080)
 npm run dev:api
 
 # Start Web frontend (port 5173) - separate terminal
@@ -74,7 +77,7 @@ python main.py
 ### Verify Installation
 
 ```bash
-curl http://localhost:3001/health
+curl http://localhost:8080/health
 curl http://localhost:8000/health
 ```
 
@@ -82,7 +85,7 @@ curl http://localhost:8000/health
 
 ```bash
 # Development
-npm run dev:api              # Express API (port 3001)
+npm run dev:api              # Express API (port 8080)
 npm run dev:web              # React frontend (port 5173)
 
 # Database
@@ -93,8 +96,35 @@ npm run start --workspace=packages/ingestion -- snc         # Scrape companies f
 npm run start --workspace=packages/ingestion -- detect      # Detect ATS systems
 npm run start --workspace=packages/ingestion -- greenhouse  # Fetch Greenhouse jobs
 npm run start --workspace=packages/ingestion -- comeet      # Fetch Comeet jobs
-npm run start --workspace=packages/ingestion -- embeddings  # Generate embeddings
+npm run start --workspace=packages/ingestion -- embeddings  # Generate full + chunk embeddings
 ```
+
+## Matching System (Strategy C)
+
+The matching system uses section-based semantic similarity with weighted scoring:
+
+```
+┌─────────────────────┐         ┌─────────────────────┐
+│   USER PROFILE      │         │   JOB POSTING       │
+├─────────────────────┤         ├─────────────────────┤
+│ Title Embedding     │◄──40%──►│ Header Embedding    │
+│ Experience Embedding│◄──35%──►│ Requirements Embed. │
+│ Full Embedding      │◄──25%──►│ Full Embedding      │
+└─────────────────────┘         └─────────────────────┘
+```
+
+**Why Strategy C?**
+- Full document embeddings average everything together
+- A PM profile would match "Software Engineer" higher than "AI Product Manager" due to shared keywords
+- Section-based matching compares like-with-like:
+  - Job title compared to profile headline
+  - Job requirements compared to work experience
+  - Full documents for overall fit
+
+**Embedding Flow:**
+1. **Profile Save** → ML service chunks profile → title + experience embeddings stored in `users` table
+2. **Job Ingestion** → ML service chunks job → header + requirements embeddings stored in `jobs` table
+3. **Matching** → Weighted SQL query using pre-computed embeddings (fast, no ML calls)
 
 ## Screenshots
 
@@ -134,12 +164,12 @@ apply-less/
 | `/api/jobs/:id` | GET | Job details |
 | `/api/jobs/regions` | GET | Regions with counts |
 | `/api/jobs/companies` | GET | Company autocomplete |
-| `/api/match` | POST | Match profile to jobs |
 
 ### Authenticated
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/api/match` | POST | Match profile to jobs (uses pre-computed embeddings) |
 | `/api/profile` | GET/POST/DELETE | Profile CRUD |
 | `/api/profile/parse` | POST | Parse uploaded file |
 | `/api/favorites` | GET | List favorites |
@@ -156,7 +186,7 @@ apply-less/
 
 ## Documentation
 
-- **[Architecture](docs/architecture.md)** — System design, API endpoints, data flows
+- **[Architecture](docs/architecture.md)** — System design, matching algorithm, data flows
 - **[Monorepo Structure](docs/monorepo-structure.md)** — Package layout and file descriptions
 - **[Implementation Plan](docs/plan.md)** — Development roadmap
 - **[Bugs & Issues](docs/BUGS.md)** — Known issues and fixes

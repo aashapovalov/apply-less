@@ -10,34 +10,6 @@
 
 ## Open Issues
 
-### BUG-012: Job matching not title-aware
-**Status:** 🟡 Medium  
-**Component:** ML/Backend  
-**Page:** `/jobs?sort=relevance`
-
-**Current behavior:**  
-Full-document embeddings average everything together. A "Senior Product Manager" profile matches "Software Engineer" at 70% because of shared technical keywords (AI, ML, data), while "AI Product Manager" only scores 69%.
-
-**Expected behavior:**  
-Job title should be weighted more heavily. A PM profile should rank PM jobs higher than engineering roles.
-
-**Proposed fix (Option B - Chunk jobs only):**
-1. Extract job title as separate chunk during embedding ingestion
-2. Store title embedding alongside full document embedding
-3. At match time, compute weighted score:
-   ```
-   final_score = 0.4 * title_similarity + 0.6 * full_doc_similarity
-   ```
-4. Schema change:
-   ```sql
-   ALTER TABLE job_embeddings_simple 
-   ADD COLUMN title_embedding vector(768);
-   ```
-
-**Effort:** ~1 day
-
----
-
 ### BUG-010: Missing Error Boundary
 **Status:** 🟡 Medium  
 **Component:** Frontend  
@@ -130,6 +102,80 @@ Features needed:
 ---
 
 ## Completed Fixes
+
+### ✅ BUG-012: Job matching not title-aware (Strategy C Implementation)
+**Status:** ✅ Fixed (Feb 1, 2026)  
+**Component:** ML/Backend/Frontend  
+**Page:** `/jobs?sort=relevance`
+
+**Problem:**  
+Full-document embeddings average everything together. A "Senior Product Manager" profile matches "Software Engineer" at 70% because of shared technical keywords (AI, ML, data), while "AI Product Manager" only scores 69%.
+
+**Solution: Strategy C - Section-Based Weighted Matching**
+
+Tested 4 strategies on 50 random jobs with a PM profile:
+- Strategy A (Full Doc): 5 PM jobs in top 10 (baseline)
+- Strategy B1 (Title-Heavy): 6 PM jobs in top 10
+- Strategy B2 (Req-Heavy): 5 PM jobs in top 10
+- **Strategy C (Section-Based): 7 PM jobs in top 10** ✅ Winner
+
+**Implementation:**
+
+1. **Database migration (014):**
+   ```sql
+   ALTER TABLE jobs ADD COLUMN header_embedding vector(768);
+   ALTER TABLE jobs ADD COLUMN requirements_embedding vector(768);
+   ALTER TABLE users ADD COLUMN title_embedding vector(768);
+   ALTER TABLE users ADD COLUMN experience_embedding vector(768);
+   ```
+
+2. **Profile Service:** Generates embeddings on profile save
+   - Calls ML service `/api/chunk/profile`
+   - Extracts title line from profile
+   - Stores title + experience embeddings in users table
+   - Best-effort (doesn't fail profile save on ML error)
+
+3. **Match Service:** Uses pre-computed embeddings
+   - Reads embeddings from users table (no ML calls at match time)
+   - Weighted SQL query: 40% title + 35% exp→req + 25% full
+   - Jobs without chunk embeddings fall back to 0.5 similarity
+
+4. **Job Ingestion (Stage G):** Now generates chunk embeddings
+   - Full embedding → job_embeddings_simple table
+   - Header + requirements embeddings → jobs table columns
+   - Calls ML service `/api/chunk/job` for each job
+
+5. **Frontend:** Match request no longer sends profile text
+   - Uses authenticated endpoint
+   - Server reads embeddings from users table
+   - Cache invalidation: saving profile invalidates match cache
+
+**Bugs fixed during implementation:**
+- ML service client: wrong JSON format (`JSON.stringify(text)` → `JSON.stringify({ text })`)
+- Profile service: field naming mismatch (`profile_text` → `profileText`)
+- Match service: column name typo (`userId` → `id`)
+- Match service: table name typo (`job_embedding_simple` → `job_embeddings_simple`)
+- Match router: missing authMiddleware
+- Comeet extractor: regex didn't match `.com` domain
+- Embedding client: wrong endpoint (`/api/embed/job` → `/api/chunk/job`)
+
+**Files created/modified:**
+- `db/migrations/014_add_chunk_embeddings.sql`
+- `packages/api/src/clients/ml-service-client.ts` (new)
+- `packages/api/src/services/match-service.ts`
+- `packages/api/src/services/profile-service.ts`
+- `packages/api/src/routes/match-router.ts`
+- `packages/api/src/constants/index.ts` (MATCHING_QUERY)
+- `packages/api/src/types/index.ts` (MatchRequest)
+- `packages/web/src/types/index.ts`
+- `packages/web/src/pages/jobs/jobs.tsx`
+- `packages/web/src/services/match.ts`
+- `packages/web/src/services/profile.ts`
+- `packages/ingestion/src/stages/stage-g-embeddings.ts`
+- `packages/ingestion/src/clients/embedding-client.ts`
+- `packages/ingestion/src/types/index.ts`
+
+---
 
 ### ✅ Jobs Page - Relevance Sort & Favorites
 **Status:** ✅ Completed (Jan 31, 2026)  
@@ -298,11 +344,11 @@ GET  /api/jobs/cities
 GET  /api/jobs/companies?search=&limit=20
 
 GET  /api/profile
-POST /api/profile
-POST /api/profile/parse (file upload)
+POST /api/profile         # Also generates embeddings
+POST /api/profile/parse   # File upload
 DELETE /api/profile
 
-POST /api/match
+POST /api/match           # Authenticated, uses pre-computed embeddings
 
 GET  /api/favorites
 GET  /api/favorites/:jobId
@@ -315,19 +361,25 @@ DELETE /api/favorites/:jobId
 ```sql
 jobs (relevant columns):
   - id, title, description (HTML), location
-  - country VARCHAR(50)  -- 'Israel' or NULL
-  - region VARCHAR(50)   -- 'central', 'north', 'south', 'jerusalem', 'remote'
-  - city VARCHAR(100)    -- Normalized city name
+  - country VARCHAR(50)                    -- 'Israel' or NULL
+  - region VARCHAR(50)                     -- 'central', 'north', etc.
+  - city VARCHAR(100)                      -- Normalized city name
+  - header_embedding vector(768)           -- Job title chunk embedding
+  - requirements_embedding vector(768)     -- Requirements chunk embedding
   - company_id, posted_date, status
 
 companies:
   - id, company_name, tags
 
 job_embeddings_simple:
-  - job_id, embedding (768d vector)
+  - job_id, embedding (768d vector)        -- Full document embedding
 
 users:
-  - id, email, password_hash, profile_text, updated_at
+  - id, email, password_hash
+  - profile_text TEXT
+  - title_embedding vector(768)            -- Profile title embedding
+  - experience_embedding vector(768)       -- Experience embedding
+  - updated_at
 
 favorites:
   - id, user_id, job_id, created_at
@@ -348,7 +400,7 @@ favorites:
 
 | Hook | File | Description |
 |------|------|-------------|
-| useAuthStatus | `use-auth-status.ts` | Returns isAuthenticated, hasProfile, profileText |
+| useAuthStatus | `use-auth-status.ts` | Returns isAuthenticated, hasProfile, profileText, isLoading |
 
 ### Theme Colors (index.css)
 

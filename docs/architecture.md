@@ -35,12 +35,158 @@
 
 ---
 
+## Matching System (Strategy C)
+
+### The Problem
+
+Full-document embeddings average everything together. A "Senior Product Manager" profile would match "Software Engineer" at 70% because of shared technical keywords (AI, ML, data), while "AI Product Manager" only scores 69%.
+
+### The Solution: Section-Based Weighted Matching
+
+Compare related sections between profile and job:
+
+```
+┌─────────────────────────┐         ┌─────────────────────────┐
+│      USER PROFILE       │         │      JOB POSTING        │
+├─────────────────────────┤         ├─────────────────────────┤
+│ title_embedding         │◄──40%──►│ header_embedding        │
+│ (headline/summary)      │         │ (title + company + loc) │
+├─────────────────────────┤         ├─────────────────────────┤
+│ experience_embedding    │◄──35%──►│ requirements_embedding  │
+│ (work experience)       │         │ (qualifications)        │
+├─────────────────────────┤         ├─────────────────────────┤
+│ full_embedding          │◄──25%──►│ full_embedding          │
+│ (entire profile)        │         │ (entire description)    │
+└─────────────────────────┘         └─────────────────────────┘
+
+Final Score = 0.40 × title_sim + 0.35 × exp_req_sim + 0.25 × full_sim
+```
+
+### Embedding Storage
+
+**Users table:**
+```sql
+title_embedding vector(768)      -- Profile headline/first line
+experience_embedding vector(768) -- Work experience section
+```
+
+**Jobs table:**
+```sql
+header_embedding vector(768)       -- Title + company + location
+requirements_embedding vector(768) -- Requirements/qualifications section
+```
+
+**job_embeddings_simple table:**
+```sql
+embedding vector(768)  -- Full document embedding (existing)
+```
+
+### Data Flow
+
+#### 1. Profile Save Flow
+
+```
+User saves profile
+       ↓
+POST /api/profile
+       ↓
+ProfileService.saveProfile()
+       ↓
+┌──────────────────────────────────────┐
+│ 1. Save profile_text to DB           │
+│ 2. Call ML service /api/chunk/profile│
+│ 3. Extract title line from profile   │
+│ 4. Call ML service /api/embed/single │
+│ 5. Store embeddings in users table   │
+└──────────────────────────────────────┘
+       ↓
+Embeddings stored for instant matching
+```
+
+#### 2. Job Ingestion Flow
+
+```
+Ingestion CLI: embeddings command
+       ↓
+For each job without embeddings:
+       ↓
+┌──────────────────────────────────────┐
+│ 1. Generate full embedding (batch)   │
+│ 2. Call ML /api/chunk/job            │
+│ 3. Extract header + requirements     │
+│ 4. Store in jobs table               │
+│ 5. Store full in job_embeddings_simple│
+└──────────────────────────────────────┘
+```
+
+#### 3. Matching Flow
+
+```
+User clicks "Relevance" sort
+       ↓
+POST /api/match (authenticated)
+       ↓
+MatchService.matchProfile(userId)
+       ↓
+┌──────────────────────────────────────┐
+│ 1. Read pre-computed embeddings from │
+│    users table (no ML calls!)        │
+│ 2. Execute weighted SQL query        │
+│ 3. Return ranked jobs with scores    │
+└──────────────────────────────────────┘
+       ↓
+Instant results (< 100ms)
+```
+
+### Weighted Matching SQL Query
+
+```sql
+WITH job_scores AS (
+  SELECT
+    j.id as job_id,
+    j.title,
+    c.company_name,
+    -- Title similarity (40%)
+    COALESCE(1 - (j.header_embedding <=> $1), 0.5) as title_sim,
+    -- Experience → Requirements similarity (35%)
+    COALESCE(1 - (j.requirements_embedding <=> $2), 0.5) as exp_req_sim,
+    -- Full document similarity (25%)
+    COALESCE(1 - (je.embedding <=> $2), 0.5) as full_sim
+  FROM jobs j
+  JOIN companies c ON j.company_id = c.id
+  JOIN job_embeddings_simple je ON j.id = je.job_id
+  WHERE j.country = 'IL' AND j.status = 'active'
+),
+scored AS (
+  SELECT *,
+    (0.40 * title_sim + 0.35 * exp_req_sim + 0.25 * full_sim) as score
+  FROM job_scores
+)
+SELECT * FROM scored
+WHERE score >= $3
+ORDER BY score DESC
+LIMIT $4 OFFSET $5
+```
+
+### Why Pre-computed Embeddings?
+
+| Approach | Latency | ML Calls |
+|----------|---------|----------|
+| Compute on match | ~2-5s | Every search |
+| Pre-computed | <100ms | Only on save |
+
+Embeddings are generated:
+- **Profile:** When user saves profile
+- **Jobs:** During ingestion pipeline
+
+---
+
 ## Data Flows
 
 ### 1. Job Ingestion
 
 ```
-SNC API → Companies → ATS Detection → Job Fetching → Location Filter → DB
+SNC API → Companies → ATS Detection → Job Fetching → Location Filter → Embeddings → DB
                                             ↓
                                     (Non-Israeli jobs skipped)
 ```
@@ -50,7 +196,7 @@ SNC API → Companies → ATS Detection → Job Fetching → Location Filter →
 3. **Job Fetching:** Pull jobs from detected ATS APIs
 4. **Location Normalization:** Classify Israeli cities into regions
 5. **Non-Israeli Filter:** Skip jobs outside Israel during ingestion
-6. **Embedding:** Generate vectors for similarity search
+6. **Embedding:** Generate full + chunk embeddings
 
 ### 2. Location Normalization
 
@@ -66,13 +212,7 @@ Jobs are automatically filtered and classified during ingestion:
 
 Non-Israeli locations (US, UK, EU, etc.) are detected and **skipped during ingestion**.
 
-### 3. Profile Matching
-
-```
-Profile Text → ML Service → Embed → pgvector Search → Ranked Jobs with Scores
-```
-
-### 4. User Flow
+### 3. User Flow
 
 ```
 Landing → Browse Jobs → (Sort by Date)
@@ -80,7 +220,7 @@ Landing → Browse Jobs → (Sort by Date)
                                       → Favorites → CV Generation
 ```
 
-### 5. CV Generation
+### 4. CV Generation
 
 ```
 Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
@@ -122,20 +262,24 @@ Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/` | POST | No | Match profile text to jobs |
+| `/` | POST | **Yes** | Match user's pre-computed embeddings to jobs |
 
-**Body:** `{ profile, limit?, offset?, threshold? }`
+**Body:** `{ limit?, offset?, threshold? }` (no profile text needed!)
 
 **Response:** `{ matches: [{job_id, title, company_name, score, ...}], total, has_more }`
+
+**Note:** Requires authentication. User must have saved profile with embeddings.
 
 ### Profile (`/api/profile`)
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/` | GET | Yes | Get user profile text |
-| `/` | POST | Yes | Save/update profile (max 50K chars) |
+| `/` | POST | Yes | Save/update profile + generate embeddings |
 | `/` | DELETE | Yes | Delete profile text |
 | `/parse` | POST | Yes | Parse uploaded file (PDF/DOC/DOCX) |
+
+**On POST:** Automatically generates title + experience embeddings via ML service.
 
 ### Favorites (`/api/favorites`)
 
@@ -164,6 +308,10 @@ Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
 |----------|--------|-------------|
 | `/api/chunk/job` | POST | Job → sections + skills + embeddings |
 | `/api/chunk/profile` | POST | Profile → chunks + feedback + score |
+
+**Chunk types returned:**
+- Job: `header`, `requirements`, `responsibilities`, `benefits`, `description`
+- Profile: `full`, `experience`, `education`
 
 ### CV Generation
 
@@ -206,7 +354,7 @@ Job + Profile → Skill Gap Analysis → Claude API → Tailored CV Markdown
 
 | Hook | Description |
 |------|-------------|
-| `useAuthStatus` | Returns `{ isAuthenticated, hasProfile, profileText, user }` |
+| `useAuthStatus` | Returns `{ isAuthenticated, hasProfile, profileText, user, isLoading }` |
 
 ### Theme Colors
 
@@ -263,23 +411,36 @@ Detection runs in order (first match wins):
 companies        -- 1496 records: company info, careers URL
 job_sources      -- 683 records: detected ATS with slugs/tokens
 jobs             -- ~770 records: Israeli job postings only
-                 -- Columns: country, region, city for location classification
-job_chunks       -- Section-level job content
-job_embeddings   -- ~750 records: 768d vectors (BGE)
+                 -- Columns: country, region, city for location
+                 -- Columns: header_embedding, requirements_embedding (chunk vectors)
+job_embeddings_simple -- ~750 records: full 768d vectors (BGE)
 ```
 
-### Location Columns in Jobs Table
+### Jobs Table Embedding Columns
 
 ```sql
-country VARCHAR(50)   -- 'Israel' or NULL (non-Israeli skipped)
-region VARCHAR(50)    -- 'central', 'north', 'south', 'jerusalem', 'remote', 'other'
-city VARCHAR(100)     -- Normalized city name
+-- Location columns
+country VARCHAR(50)                    -- 'Israel' or NULL
+region VARCHAR(50)                     -- 'central', 'north', etc.
+city VARCHAR(100)                      -- Normalized city name
+
+-- Chunk embedding columns (Strategy C)
+header_embedding vector(768)           -- Title + company + location
+requirements_embedding vector(768)     -- Requirements/qualifications
+```
+
+### Users Table Embedding Columns
+
+```sql
+profile_text TEXT                      -- Raw profile text
+title_embedding vector(768)            -- Profile headline
+experience_embedding vector(768)       -- Work experience section
 ```
 
 ### Auth Tables
 
 ```sql
-users                  -- User accounts with profile_text
+users                  -- User accounts with profile + embeddings
 refresh_tokens         -- JWT refresh tokens (30d expiry)
 verification_tokens    -- Email verification (24h expiry)
 password_reset_tokens  -- Password reset (1h expiry)
