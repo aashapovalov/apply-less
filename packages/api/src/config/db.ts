@@ -10,14 +10,11 @@ const rootDir = path.resolve(__dirname, "../../../../");
 const envPath = path.join(rootDir, ".env");
 dotenv.config({ path: envPath });
 
-// Railway proxy doesn't support SSL
-const useSSL = process.env.DATABASE_URL?.includes("sslmode=require");
-
 const { Pool } = pg;
 type PoolType = InstanceType<typeof Pool>;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: useSSL ? { rejectUnauthorized: false } : false,
+  ssl: false, // Railway proxy doesn't support SSL
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
