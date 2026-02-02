@@ -10,13 +10,13 @@ export function Landing() {
       <section className="relative px-4 pt-24 pb-32">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-primary text-5xl leading-tight font-medium">
-            Find your next PM role —
+            Find your next role —
             <br />
             without mass applying.
           </h1>
 
           <p className="text-secondary mt-8 text-lg leading-relaxed">
-            A personal job assistant for Product Managers.
+            A personal job assistant for Israeli Market.
             <br />
             We analyze roles and explain why they fit you.
           </p>
@@ -73,7 +73,7 @@ export function Landing() {
 
       {/* Footer */}
       <footer className="relative py-8 text-center">
-        <p className="text-muted text-sm">A personal job assistant for Product Managers.</p>
+        <p className="text-muted text-sm">A personal job assistant for Israeli Market.</p>
       </footer>
     </div>
   );

@@ -2,6 +2,9 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 from pathlib import Path
 
+# Path to project root (3 levels higher than this folder)
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
 """
 Application Settings Module defines configuration settings for the 
 ML service using Pydantic Settings. Settings are loaded from 
@@ -49,7 +52,7 @@ class Settings(BaseSettings):
         """Pydantic configuration for settings loading"""
 
         # Load settings from config file if exists
-        env_file = find_env_file()
+        env_file = PROJECT_ROOT / ".env"
 
         # Ignore extra environment variables (don't raise errors)
         extra = "ignore"

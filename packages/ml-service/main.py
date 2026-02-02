@@ -26,6 +26,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from services.embedding_service import EmbeddingService
+from services.skill_extractor_service import SkillExtractorService
 from services.cv_generator_service import CVGeneratorService
 from services.job_chunker_service import JobChunkerService
 from services.profile_chunker_service import ProfileChunkerService
@@ -36,19 +37,6 @@ from api import (
     cv_router,
     compare_router
 )
-
-
-# Placeholder for skill extractor (disabled to save memory on Railway)
-class DummySkillExtractor:
-    """
-    Dummy skill extractor that returns empty results.
-    Used when the real skill extractor is disabled to save memory.
-    """
-    info = {"status": "disabled", "reason": "memory optimization"}
-    is_loaded = False
-
-    def extract_skills(self, text):
-        return []
 
 
 @asynccontextmanager
@@ -79,12 +67,9 @@ async def lifespan(app: FastAPI):
     embedding_service = EmbeddingService()
     embedding_service.load_model()
 
-    # Disable skill extractor to save memory
-    # skill_extractor_service = SkillExtractorService()
-    # skill_extractor_service.load_model()
-
-    # Use placeholder for skill extractor
-    skill_extractor_service = DummySkillExtractor()
+    # Load skill extraction model
+    skill_extractor_service = SkillExtractorService()
+    skill_extractor_service.load_model()
 
     # Create chunker services (they use embedding + skill services)
     job_chunker_service = JobChunkerService(
@@ -116,15 +101,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ApplyLess ML-service",
     description="""Embedding generation and ML inference for job matching.
-    
+
     ## Endpoints
-    
+
     - **GET /health** - Health check with model status
     - **POST /api/embed** - Generate embeddings for multiple texts
     - **POST /api/embed/single** - Generate embedding for single text
-    
+
     ## Model
-    
+
     Uses BAAI/bge-base-en-v1.5 by default, which produces 768-dimensional
     embeddings optimized for semantic similarity search.
     """,
