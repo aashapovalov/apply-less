@@ -1,13 +1,21 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { CVGeneratorModal } from '@/components/cv';
 import { JobFetchError, JobSkeleton, SafeHtml } from '@/components/jobs/job-page';
 import { Button } from '@/components/ui';
+import { useAuthStatus } from '@/hooks';
 import { useGetJobQuery } from '@/services/jobs.ts';
 import { getTimeAgo } from '@/utils';
 
 export function JobDetails() {
   const { id } = useParams<{ id: string }>();
   const { data: job, isLoading, isError } = useGetJobQuery(Number(id));
+
+  const { isAuthenticated, profileText } = useAuthStatus();
+  const [showCVModal, setShowCVModal] = useState(false);
+
+  const profileWordCount = profileText?.trim().split(/\s+/).length || 0;
 
   if (isLoading) {
     return <JobSkeleton />;
@@ -59,6 +67,15 @@ export function JobDetails() {
           <a href={job.url} target="_blank" rel="noopener noreferrer">
             <Button className="w-auto px-6">Apply on Site →</Button>
           </a>
+          {isAuthenticated && (
+            <Button
+              variant="secondary"
+              className="w-auto px-6"
+              onClick={() => setShowCVModal(true)}
+            >
+              📄 Generate Tailored CV
+            </Button>
+          )}
         </div>
       </div>
 
@@ -100,6 +117,19 @@ export function JobDetails() {
           />
         </div>
       )}
+
+      {/* CV Generator Modal */}
+      <CVGeneratorModal
+        job={{
+          job_id: job.job_id,
+          title: job.title,
+          company_name: job.company_name,
+          location: job.location,
+        }}
+        isOpen={showCVModal}
+        onClose={() => setShowCVModal(false)}
+        profileWordCount={profileWordCount}
+      />
     </div>
   );
 }
