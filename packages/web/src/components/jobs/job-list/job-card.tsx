@@ -147,7 +147,7 @@ export function JobCard({
             onClick={handleFavoriteClick}
             disabled={isUpdating}
             className={cn(
-              'absolute top-4 right-4 rounded-full p-2 transition-colors',
+              'rounded-full p-2 transition-colors',
               localFavorite
                 ? 'text-favorite hover:bg-favorite/10'
                 : 'text-secondary hover:bg-secondary/10 hover:text-favorite',
