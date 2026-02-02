@@ -20,4 +20,4 @@ export const INITIAL_STEPS: LoadingStep[] = [
   { label: 'Calculating match score', status: 'pending' },
 ];
 
-export const MIN_PROFILE_WORDS = 100;
+export const MIN_PROFILE_WORDS = 200;
