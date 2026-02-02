@@ -260,7 +260,6 @@ export interface CVJob {
   title: string;
   company_name: string;
   location?: string | null;
-  description: string;
 }
 
 export type ModalState = 'initial' | 'loading' | 'success' | 'error';

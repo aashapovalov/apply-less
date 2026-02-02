@@ -9,6 +9,7 @@ import {
 } from '@/components/cv';
 import { INITIAL_STEPS, MIN_PROFILE_WORDS } from '@/constants';
 import { useCompareCVMutation, useGenerateCVMutation } from '@/services/cv';
+import { useGetJobQuery } from '@/services/jobs.ts';
 import type { CVCompareResponse, CVGenerateResponse } from '@/types';
 import type { CVJob, LoadingStep, ModalState } from '@/types';
 import { cn } from '@/utils';
@@ -35,6 +36,9 @@ export function CVGeneratorModal({
   const [generateCV] = useGenerateCVMutation();
   const [compareCV] = useCompareCVMutation();
 
+  // Fetch full job details (for description)
+  const { data: jobDetails } = useGetJobQuery(job.job_id, { skip: !isOpen });
+
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -51,6 +55,12 @@ export function CVGeneratorModal({
   };
 
   const handleGenerate = async () => {
+    if (!jobDetails?.description) {
+      setErrorMessage('Job description not available');
+      setState('error');
+      return;
+    }
+
     setState('loading');
     setSteps(INITIAL_STEPS.map((s) => ({ ...s, status: 'pending' })));
     setErrorMessage(null);
@@ -71,7 +81,7 @@ export function CVGeneratorModal({
         job_title: job.title,
         job_company: job.company_name,
         job_location: job.location || '',
-        job_description: job.description,
+        job_description: jobDetails.description,
       }).unwrap();
 
       setCvData(generateResult);
@@ -84,7 +94,7 @@ export function CVGeneratorModal({
         cv_text: generateResult.cv_markdown,
         job_title: job.title,
         job_company: job.company_name,
-        job_description: job.description,
+        job_description: jobDetails.description,
       }).unwrap();
 
       setCompareData(compareResult);
