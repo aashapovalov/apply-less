@@ -74,6 +74,8 @@ export function JobsList({
     );
   }
 
+  const showGenerateCV = viewMode === 'matches' || viewMode === 'favorites';
+
   return (
     <div className="space-y-4">
       {jobs.map((job) => (
@@ -82,6 +84,7 @@ export function JobsList({
           job={job}
           showScore={viewMode === 'matches'}
           isFavorite={favoriteJobIds.has(job.job_id)}
+          showGenerateCV={showGenerateCV}
           profileWordCount={profileWordCount}
           isAuthenticated={isAuthenticated}
           onFavoriteChange={onFavoriteChange}
