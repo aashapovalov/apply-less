@@ -203,7 +203,6 @@ export interface CVGenerateRequest {
   job_company: string;
   job_location?: string;
   job_description: string;
-  profile_text: string;
 }
 
 export interface CVGenerateResponse {

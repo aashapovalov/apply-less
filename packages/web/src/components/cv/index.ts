@@ -1,3 +1,4 @@
+import { CVGeneratorModal } from './cv-generator-modal.tsx';
 import { CVModalError } from './cv-modal-error.tsx';
 import { CVModalInitial } from './cv-modal-initial.tsx';
 import { CVModalLoading } from './cv-modal-loading.tsx';
@@ -8,6 +9,7 @@ import { RequirementsAnalysis } from './requirement-analysis.tsx';
 import { ScoreBadge } from './score-badge.tsx';
 
 export {
+  CVGeneratorModal,
   CVModalError,
   CVModalInitial,
   CVModalLoading,
