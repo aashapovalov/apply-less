@@ -38,3 +38,5 @@ export const MATCHING_QUERY = (
       LIMIT $4 OFFSET $5
       `;
 };
+
+export const MIN_PROFILE_WORDS = 300;

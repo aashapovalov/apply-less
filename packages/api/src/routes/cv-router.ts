@@ -3,6 +3,7 @@ import { Router } from "express";
 import { authMiddleware } from "../middleware/auth-middleware.js";
 import { MLServiceClient } from "../clients/index.js";
 import { getDb } from "../config/db.js";
+import { MIN_PROFILE_WORDS } from "../constants/index.js";
 
 export const cvRouter = Router();
 
@@ -66,11 +67,11 @@ cvRouter.post("/generate", authMiddleware, async (req, res) => {
     }
 
     const wordCount = profileText.trim().split(/\s+/).length;
-    if (wordCount < 100) {
+    if (wordCount < MIN_PROFILE_WORDS) {
       return res.status(400).json({
-        error: `Profile too short (${wordCount} words). Minimum 100 words required.`,
+        error: `Profile too short (${wordCount} words). Minimum ${MIN_PROFILE_WORDS} words required.`,
         wordCount,
-        minRequired: 100,
+        minRequired: MIN_PROFILE_WORDS,
       });
     }
 
