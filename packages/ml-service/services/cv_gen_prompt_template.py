@@ -28,41 +28,65 @@ CANDIDATE'S CURRENT PROFILE:
 TASK:
 Write a tailored, ATS-friendly CV for this specific job.
 
-CV STRUCTURE (use exactly these sections):
+CV STRUCTURE (use exactly these sections in this order):
 
-## Summary
+# [Full Name]
+## [Current/Target Job Title]
+*[City, Country] | [Phone] | [email@example.com] | [linkedin.com/in/username]*
+
+Extract name, contact info, and location from the candidate's profile.
+If any info is missing, use these placeholders:
+- Name: "First Name Last Name"
+- Phone: "055-555-5555"
+- Email: "email@example.com"
+- LinkedIn: "linkedin.com/in/username"
+- Location: "Tel Aviv, Israel"
+
+IMPORTANT: For email and LinkedIn, include the actual values (not labels).
+Example: *Tel Aviv, Israel | 054-123-4567 | john.doe@gmail.com | linkedin.com/in/johndoe*
+
+### SUMMARY
 3 lines maximum. Highlight years of experience, most relevant expertise for THIS role, and key achievement.
 
-## Work Experience
+### WORK EXPERIENCE
+**Job Title**, Company Name (YYYY - YYYY)
+*City, Country*
 - Most recent/relevant positions first
 - Rewrite bullet points to use keywords from the job description
 - Mirror domain language (MarTech, B2B, FinTech, Cyber, etc.)
 - Quantify impact where possible (%, $, team size)
 - Only include experience relevant to this role
 
-## Hard Skills
+### HARD SKILLS
 - Lead with matching skills from the job requirements
 - Group logically (Languages, Frameworks, Cloud, Databases, Tools)
-- Format: comma-separated list per category
+- Format: **Category:** comma-separated list
 
-## Soft Skills
-- 4-6 relevant soft skills
+### SOFT SKILLS
+- 4-6 relevant soft skills as bullet points
 - Prioritize skills mentioned in job description
-- Examples: Leadership, Problem-solving, Cross-functional collaboration, Communication
 
-## Education
-- Degree, Institution, Year
+### EDUCATION
+**Degree and Major**, Institution Name (YYYY)
+*City, Country*
 - Include relevant certifications if any
 
-## Languages
+### LANGUAGES
 - Language (Proficiency level)
 - Example: English (Native), Hebrew (Fluent)
 
 ---
 
-RULES:
+FORMATTING RULES:
+1. Use # for name (largest), ## for title, ### for section headers
+2. Use **bold** for job titles, company names, degrees
+3. Use *italic* for locations, dates, contact line
+4. Use bullet points (- ) for list items
+5. Keep total length ~400-500 words (1 page)
+6. Use action verbs: Led, Built, Designed, Implemented, Scaled
+
+CONTENT RULES:
 1. Do NOT mention missing skills
 2. Frame adjacent experience positively
-3. Keep total length ~400-500 words (1 page)
-4. Use action verbs: Led, Built, Designed, Implemented, Scaled
-5. Output in Markdown format with ## headers"""
+3. Extract real info from profile, use placeholders only if truly missing
+4. Output in Markdown format exactly as structured above"""
