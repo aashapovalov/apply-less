@@ -53,7 +53,7 @@ app.use("/api/jobs", jobsRouter);
 app.use("/api/match", matchRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/favorites", favoritesRouter);
-app.use("api/cv", cvRouter);
+app.use("/api/cv", cvRouter);
 
 // 404 handler
 
