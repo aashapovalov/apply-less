@@ -26,7 +26,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from services.embedding_service import EmbeddingService
-from services.skill_extractor_service import SkillExtractorService
 from services.cv_generator_service import CVGeneratorService
 from services.job_chunker_service import JobChunkerService
 from services.profile_chunker_service import ProfileChunkerService
@@ -37,6 +36,19 @@ from api import (
     cv_router,
     compare_router
 )
+
+
+# Placeholder for skill extractor (disabled to save memory on Railway)
+class DummySkillExtractor:
+    """
+    Dummy skill extractor that returns empty results.
+    Used when the real skill extractor is disabled to save memory.
+    """
+    info = {"status": "disabled", "reason": "memory optimization"}
+    is_loaded = False
+
+    def extract_skills(self, text):
+        return []
 
 
 @asynccontextmanager
@@ -67,20 +79,12 @@ async def lifespan(app: FastAPI):
     embedding_service = EmbeddingService()
     embedding_service.load_model()
 
-   # Disable skill extractor to save memory
-       # skill_extractor_service = SkillExtractorService()
-       # skill_extractor_service.load_model()
+    # Disable skill extractor to save memory
+    # skill_extractor_service = SkillExtractorService()
+    # skill_extractor_service.load_model()
 
-    # Placeholder for skill extractor
-   class DummySkillExtractor:
-       info = {"status": "disabled", "reason": "memory optimization"}
-       is_loaded = False  # Add this line
-
-
-       def extract_skills(self, text):
-           return []
-
-   skill_extractor_service = DummySkillExtractor()
+    # Use placeholder for skill extractor
+    skill_extractor_service = DummySkillExtractor()
 
     # Create chunker services (they use embedding + skill services)
     job_chunker_service = JobChunkerService(
