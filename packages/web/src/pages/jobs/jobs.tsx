@@ -16,6 +16,7 @@ export function Jobs() {
     error,
     isAuthenticated,
     hasProfile,
+    profileText,
     favoriteJobIds,
     favoritesCount,
     refetchFavorites,
@@ -25,6 +26,8 @@ export function Jobs() {
     setFilter,
     clearFilters,
   } = useJobsView();
+
+  const profileWordCount = profileText?.trim().split(/\s+/).length || 0;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -71,6 +74,7 @@ export function Jobs() {
         error={error}
         favoriteJobIds={favoriteJobIds}
         isAuthenticated={isAuthenticated}
+        profileWordCount={profileWordCount}
         onFavoriteChange={refetchFavorites}
         onBrowseJobs={() => setViewMode('all')}
       />

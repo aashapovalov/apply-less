@@ -10,7 +10,7 @@ import { transformFavoriteToJob } from '@/utils';
 
 export function useJobsView() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isAuthenticated, hasProfile, isLoading: isAuthLoading } = useAuthStatus();
+  const { isAuthenticated, hasProfile, profileText, isLoading: isAuthLoading } = useAuthStatus();
 
   // Parse URL params
   const page = Number(searchParams.get('page')) || 1;
@@ -183,6 +183,7 @@ export function useJobsView() {
     // Auth
     isAuthenticated,
     hasProfile,
+    profileText,
     // Favorites
     favoriteJobIds,
     favoritesCount: favoriteJobs.length,

@@ -11,6 +11,7 @@ interface JobsListProps {
   error: string | null;
   favoriteJobIds: Set<number>;
   isAuthenticated: boolean;
+  profileWordCount: number;
   onFavoriteChange: () => void;
   onBrowseJobs: () => void;
 }
@@ -23,6 +24,7 @@ export function JobsList({
   error,
   favoriteJobIds,
   isAuthenticated,
+  profileWordCount,
   onFavoriteChange,
   onBrowseJobs,
 }: JobsListProps) {
@@ -80,6 +82,7 @@ export function JobsList({
           job={job}
           showScore={viewMode === 'matches'}
           isFavorite={favoriteJobIds.has(job.job_id)}
+          profileWordCount={profileWordCount}
           isAuthenticated={isAuthenticated}
           onFavoriteChange={onFavoriteChange}
         />
