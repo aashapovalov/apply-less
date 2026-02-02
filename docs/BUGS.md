@@ -10,6 +10,42 @@
 
 ## Open Issues
 
+### BUG-013: Missing `/` in CV Route Mount
+**Status:** 🔴 Critical  
+**Component:** Backend API  
+**File:** `packages/api/src/index.ts`
+
+**Current behavior:**  
+CV endpoints return 404 - route not found.
+
+**Root cause:**  
+```js
+app.use("api/cv", cvRouter);  // ❌ Missing leading "/"
+```
+
+**Fix:**
+```js
+app.use("/api/cv", cvRouter);  // ✅ Correct
+```
+
+---
+
+### BUG-014: Duplicate Absolute Positioning in JobCard
+**Status:** 🟡 Medium  
+**Component:** Frontend  
+**File:** `packages/web/src/components/jobs/job-list/job-card.tsx`
+
+**Current behavior:**  
+Favorite button has `absolute top-4 right-4` but it's already inside an absolute-positioned container.
+
+**Expected behavior:**  
+Both CV and favorite buttons should be positioned within the same flex container.
+
+**Fix:**
+Remove `absolute top-4 right-4` from favorite button className.
+
+---
+
 ### BUG-010: Missing Error Boundary
 **Status:** 🟡 Medium  
 **Component:** Frontend  
@@ -88,6 +124,66 @@ Some entries are not actual job postings (generic career pages).
 ---
 
 ## Completed Fixes
+
+### ✅ CV Generation UI Implementation
+**Status:** ✅ Completed (Feb 2, 2026)  
+**Component:** Full Stack (API, ML Service, Frontend)
+
+**Implementation:**
+
+**Backend API (`packages/api`):**
+- Created `cv-router.ts` with `/api/cv/generate` and `/api/cv/compare` endpoints
+- Added `generateCV()` and `compareCV()` methods to `ml-service-client.ts`
+- Profile validation: minimum 100 words required
+
+**ML Service (`packages/ml-service`):**
+- Created `compare.py` with `/api/compare-cv` endpoint
+- Skill extraction from CV and job description
+- Coverage analysis (mandatory vs preferred requirements)
+- Semantic similarity score using cosine similarity
+
+**Frontend (`packages/web`):**
+- Created CV modal component suite:
+  - `cv-generator-modal.tsx` - Main orchestration
+  - `cv-modal-initial.tsx` - Ready state with job preview
+  - `cv-modal-loading.tsx` - 5-step loading animation
+  - `cv-modal-success.tsx` - Split view (CV + analysis)
+  - `cv-modal-error.tsx` - Error with retry
+  - `cv-modal-profile-required.tsx` - Profile too short warning
+- Created `generate-cv-pdf.ts` utility for PDF generation
+- PDF features:
+  - Professional styling (14pt name, 12pt title, 10pt body)
+  - Section headers with underlines (UPPERCASE)
+  - Clickable email (`mailto:`) links
+  - Clickable LinkedIn profile links
+- CV button on job cards (matches + favorites views)
+- CV button on job details page
+
+**CV Flow:**
+```
+Click "Generate CV" → Validate Profile (100+ words)
+  → Generate CV (Claude) → Compare to Job → Show Preview
+  → Requirements Analysis (Covered vs Gaps) → Download PDF
+```
+
+---
+
+### ✅ Default View Mode = Matches
+**Status:** ✅ Completed (Feb 2, 2026)  
+**Component:** Frontend  
+**File:** `packages/web/src/hooks/use-jobs-view.ts`
+
+**Change:** Users with a profile now default to "Matches" view instead of "All Jobs".
+
+**Implementation:**
+```ts
+const getDefaultView = (): ViewMode => {
+  if (hasProfile) return 'matches';
+  return 'all';
+};
+```
+
+---
 
 ### ✅ Favorites Page → Integrated into Jobs Page
 **Status:** ✅ Completed (Feb 1, 2026)  
@@ -395,6 +491,9 @@ GET  /api/favorites
 GET  /api/favorites/:jobId
 POST /api/favorites/:jobId
 DELETE /api/favorites/:jobId
+
+POST /api/cv/generate     # Generate tailored CV
+POST /api/cv/compare      # Compare CV to job
 ```
 
 ### Database Schema
@@ -430,7 +529,8 @@ favorites:
 
 | Component | File | Description |
 |-----------|------|-------------|
-| JobCard | `job-card.tsx` | Job card with heart button and match score |
+| JobCard | `job-card.tsx` | Job card with heart button, CV button, match score |
+| CVGeneratorModal | `cv-generator-modal.tsx` | CV generation modal with 4 states |
 | RoleInput | `role-input.tsx` | Text input with localStorage history |
 | CompanySearch | `company-search.tsx` | Autocomplete dropdown with debounced API search |
 | RegionFilter | `region-filter.tsx` | Custom dropdown with job counts |
@@ -442,6 +542,7 @@ favorites:
 | Hook | File | Description |
 |------|------|-------------|
 | useAuthStatus | `use-auth-status.ts` | Returns isAuthenticated, hasProfile, profileText, isLoading |
+| useJobsView | `use-jobs-view.ts` | All jobs page logic (views, filters, pagination) |
 
 ### Theme Colors (index.css)
 
@@ -452,3 +553,5 @@ favorites:
 | `--color-match-low-*` | Gray badge for <50% match |
 | `--color-warning-*` | Profile prompt banner |
 | `--color-favorite` | Heart button color |
+| `--color-success-*` | Covered requirements in CV modal |
+| `--color-error-*` | Error states |

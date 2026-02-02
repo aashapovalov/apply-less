@@ -3,8 +3,8 @@
 ## Timeline
 
 **Demo Day:** February 3, 2026  
-**Today:** February 1, 2026  
-**Working days:** 2 (including demo prep)
+**Today:** February 2, 2026  
+**Working days:** 1 (demo prep)
 
 ---
 
@@ -18,7 +18,7 @@ Job matching platform that:
 
 ---
 
-## Current Status (Feb 1 - Night)
+## Current Status (Feb 2 - Morning)
 
 ### ✅ Completed
 
@@ -36,19 +36,23 @@ Job matching platform that:
 | **Match API** | Authenticated, uses pre-computed embeddings |
 | **Profile API** | CRUD + file parsing + embedding generation |
 | **Favorites API** | CRUD |
+| **CV API** | Generate + Compare endpoints |
 | **ML Service** | Python FastAPI with local models |
 | **Chunking** | Job/profile section + skill extraction |
 | **CV Generation** | Claude 3 Haiku integration |
+| **CV Comparison** | Skill coverage analysis + semantic score |
 | **Frontend - Landing** | Redesigned with features |
 | **Frontend - Jobs** | Unified page with 3 views (All/Matches/Favorites) |
 | **Frontend - Auth** | Login, register, forgot/reset password, verification |
 | **Frontend - Profile** | Page with file upload, drag & drop |
+| **Frontend - CV Modal** | Full generation flow with PDF download |
 | **HTML Descriptions** | DOMPurify rendering with CSS formatting |
 | **Job Filters** | Region, date, company, role (works on all views) |
 | **Favorites View** | Integrated into Jobs page as tab |
 | **Smart Login** | Redirects to Matches if profile exists |
+| **Default View** | Matches for users with profile |
 
-### 🎯 Demo Goals
+### ✅ Demo Goals - All Complete!
 
 | Goal | Target | Status |
 |------|--------|--------|
@@ -58,6 +62,7 @@ Job matching platform that:
 | ML Service | Local models | ✅ |
 | Chunking | Sections + skills | ✅ |
 | CV Generation | Working | ✅ |
+| CV Generation UI | Modal + PDF | ✅ |
 | Location Filter | Israel only | ✅ |
 | UI - Jobs | List + filters + details | ✅ |
 | UI - Auth | Login/Register | ✅ |
@@ -70,10 +75,9 @@ Job matching platform that:
 
 ## Remaining Work
 
-### Day 17 (Feb 2): Deployment + Polish
+### Day 18 (Feb 2): Deployment
 
-- [x] ~~**Favorites page**~~ → Integrated as tab in Jobs page
-- [ ] **CV generation UI:** Button on favorites to generate CV
+- [ ] Fix BUG-013: Missing `/` in CV route mount
 - [ ] **BUG-010:** Error boundary
 - [ ] **BUG-011:** 404 page
 - [ ] Deploy Node.js API to Railway
@@ -82,7 +86,7 @@ Job matching platform that:
 - [ ] Environment variables
 - [ ] Test end-to-end
 
-### Day 18 (Feb 3): Demo Day 🎉
+### Day 19 (Feb 3): Demo Day 🎉
 
 - [ ] Bug fixes
 - [ ] Demo walkthrough prep
@@ -201,9 +205,44 @@ score = 0.40 × title_sim + 0.35 × exp_req_sim + 0.25 × full_sim
 **Components created:**
 - `hooks/use-jobs-view.ts` - All data fetching + state logic
 - `components/jobs/filters/view-toggle.tsx` - Tab buttons
-- `components/jobs/filters/jobs-header.tsx` - Dynamic title
+- `components/jobs/filters/jobs-header.tsx` - Dynamic header
 - `components/jobs/filters/jobs-filters.tsx` - Filter inputs + pills
 - `components/jobs/job-list/jobs-list.tsx` - List + empty states
+
+---
+
+### ✅ Phase 5: CV Generation UI (Day 18)
+
+#### ✅ Day 18 (Feb 2): CV Modal + PDF Download
+- [x] CV API routes (`/api/cv/generate`, `/api/cv/compare`)
+- [x] ML service compare endpoint (`/api/compare-cv`)
+- [x] CV Generator Modal with 4 states:
+  - Profile required (< 100 words)
+  - Initial (ready to generate)
+  - Loading (5-step animation)
+  - Success (CV preview + requirements analysis)
+  - Error (with retry)
+- [x] Requirements analysis (covered vs gaps)
+- [x] Match score visualization with progress bar
+- [x] PDF generation with professional styling
+- [x] Clickable email (`mailto:`) and LinkedIn links in PDF
+- [x] CV button on job cards (matches + favorites views)
+- [x] CV button on job details page
+- [x] Default view mode = 'matches' for users with profile
+- [x] Updated prompt template for name/contact extraction
+
+**Files created:**
+- `packages/api/src/routes/cv-router.ts`
+- `packages/ml-service/api/compare.py`
+- `packages/web/src/components/cv/*` (8 files)
+- `packages/web/src/services/cv.ts`
+- `packages/web/src/utils/generate-cv-pdf.ts`
+
+**CV Modal Flow:**
+```
+Click "Generate CV" → Validate Profile → Generate CV (Claude) 
+  → Compare to Job → Show Preview + Analysis → Download PDF
+```
 
 ---
 
@@ -244,13 +283,35 @@ score = 0.40 × title_sim + 0.35 × exp_req_sim + 0.25 × full_sim
 
 ---
 
+## CV Generation System
+
+```
+┌─────────────────────┐         ┌─────────────────────┐
+│   CV GENERATION     │         │   CV COMPARISON     │
+├─────────────────────┤         ├─────────────────────┤
+│ Profile + Job Desc  │         │ Generated CV        │
+│ → Claude Haiku      │         │ + Job Skills        │
+│ → Tailored CV       │         │ → Coverage Score    │
+└─────────────────────┘         └─────────────────────┘
+```
+
+**PDF Features:**
+- Professional styling (14pt name, 12pt title, 10pt body)
+- Section headers with underlines (UPPERCASE)
+- Bullet points with proper indentation
+- Clickable `mailto:` email links
+- Clickable LinkedIn profile links
+
+---
+
 ## Success Criteria
 
 - [x] JWT auth working
 - [x] Profile & favorites API
 - [x] Python ML service with local model
 - [x] Job/profile chunking with skill extraction
-- [x] CV generation
+- [x] CV generation (backend)
+- [x] **CV generation UI (modal + PDF)**
 - [x] 500+ Israeli jobs
 - [x] Location normalization
 - [x] Jobs list UI with filters
@@ -259,6 +320,5 @@ score = 0.40 × title_sim + 0.35 × exp_req_sim + 0.25 × full_sim
 - [x] Profile UI with file upload
 - [x] Match results (Matches view) with Strategy C
 - [x] Favorites UI (Favorites view + heart button)
-- [ ] CV generation UI
 - [ ] Production deployment
 - [ ] No crashes during demo
