@@ -4,8 +4,6 @@ Skill Gap Analysis Service
 Compares job requirements with candidate skills to identify
 matches, gaps, and calculate match rates.
 """
-from babel.util import missing
-
 
 def analyze_skill_gap(job_skills: list, profile_skills: list) -> dict:
     """
