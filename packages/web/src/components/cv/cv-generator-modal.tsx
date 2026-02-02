@@ -12,7 +12,7 @@ import { useCompareCVMutation, useGenerateCVMutation } from '@/services/cv';
 import { useGetJobQuery } from '@/services/jobs.ts';
 import type { CVCompareResponse, CVGenerateResponse } from '@/types';
 import type { CVJob, LoadingStep, ModalState } from '@/types';
-import { cn } from '@/utils';
+import { cn, generateCVPDF } from '@/utils';
 
 interface CVGeneratorModalProps {
   job: CVJob;
@@ -115,36 +115,11 @@ export function CVGeneratorModal({
   const handleDownloadPDF = async () => {
     if (!cvData) return;
 
-    const { default: jsPDF } = await import('jspdf');
-
-    const doc = new jsPDF();
-    const margin = 20;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const maxWidth = pageWidth - margin * 2;
-
-    const plainText = cvData.cv_markdown
-      .replace(/^### /gm, '')
-      .replace(/^## /gm, '')
-      .replace(/^# /gm, '')
-      .replace(/\*\*/g, '')
-      .replace(/\*/g, '')
-      .replace(/- /g, '• ');
-
-    const lines = doc.splitTextToSize(plainText, maxWidth);
-
-    let y = margin;
-    const lineHeight = 7;
-
-    for (const line of lines) {
-      if (y > doc.internal.pageSize.getHeight() - margin) {
-        doc.addPage();
-        y = margin;
-      }
-      doc.text(line, margin, y);
-      y += lineHeight;
-    }
-
-    doc.save(`CV_${job.company_name}_${job.title.replace(/\s+/g, '_')}.pdf`);
+    generateCVPDF({
+      markdown: cvData.cv_markdown,
+      companyName: job.company_name,
+      jobTitle: job.title,
+    });
   };
 
   if (!isOpen) return null;

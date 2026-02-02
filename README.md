@@ -11,9 +11,9 @@ AI-powered job matching platform for Israeli tech candidates. Automatically inge
 | **Jobs** | ✅ ~770 | Israeli positions only (Greenhouse + Comeet) |
 | **Embeddings** | ✅ Working | BGE 768d vectors + chunk embeddings |
 | **Matching** | ✅ Strategy C | Section-based weighted matching |
-| **API** | ✅ Complete | Auth, Jobs, Match, Profile, Favorites |
+| **API** | ✅ Complete | Auth, Jobs, Match, Profile, Favorites, CV |
 | **ML Service** | ✅ Production | Embeddings, Chunking, Skills, CV Generation |
-| **Frontend** | ✅ Working | Jobs (3 views), Profile, Auth, Landing |
+| **Frontend** | ✅ Complete | Jobs (3 views), Profile, Auth, CV Modal |
 | **Location Filter** | ✅ Complete | Israel-only with region classification |
 
 ## ✨ Features
@@ -26,7 +26,7 @@ AI-powered job matching platform for Israeli tech candidates. Automatically inge
 - **JWT Authentication** — Register, login, email verification, password reset
 - **Unified Jobs Page** — Three views in one page:
   - **All Jobs** — Browse with server-side pagination
-  - **Matches** — Jobs ranked by relevance to your profile (client-side filtering)
+  - **Matches** — Jobs ranked by relevance (default for logged-in users)
   - **Favorites** — Saved jobs (client-side filtering)
 - **Smart Job Matching** — Section-based semantic matching (Strategy C)
   - 40% profile title ↔ job header
@@ -35,13 +35,18 @@ AI-powered job matching platform for Israeli tech candidates. Automatically inge
 - **Job Filters** — Region, company, role, date (works on all views)
 - **Profile Management** — Upload PDF/DOC/DOCX or paste text
 - **Favorites** — Save/remove jobs with heart button
-- **CV Generation** — AI-generated tailored CVs using Claude
+- **CV Generation UI** — Modal with:
+  - Profile validation (minimum word count)
+  - 5-step loading animation
+  - Generated CV preview
+  - Requirements analysis (covered vs gaps)
+  - Match score visualization
+  - PDF download with styled formatting and clickable links
 - **HTML Descriptions** — Properly formatted job descriptions
 - **Smart Login Redirect** — Goes to Matches if profile exists, Profile page if not
 
 ### Coming Soon
 
-- CV generation UI on favorites
 - Production deployment
 
 ## Quick Start
@@ -109,13 +114,36 @@ The jobs page (`/jobs`) supports three views via URL parameter:
 
 | URL | View | Description |
 |-----|------|-------------|
-| `/jobs` | All Jobs | Browse all jobs with server-side pagination |
-| `/jobs?view=matches` | Matches | Jobs ranked by profile match (requires profile) |
+| `/jobs` or `/jobs?view=all` | All Jobs | Browse all jobs with server-side pagination |
+| `/jobs?view=matches` | Matches | Jobs ranked by profile match (default for users with profile) |
 | `/jobs?view=favorites` | Favorites | Saved jobs only (requires login) |
 
 **Filters** work on all views:
 - **All Jobs**: Server-side filtering via API
 - **Matches/Favorites**: Client-side filtering (all data loaded upfront)
+
+## CV Generation
+
+Generate tailored CVs from job cards (matches/favorites) or job details page:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  CV Generation Flow                                             │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Click "Generate CV" on job card or details page             │
+│  2. Modal validates profile (min 100 words)                     │
+│  3. ML service generates CV using Claude + job requirements     │
+│  4. ML service compares generated CV to job (skill coverage)    │
+│  5. Modal shows CV preview + requirements analysis + score      │
+│  6. Download as styled PDF with clickable email/LinkedIn links  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**PDF Features:**
+- Professional styling (14pt name, 12pt title, 10pt body)
+- Section headers with underlines
+- Bullet points with proper indentation
+- Clickable email (`mailto:`) and LinkedIn links
 
 ## Matching System (Strategy C)
 
@@ -175,6 +203,8 @@ apply-less/
 | `/api/profile/parse` | POST | Parse uploaded file |
 | `/api/favorites` | GET | List favorites |
 | `/api/favorites/:jobId` | GET/POST/DELETE | Manage favorites |
+| `/api/cv/generate` | POST | Generate tailored CV |
+| `/api/cv/compare` | POST | Compare CV to job |
 
 ### Auth
 
@@ -199,7 +229,7 @@ apply-less/
 | **API** | Node.js, Express 5, TypeScript, JWT |
 | **ML Service** | Python, FastAPI, sentence-transformers, Claude API |
 | **Database** | PostgreSQL 17, pgvector |
-| **Frontend** | React 19, Vite, TailwindCSS 4, Redux Toolkit |
+| **Frontend** | React 19, Vite, TailwindCSS 4, Redux Toolkit, jsPDF |
 | **Email** | Resend API |
 | **Hosting** | Railway (API, ML, DB), Vercel (web) |
 
