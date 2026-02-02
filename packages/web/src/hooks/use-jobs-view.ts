@@ -24,12 +24,21 @@ export function useJobsView() {
 
   // Determine view mode
   const viewParam = searchParams.get('view') as ViewMode | null;
+
+  // Default to 'matches' for users with profile, 'all' otherwise
+  const getDefaultView = (): ViewMode => {
+    if (hasProfile) return 'matches';
+    return 'all';
+  };
+
   const viewMode: ViewMode =
     viewParam === 'favorites' && isAuthenticated
       ? 'favorites'
       : viewParam === 'matches' && hasProfile
         ? 'matches'
-        : 'all';
+        : viewParam === 'all'
+          ? 'all'
+          : getDefaultView();
 
   // Data queries
   const favoriteQuery = useGetFavoritesQuery(undefined, { skip: !isAuthenticated });
