@@ -2,18 +2,26 @@
 
 AI-powered job matching platform for Israeli tech candidates. Automatically ingests jobs from company career pages and ATS systems, uses semantic matching to recommend relevant positions, and generates tailored CVs.
 
-## 🚀 Current Status
+## 🚀 Production URLs
+
+| Service | URL |
+|---------|-----|
+| **Frontend** | https://apply-less-web.vercel.app |
+| **API** | https://api-production-5fba.up.railway.app |
+| **ML Service** | https://ml-service-production-ed97.up.railway.app |
+
+## 📊 Current Status
 
 | Component | Status | Details |
 |-----------|--------|---------|
 | **Database** | ✅ Production | Railway PostgreSQL + pgvector |
 | **Companies** | ✅ 1496 | Scraped from StartupNationCentral |
-| **Jobs** | ✅ ~770 | Israeli positions only (Greenhouse + Comeet) |
+| **Jobs** | ✅ ~792 | Israeli positions only (Greenhouse + Comeet) |
 | **Embeddings** | ✅ Working | BGE 768d vectors + chunk embeddings |
 | **Matching** | ✅ Strategy C | Section-based weighted matching |
-| **API** | ✅ Complete | Auth, Jobs, Match, Profile, Favorites, CV |
-| **ML Service** | ✅ Production | Embeddings, Chunking, Skills, CV Generation |
-| **Frontend** | ✅ Complete | Jobs (3 views), Profile, Auth, CV Modal |
+| **API** | ✅ Deployed | Railway (Auth, Jobs, Match, Profile, Favorites, CV) |
+| **ML Service** | ✅ Deployed | Railway (Embeddings, Chunking, CV Generation) |
+| **Frontend** | ✅ Deployed | Vercel (Jobs, Profile, Auth, CV Modal) |
 | **Location Filter** | ✅ Complete | Israel-only with region classification |
 
 ## ✨ Features
@@ -44,12 +52,14 @@ AI-powered job matching platform for Israeli tech candidates. Automatically inge
   - PDF download with styled formatting and clickable links
 - **HTML Descriptions** — Properly formatted job descriptions
 - **Smart Login Redirect** — Goes to Matches if profile exists, Profile page if not
+- **Error Handling** — Error boundary + 404 page
 
-### Coming Soon
+### Known Limitations
 
-- Production deployment
+- **Email verification** requires custom domain (using auto-verify for demo)
+- **Skill extraction** disabled to reduce memory usage on Railway free tier
 
-## Quick Start
+## Quick Start (Local Development)
 
 ### Prerequisites
 
@@ -164,11 +174,6 @@ The matching system uses section-based semantic similarity with weighted scoring
 - A PM profile would match "Software Engineer" higher than "AI Product Manager" due to shared keywords
 - Section-based matching compares like-with-like
 
-**Embedding Flow:**
-1. **Profile Save** → ML service chunks profile → embeddings stored in `users` table
-2. **Job Ingestion** → ML service chunks job → embeddings stored in `jobs` table
-3. **Matching** → Weighted SQL query using pre-computed embeddings (fast, no ML calls)
-
 ## Project Structure
 
 ```
@@ -215,6 +220,25 @@ apply-less/
 | `/api/auth/refresh` | POST | Refresh tokens |
 | `/api/auth/me` | GET | Current user |
 
+## Deployment
+
+### Railway (Backend)
+
+| Service | Root Directory | Start Command |
+|---------|----------------|---------------|
+| PostgreSQL | — | — |
+| API | `packages/api` | `npm run start` |
+| ML Service | `packages/ml-service` | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
+
+### Vercel (Frontend)
+
+| Setting | Value |
+|---------|-------|
+| Root Directory | `packages/web` |
+| Build Command | `npm run build` |
+| Output Directory | `dist` |
+| Environment Variable | `VITE_API_URL=https://api-production-5fba.up.railway.app/api` |
+
 ## Documentation
 
 - **[Architecture](docs/architecture.md)** — System design, matching algorithm, data flows
@@ -231,28 +255,32 @@ apply-less/
 | **Database** | PostgreSQL 17, pgvector |
 | **Frontend** | React 19, Vite, TailwindCSS 4, Redux Toolkit, jsPDF |
 | **Email** | Resend API |
-| **Hosting** | Railway (API, ML, DB), Vercel (web) |
+| **Hosting** | Railway (API, ML, DB), Vercel (Frontend) |
 
 ## Environment Variables
 
-See `.env.example` for full list. Key variables:
+### API (Railway)
 
 ```env
-# Database
-DATABASE_URL=postgresql://...
-
-# JWT Auth
-JWT_SECRET=<32+ chars>
-JWT_REFRESH_SECRET=<32+ chars>
-
-# Email
+DATABASE_URL=postgresql://...?sslmode=disable
+JWT_SECRET=<64-char-hex>
+JWT_REFRESH_SECRET=<64-char-hex>
+ML_SERVICE_URL=https://ml-service-xxx.up.railway.app
+FRONTEND_URL=https://your-app.vercel.app
 RESEND_API_KEY=re_xxxxx
-FROM_EMAIL=onboarding@resend.dev
-FRONTEND_URL=http://localhost:5173
+FROM_EMAIL=noreply@yourdomain.com
+```
 
-# ML Service
+### ML Service (Railway)
+
+```env
 ANTHROPIC_API_KEY=sk-ant-...
-ML_SERVICE_URL=http://localhost:8000
+```
+
+### Frontend (Vercel)
+
+```env
+VITE_API_URL=https://api-xxx.up.railway.app/api
 ```
 
 ## License
