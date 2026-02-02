@@ -67,9 +67,17 @@ async def lifespan(app: FastAPI):
     embedding_service = EmbeddingService()
     embedding_service.load_model()
 
-    # Load skill extraction model
-    skill_extractor_service = SkillExtractorService()
-    skill_extractor_service.load_model()
+   # Disable skill extractor to save memory
+       # skill_extractor_service = SkillExtractorService()
+       # skill_extractor_service.load_model()
+
+    # Placeholder for skill extractor
+    class DummySkillExtractor:
+        info = {"status": "disabled", "reason": "memory optimization"}
+        def extract_skills(self, text):
+            return []
+
+    skill_extractor_service = DummySkillExtractor()
 
     # Create chunker services (they use embedding + skill services)
     job_chunker_service = JobChunkerService(
