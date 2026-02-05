@@ -1,9 +1,13 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from pathlib import Path
+import os
 
-# Path to project root (3 levels higher than this folder)
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+# Path to project root - in Docker, use /app; locally, 3 levels up
+if os.getenv("PORT"):
+    PROJECT_ROOT = Path("/app")
+else:
+    PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 """
 Application Settings Module defines configuration settings for the 
@@ -51,8 +55,8 @@ class Settings(BaseSettings):
     class Config:
         """Pydantic configuration for settings loading"""
 
-        # Load settings from config file if exists
-        env_file = PROJECT_ROOT / ".env"
+        # Load settings from config file if exists (skipped in Docker where env vars are injected)
+        env_file = find_env_file() or ".env"
 
         # Ignore extra environment variables (don't raise errors)
         extra = "ignore"
