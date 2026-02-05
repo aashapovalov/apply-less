@@ -14,12 +14,14 @@ import {
 } from "./routes/index.js";
 import { getDb, closeDb } from "./config/db.js";
 
-// Load .env from project root (two levels up from this file)
+// Load .env - in Docker, env vars are injected by compose;
+// locally, resolve from monorepo root
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, "../../../../");
-const envPath = path.join(rootDir, ".env");
-dotenv.config({ path: envPath });
+if (process.env.NODE_ENV !== "production") {
+  const rootDir = path.resolve(__dirname, "../../../../");
+  dotenv.config({ path: path.join(rootDir, ".env") });
+}
 
 export const app = express();
 const PORT = process.env.PORT || 3001;
@@ -30,9 +32,16 @@ app.use(express.json({ limit: "1mb" }));
 // Trust proxy for correct IP detection (required for rate limiting behind reverse proxy)
 app.set("trust proxy", 1);
 
-// CORS (allow all for now, restrict in prod)
+// CORS - restrict to frontend in production
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(",")
+  : ["http://localhost:5173"];
+
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
   res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") {
