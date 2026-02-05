@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface RegionFilterProps {
   value: string;
@@ -36,9 +36,7 @@ export function RegionFilter({ value, onChange, regions, className = '' }: Regio
     setIsOpen(false);
   };
 
-  const displayLabel = value 
-    ? REGION_LABELS[value] || value 
-    : 'All Regions';
+  const displayLabel = value ? REGION_LABELS[value] || value : 'All Regions';
 
   return (
     <div ref={dropdownRef} className={`relative ${className}`}>
@@ -47,11 +45,9 @@ export function RegionFilter({ value, onChange, regions, className = '' }: Regio
         onClick={() => setIsOpen(!isOpen)}
         className="bg-card border-border text-primary focus:border-accent flex h-12 w-full items-center justify-between rounded-xl border px-4 text-left text-sm outline-none"
       >
-        <span className={value ? 'text-primary' : 'text-secondary'}>
-          {displayLabel}
-        </span>
+        <span className={value ? 'text-primary' : 'text-secondary'}>{displayLabel}</span>
         <svg
-          className={`h-4 w-4 text-secondary transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-secondary h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
