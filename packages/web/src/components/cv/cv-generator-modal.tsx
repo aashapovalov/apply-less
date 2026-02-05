@@ -40,6 +40,7 @@ export function CVGeneratorModal({
   const { data: jobDetails } = useGetJobQuery(job.job_id, { skip: !isOpen });
 
   // Reset state when modal opens
+  /* eslint-disable react-hooks/set-state-in-effect -- Resetting state on prop change is intentional */
   useEffect(() => {
     if (isOpen) {
       setState('initial');
@@ -49,6 +50,7 @@ export function CVGeneratorModal({
       setCompareData(null);
     }
   }, [isOpen]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const updateStep = (index: number, status: LoadingStep['status']) => {
     setSteps((prev) => prev.map((step, i) => (i === index ? { ...step, status } : step)));
