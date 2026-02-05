@@ -14,7 +14,7 @@ const { Pool } = pg;
 type PoolType = InstanceType<typeof Pool>;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: false, // Railway proxy doesn't support SSL
+  ssl: false, // Internal Docker network — no SSL needed
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
