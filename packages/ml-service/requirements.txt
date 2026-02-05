@@ -4,11 +4,7 @@ pydantic
 pydantic-settings
 python-dotenv
 sentence-transformers
-
-# CPU-only PyTorch (~200MB vs ~2GB)
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.10.0+cpu
-
+torch
 numpy
 transformers
 anthropic
