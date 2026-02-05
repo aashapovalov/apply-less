@@ -26,7 +26,7 @@ export function Login() {
       await login(data).unwrap();
 
       // Check where to redirect
-      const from = (location.state as any)?.from?.pathname;
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
       if (from && from !== '/login' && from !== '/register') {
         navigate(from, { replace: true });
       } else {
