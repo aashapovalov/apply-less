@@ -2,12 +2,16 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-COPY packages/api/package.json packages/api/package-lock.json* ./
-RUN npm ci --ignore-scripts
+# Copy root workspace files + api package.json
+COPY package.json package-lock.json ./
+COPY packages/api/package.json ./packages/api/
 
-COPY packages/api/src ./src
-COPY packages/api/tsconfig.json ./
-RUN npm run build
+# Install only api workspace deps
+RUN npm ci --workspace=packages/api --ignore-scripts
+
+# Copy api source and build
+COPY packages/api/ ./packages/api/
+RUN npm run build --workspace=packages/api
 
 # ── Production stage ─────────────────────────────
 FROM node:20-alpine
@@ -15,11 +19,17 @@ WORKDIR /app
 
 RUN addgroup -S app && adduser -S app -G app
 
-COPY --from=builder /app/package.json /app/package-lock.json* ./
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+# Copy root workspace files + api package.json
+COPY package.json package-lock.json ./
+COPY packages/api/package.json ./packages/api/
 
-COPY --from=builder /app/dist ./dist
+# Install production deps only
+RUN npm ci --workspace=packages/api --omit=dev --ignore-scripts && npm cache clean --force
+
+# Copy built output
+COPY --from=builder /app/packages/api/dist ./packages/api/dist
 
 USER app
 EXPOSE 8080
+WORKDIR /app/packages/api
 CMD ["node", "dist/index.js"]
