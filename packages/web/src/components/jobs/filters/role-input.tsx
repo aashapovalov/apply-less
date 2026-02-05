@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const STORAGE_KEY = 'applyless_role_history';
 const MAX_HISTORY = 5;
@@ -36,20 +36,20 @@ export function RoleInput({ value, onChange, className = '' }: RoleInputProps) {
   // Save to history
   const saveToHistory = useCallback((term: string) => {
     if (!term.trim()) return;
-    
+
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       let current: string[] = stored ? JSON.parse(stored) : [];
-      
+
       // Remove duplicate if exists
-      current = current.filter(h => h.toLowerCase() !== term.toLowerCase());
-      
+      current = current.filter((h) => h.toLowerCase() !== term.toLowerCase());
+
       // Add to front
       current.unshift(term.trim());
-      
+
       // Keep only MAX_HISTORY items
       current = current.slice(0, MAX_HISTORY);
-      
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
       setHistory(current);
     } catch {
@@ -98,9 +98,7 @@ export function RoleInput({ value, onChange, className = '' }: RoleInputProps) {
     setIsOpen(false);
   };
 
-  const filteredHistory = history.filter(
-    h => h.toLowerCase().includes(inputValue.toLowerCase())
-  );
+  const filteredHistory = history.filter((h) => h.toLowerCase().includes(inputValue.toLowerCase()));
 
   return (
     <div ref={dropdownRef} className={`relative ${className}`}>
@@ -120,10 +118,15 @@ export function RoleInput({ value, onChange, className = '' }: RoleInputProps) {
           <button
             type="button"
             onClick={handleClear}
-            className="text-secondary hover:text-primary absolute right-3 top-1/2 -translate-y-1/2"
+            className="text-secondary hover:text-primary absolute top-1/2 right-3 -translate-y-1/2"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         )}
@@ -139,8 +142,18 @@ export function RoleInput({ value, onChange, className = '' }: RoleInputProps) {
               onClick={() => handleHistorySelect(term)}
               className="text-primary hover:bg-accent/10 flex w-full items-center gap-2 px-4 py-2 text-left text-sm"
             >
-              <svg className="text-secondary h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="text-secondary h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               {term}
             </button>
