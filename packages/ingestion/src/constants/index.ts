@@ -21,3 +21,5 @@ export const CDP_PORT = 9400;
  * Deleted and recreated on each connect() call to avoid stale locks/caches.
  */
 export const USER_DATA_DIR = path.join("/tmp", "applyless-chrome-profile");
+
+export const BASE_URL = "https://finder.startupnationcentral.org";
