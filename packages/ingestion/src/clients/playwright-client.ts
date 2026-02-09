@@ -96,8 +96,8 @@ export class PlaywrightClient {
 
         for (let i = 0; i < 30; i++) {
             try {
-                const res = await fetch(`https://127.0.0.1:${CDP_PORT}/json/version`);
-                if (!res.ok) {
+                const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json/version`);
+                if (res.ok) {
                     ready = true;
                     break;
                 }
@@ -113,7 +113,7 @@ export class PlaywrightClient {
         }
 
         this.browser = await playwright.chromium.connectOverCDP(
-            `https://127.0.0.1:${CDP_PORT}`,
+            `http://127.0.0.1:${CDP_PORT}`,
         );
 
         console.log("✅ Connected to Chrome");
@@ -201,8 +201,8 @@ export class PlaywrightClient {
             await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
             await this.waitForCloudFlare(page);
 
-            // Wait for the social links section to load
-            await page.waitForSelector("#social-links-container", { timeout: 15000 });
+            // Wait for the social links section to load (30s to account for slow pages)
+            await page.waitForSelector("#social-links-container", { timeout: 30000 });
 
             // Get the HTML content
             return await page.content();
