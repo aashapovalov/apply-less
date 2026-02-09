@@ -24,14 +24,14 @@ program
 // Define the "snc" subcommand
 program
     .command('snc')                             // Usage: applyless-ingest snc
-    .description('Run Stage A: Scrape companies from SNC Finder')
-    .option('-p, --max-pages <number>', 'Maximum pages to scrape', '200')
-    .option('-s, --start-page <number>', 'Start from page number (for resuming)', '1')
+    .description('Run Stage A: Budget-based SNC company ingestion')
+    .option('-b, --budget <number>', 'Max requests per run', '250')
+    .option('--page-delay <ms>', 'Delay between list page fetches', '90000')
+    .option('--detail-delay <ms>', 'Delay between detail page fetches', '25000')
+    .option('--stale-days <days>', 'Consider details stale after N days', '90')
+    .option('--force-list-scan', 'Force list scan even if there is detail work', false)
+    .option('-p, --max-pages <number>', 'Max list pages to scan', '200')
     .option('--dry-run', 'Preview without writing to database', false)
-    .option('-d, --delay <ms>', 'Delay between pages in milliseconds', '90000')
-    .option('--company-delay <ms>', 'Delay between company detail fetches', '25000')
-    .option('--skip-recent <days>', 'Skip companies updated within N days', '30')
-    .option('--no-details', 'Skip fetching company details')
     .action(async (options) => {
         console.log('\n🚀 ApplyLess Ingestion: Stage A (SNC)\n');
 
@@ -41,13 +41,13 @@ program
         try {
             // Run Stage A with parsed and normalized options
             const stats = await runStageA(db, {
+                budget: parseInt(options.budget),
+                pageDelayMs: parseInt(options.pageDelay),
+                detailDelayMs: parseInt(options.detailDelay),
+                staleDays: parseInt(options.staleDays),
+                forceListScan: options.forceListScan,
                 maxPages: parseInt(options.maxPages),
-                startPage: parseInt(options.startPage),
                 dryRun: options.dryRun,
-                delayMs: parseInt(options.delay),
-                companyDelayMs: parseInt(options.companyDelay),
-                skipRecentDays: parseInt(options.skipRecent),
-                fetchDetails: options.details, // --no-details sets this to false
             });
 
             // Mark process as failed if there were partial or hard errors
