@@ -207,6 +207,15 @@ export async function runStageA (
                         details: error.message,
                     });
                     console.error(`      ❌ ${error.message}`);
+
+                    // Mark as fetched so this company doesn't block the queue forever
+                    if (!dryRun) {
+                        await db.query(
+                            `UPDATE companies SET details_fetched_at = NOW() WHERE id = $1`,
+                            [company.id],
+                        );
+                    }
+
                     await sleep(detailDelayMs * 2, "Error backoff")
                 }
             }
@@ -281,6 +290,15 @@ export async function runStageA (
                             details: error.message,
                         });
                         console.error(`      ❌ ${error.message}`);
+
+                        // Mark as fetched so this company doesn't block the queue forever
+                        if (!dryRun) {
+                            await db.query(
+                                `UPDATE companies SET details_fetched_at = NOW() WHERE id = $1`,
+                                [company.id],
+                            );
+                        }
+
                         await sleep(detailDelayMs * 2, "Error backoff")
                     }
                 }
