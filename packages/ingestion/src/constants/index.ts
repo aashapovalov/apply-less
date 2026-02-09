@@ -17,9 +17,13 @@ export const CHROME_PATHS = [
 export const CDP_PORT = 9400;
 
 /**
- * Temporary user profile directory for the launched Chrome instance.
- * Deleted and recreated on each connect() call to avoid stale locks/caches.
+ * Persistent Chrome profile directory.
+ * Stores SSO cookies between runs so the user only needs to log in once.
+ * Located in the home directory so it survives reboots (unlike /tmp).
  */
-export const USER_DATA_DIR = path.join("/tmp", "applyless-chrome-profile");
+export const USER_DATA_DIR = path.join(
+    process.env.HOME || "/tmp",
+    ".applyless-chrome-profile"
+);
 
 export const BASE_URL = "https://finder.startupnationcentral.org";
