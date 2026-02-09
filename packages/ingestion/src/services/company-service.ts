@@ -137,7 +137,7 @@ export class CompanyService {
             SET company_website_url = COALESCE($1, company_website_url),
                 careers_page_url = COALESCE($2, careers_page_url),
                 linkedin_url = COALESCE($3, linkedin_url),
-                details_fetched_at = $4
+                details_fetched_at = $4,
                 updated_at = $4
             WHERE id = $5`,
             [
