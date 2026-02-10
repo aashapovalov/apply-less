@@ -201,6 +201,13 @@ export async function runStageA (
                     stats.totalProcessed++;
                     await sleep(detailDelayMs, "Detail delay");
                 } catch (error: any) {
+                    // Stop immediately on rate limit
+                    if (error.message === 'RATE_LIMITED_429') {
+                        console.log('\n🛑 Rate limited by SNC (429). Stopping run.');
+                        requestsUsed = budget; // Exhaust budget to skip remaining phases
+                        break;
+                    }
+
                     stats.failedRecords++;
                     stats.errors.push({
                         message: `Detail fetch failed: ${company.company_name}`,
@@ -284,6 +291,13 @@ export async function runStageA (
                         stats.totalProcessed++;
                         await sleep(detailDelayMs, "Detail delay");
                     } catch (error: any) {
+                        // Stop immediately on rate limit
+                        if (error.message === 'RATE_LIMITED_429') {
+                            console.log('\n🛑 Rate limited by SNC (429). Stopping run.');
+                            requestsUsed = budget;
+                            break;
+                        }
+
                         stats.failedRecords++;
                         stats.errors.push({
                             message: `Detail refresh failed: ${company.company_name}`,
