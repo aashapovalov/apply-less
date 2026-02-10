@@ -61,11 +61,11 @@ export class PlaywrightClient {
     async connect(): Promise<void> {
         const chromePath = this.findChrome();
 
-        // Clean up previous profile to avoid stale locks
-        if (existsSync(USER_DATA_DIR)) {
-            rmSync(USER_DATA_DIR, { recursive: true, force: true });
+        // Keep profile persistent so SSO login cookies survive between runs.
+        // Only create the directory if it doesn't exist yet.
+        if (!existsSync(USER_DATA_DIR)) {
+            mkdirSync(USER_DATA_DIR, { recursive: true });
         }
-        mkdirSync(USER_DATA_DIR, { recursive: true });
 
         console.log(`🚀 Launching Chrome from: ${chromePath}`);
 
@@ -201,13 +201,31 @@ export class PlaywrightClient {
             await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
             await this.waitForCloudFlare(page);
 
+            // Check for 429 rate limit page before waiting for content
+            const earlyHtml = await page.content();
+            if (earlyHtml.includes('exceeded the limit of requests') || earlyHtml.includes('429 :(')) {
+                throw new Error('RATE_LIMITED_429');
+            }
+
             // Wait for the social links section to load (30s to account for slow pages)
             await page.waitForSelector("#social-links-container", { timeout: 30000 });
 
-            // Get the HTML content
             return await page.content();
         } catch (error: any) {
-            throw new Error(`Failed to fetch company page: ${error.message}: ${error.message}`);
+            // If it's already a rate limit error, re-throw directly
+            if (error.message === 'RATE_LIMITED_429') throw error;
+
+            // On timeout, check if the page is actually showing a 429
+            try {
+                const html = await page.content();
+                if (html.includes('exceeded the limit of requests') || html.includes('429 :(')) {
+                    throw new Error('RATE_LIMITED_429');
+                }
+            } catch (innerErr: any) {
+                if (innerErr.message === 'RATE_LIMITED_429') throw innerErr;
+            }
+
+            throw new Error(`Failed to fetch company page ${companySlug}: ${error.message}`);
         }
     }
 
@@ -235,9 +253,7 @@ export class PlaywrightClient {
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        if (existsSync(USER_DATA_DIR)) {
-            rmSync(USER_DATA_DIR, { recursive: true, force: true });
-        }
+        // Don't delete USER_DATA_DIR — keeps SSO cookies for next run
 
         console.log("✅ Chrome closed and cleaned up");
     }
