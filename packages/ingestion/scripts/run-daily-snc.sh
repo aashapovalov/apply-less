@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 # Daily SNC ingestion — launched by macOS launchd
-# Opens SSH tunnel to Hetzner Postgres, runs Stage A, cleans up.
+# Quits Chrome, opens SSH tunnel to Hetzner Postgres, runs Stage A, cleans up.
+# Uses caffeinate to prevent sleep during the run.
 #
 
 set -euo pipefail
@@ -30,13 +31,24 @@ cleanup() {
     echo "🧹 Cleaning up..."
     # Kill SSH tunnel
     lsof -ti:$LOCAL_PG_PORT | xargs kill -9 2>/dev/null || true
+    # Reopen Chrome for the user (normal profile, no debug port)
+    open -a "Google Chrome" 2>/dev/null || true
     # Remove old logs (keep 30 days)
     find "$LOG_DIR" -name "snc-*.log" -mtime +30 -delete 2>/dev/null || true
     echo "✅ Cleanup done"
 }
 trap cleanup EXIT
 
-# ── Step 1: Open SSH tunnel ─────────────────────────
+# ── Step 1: Quit Chrome (can't share debug port) ───
+echo "🔒 Quitting Chrome..."
+osascript -e 'quit app "Google Chrome"' 2>/dev/null || true
+sleep 3
+
+# Force-kill if it didn't quit gracefully
+pkill -f "Google Chrome" 2>/dev/null || true
+sleep 1
+
+# ── Step 2: Open SSH tunnel ─────────────────────────
 echo "📡 Opening SSH tunnel to Hetzner Postgres..."
 
 # Kill any existing tunnel on this port
@@ -54,18 +66,12 @@ ssh -i "$SSH_KEY" \
 
 echo "✅ SSH tunnel open (localhost:$LOCAL_PG_PORT → Hetzner)"
 
-# Verify tunnel works
-if ! pg_isready -h localhost -p $LOCAL_PG_PORT -q 2>/dev/null; then
-    # pg_isready may not be installed, try a simple connection test
-    echo "   (pg_isready not available, skipping tunnel verification)"
-fi
-
-# ── Step 2: Run ingestion ──────────────────────────
+# ── Step 3: Run ingestion (with caffeinate) ────────
 echo "🏭 Running Stage A..."
 
 cd "$PROJECT_DIR"
 
-npx tsx src/cli.ts snc \
+caffeinate -i npx tsx src/cli.ts snc \
     --budget 250 \
     --page-delay 90000 \
     --detail-delay 25000 \
