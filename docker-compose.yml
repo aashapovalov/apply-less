@@ -92,6 +92,22 @@ services:
     networks:
       - applyless
 
+  # ── Metabase ─────────────────────────
+  metabase:
+    image: metabase/metabase:latest
+    ports:
+      - "3001:3000"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: applyless
+      MB_DB_PORT: 5432
+      MB_DB_USER: postgres
+      MB_DB_PASS: ff014f505f373f24a81a1f273f566d1c22aee0d1859a1c0d
+      MB_DB_HOST: postgres
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   ml_models:
