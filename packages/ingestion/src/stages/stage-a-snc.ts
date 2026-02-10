@@ -1,9 +1,8 @@
 import { Pool } from 'pg';
 import { IngestionStats } from "../types/index.js";
 import { PlaywrightClient, SNCClientPlaywright } from "../clients/index.js";
-import { CompanyService } from "../services/index.js";
+import { CompanyService, ReportingService } from "../services/index.js";
 import { CompanyDetailParser } from "../parsers/company-detail-parser.js";
-import { normalizeName } from "../utils/index.js";
 
 export interface StageAOptions {
     /** Max requests per run (default: 250). Each SNC page fetch consumes 1 request from this budget. */
@@ -108,6 +107,7 @@ export async function runStageA (
     let detailsFetched = 0;
     let careersUrlsFound = 0;
     let listPagesScanned = 0;
+    let rateLimited = false;
 
     const playwrightClient = new PlaywrightClient();
     const detailParser = new CompanyDetailParser();
@@ -205,6 +205,7 @@ export async function runStageA (
                     if (error.message === 'RATE_LIMITED_429') {
                         console.log('\n🛑 Rate limited by SNC (429). Stopping run.');
                         requestsUsed = budget; // Exhaust budget to skip remaining phases
+                        rateLimited = true;
                         break;
                     }
 
@@ -295,6 +296,7 @@ export async function runStageA (
                         if (error.message === 'RATE_LIMITED_429') {
                             console.log('\n🛑 Rate limited by SNC (429). Stopping run.');
                             requestsUsed = budget;
+                            rateLimited = true;
                             break;
                         }
 
@@ -425,6 +427,29 @@ export async function runStageA (
 
         // ─── Summary ─────────────────────────────────────────────────────────
         stats.endTime = new Date();
+
+        const reportingService = new ReportingService(db);
+
+        try {
+            await reportingService.saveIngestionRun({
+                startedAt: stats.startTime,
+                finishedAt: stats.endTime,
+                budget,
+                requestsUsed,
+                detailsFetched,
+                listPagesScanned,
+                companiesCreated: stats.newRecords,
+                companiesUpdated: stats.updatedRecords,
+                companiesFailed: stats.failedRecords,
+                careersUrlsFound,
+                rateLimited,
+                errors: stats.errors,
+            });
+
+            await reportingService.captureDailySnapshot();
+        } catch (reportErr: any) {
+            console.error(`⚠️  Failed to save reporting data: ${reportErr.message}`);
+        }
 
         const durationSec = (
             (stats.endTime.getTime() - stats.startTime.getTime()) / 1000
