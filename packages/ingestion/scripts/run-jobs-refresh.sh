@@ -98,6 +98,16 @@ npx tsx src/cli.ts embeddings
 update_exit $?
 echo "✅ Stage G finished (exit: $?) — $(date)"
 
+# ── Snapshot ──────────────────────────────────────
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📊 Snapshot"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+npx tsx src/cli.ts snapshot
+
+echo "✅ Snapshot done — $(date)"
+
 # ── Done ───────────────────────────────────────────
 echo ""
 echo "============================================"
