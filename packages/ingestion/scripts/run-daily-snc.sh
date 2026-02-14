@@ -5,7 +5,7 @@
 # Uses caffeinate to prevent sleep during the run.
 #
 
-set -euo pipefail
+set -uo pipefail
 
 # ── Config ──────────────────────────────────────────
 HETZNER_HOST="89.167.50.54"
@@ -77,15 +77,34 @@ caffeinate -i npx tsx src/cli.ts snc \
     --detail-delay 25000 \
     --stale-days 90
 
-EXIT_CODE=$?
+SNC_EXIT=$?
 
-if [ $EXIT_CODE -eq 0 ]; then
+if [ $SNC_EXIT -eq 0 ]; then
     echo ""
-    echo "✅ Ingestion complete — $(date)"
+    echo "✅ Stage A complete — $(date)"
 else
     echo ""
-    echo "⚠️  Ingestion finished with errors (exit code: $EXIT_CODE) — $(date)"
+    echo "⚠️  Stage A finished with errors (exit code: $SNC_EXIT) — $(date)"
 fi
+
+# ── Step 4: Run ATS detection (Stage B) ─────────────
+echo ""
+echo "🔍 Running Stage B (ATS Detection)..."
+
+caffeinate -i npx tsx src/cli.ts detect
+
+DETECT_EXIT=$?
+
+if [ $DETECT_EXIT -eq 0 ]; then
+    echo ""
+    echo "✅ Stage B complete — $(date)"
+else
+    echo ""
+    echo "⚠️  Stage B finished with errors (exit code: $DETECT_EXIT) — $(date)"
+fi
+
+# Use worst exit code
+EXIT_CODE=$(( SNC_EXIT > DETECT_EXIT ? SNC_EXIT : DETECT_EXIT ))
 
 echo "============================================"
 exit $EXIT_CODE
