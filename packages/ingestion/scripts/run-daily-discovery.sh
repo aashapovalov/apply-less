@@ -61,6 +61,7 @@ sleep 1
 
 ssh -i "$SSH_KEY" \
     -L $LOCAL_PG_PORT:127.0.0.1:$REMOTE_PG_PORT \
+    -L 8000:127.0.0.1:8000 \
     -N -f \
     -o StrictHostKeyChecking=no \
     -o ExitOnForwardFailure=yes \
@@ -68,7 +69,7 @@ ssh -i "$SSH_KEY" \
     -o ServerAliveCountMax=3 \
     "$HETZNER_USER@$HETZNER_HOST"
 
-echo "✅ SSH tunnel open (localhost:$LOCAL_PG_PORT → Hetzner)"
+echo "✅ SSH tunnel open (PG :$LOCAL_PG_PORT + ML :8000 → Hetzner)"
 
 cd "$PROJECT_DIR"
 
