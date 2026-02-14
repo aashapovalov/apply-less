@@ -221,6 +221,25 @@ program
         }
     });
 
+// Snapshot: Capture daily pipeline snapshot
+program
+    .command('snapshot')
+    .description('Capture a daily pipeline snapshot to daily_snapshots table')
+    .action(async () => {
+        const db = getDb();
+        try {
+            const { ReportingService } = await import('./services/reporting-service.js');
+            const reportingService = new ReportingService(db);
+            await reportingService.captureDailySnapshot();
+            console.log('✅ Snapshot captured');
+        } catch (error: any) {
+            console.error('❌ Fatal error:', error.message);
+            process.exitCode = 1;
+        } finally {
+            await closeDb();
+        }
+    });
+
 // Debug: Run detailed detection analysis on single company
 program
     .command('debug')
