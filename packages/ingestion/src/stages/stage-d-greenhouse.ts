@@ -225,8 +225,17 @@ export async function runStageD(
     }
 
     stats.endTime = new Date();
+
+    // Deactivate jobs that disappeared from Greenhouse API
+    if (!dryRun && !companySlug) {
+      const expired = await jobService.deactivateStaleJobs('greenhouse_', stats.startTime);
+      if (expired > 0) {
+        console.log(`\n🗑️  Deactivated ${expired} expired Greenhouse jobs`);
+      }
+    }
+
     const durationSec = (
-      (stats.endTime.getTime() - stats.endTime.getTime()) /
+      (stats.endTime.getTime() - stats.startTime.getTime()) /
       1000
     ).toFixed(2);
 
