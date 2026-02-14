@@ -226,6 +226,15 @@ export async function runStageE(
     }
 
     stats.endTime = new Date();
+
+    // Deactivate jobs that disappeared from Comeet API
+    if (!dryRun && !companyUid) {
+      const expired = await jobService.deactivateStaleJobs('comeet_', stats.startTime);
+      if (expired > 0) {
+        console.log(`\n🗑️  Deactivated ${expired} expired Comeet jobs`);
+      }
+    }
+
     const durationSec = (
       (stats.endTime.getTime() - stats.startTime.getTime()) /
       1000
