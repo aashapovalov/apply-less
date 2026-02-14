@@ -12,6 +12,17 @@ import {
 import {verifyEmbeddings} from "./stages/stage-g-embeddings.js";
 import { debugDetection } from "./detectors/index.js";
 
+// Handle SIGINT (Ctrl+C) gracefully — let finally blocks run
+const abortController = new AbortController();
+process.on('SIGINT', () => {
+    if (abortController.signal.aborted) {
+        console.log('\n\n⚡ Force quit (second Ctrl+C)');
+        process.exit(1);
+    }
+    console.log('\n\n🛑 Graceful shutdown requested (Ctrl+C). Saving data...');
+    abortController.abort();
+});
+
 // Create the root CLI program
 const program = new Command();
 
@@ -48,6 +59,7 @@ program
                 forceListScan: options.forceListScan,
                 maxPages: parseInt(options.maxPages),
                 dryRun: options.dryRun,
+                signal: abortController.signal,
             });
 
             // Mark process as failed if there were partial or hard errors
