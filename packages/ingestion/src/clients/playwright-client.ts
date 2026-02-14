@@ -159,6 +159,25 @@ export class PlaywrightClient {
     }
 
     /**
+     * Launch Playwright's bundled Chromium (not real Chrome).
+     * Used by Stage B (ATS detection) which doesn't need the SNC Chrome profile.
+     *
+     * @param options - Launch options (e.g., headless mode).
+     * @returns Resolves when browser is launched and ready.
+     */
+    async launch(options: { headless?: boolean } = {}): Promise<void> {
+        const { headless = false } = options;
+
+        console.log(`🚀 Launching Playwright Chromium (headless: ${headless})`);
+
+        this.browser = await playwright.chromium.launch({
+            headless,
+        });
+
+        console.log('✅ Chromium launched');
+    }
+
+    /**
      * Get the connected Playwright browser instance.
      *
      * @returns A {@link playwright.Browser} connected over CDP.
