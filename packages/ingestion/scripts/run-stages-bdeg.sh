@@ -28,7 +28,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "🔍 Stage B: ATS Detection"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-npx tsx src/cli.ts detect
+npx tsx src/cli.ts detect --deep-crawl
 
 update_exit $?
 echo "✅ Stage B finished (exit: $?) — $(date)"

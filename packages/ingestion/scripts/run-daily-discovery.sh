@@ -93,7 +93,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "🔍 Stage B: ATS Detection"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-caffeinate -i npx tsx src/cli.ts detect
+caffeinate -i npx tsx src/cli.ts detect --deep-crawl
 
 update_exit $?
 echo "✅ Stage B finished (exit: $?) — $(date)"
