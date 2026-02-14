@@ -19,6 +19,8 @@ export interface StageAOptions {
     maxPages?: number;
     /** If true, do not write to the database or fetch detail pages (best-effort). */
     dryRun?: boolean;
+    /** AbortSignal for graceful shutdown (Ctrl+C). When aborted, current phase stops and data is saved. */
+    signal?: AbortSignal;
 }
 
 /**
@@ -86,7 +88,11 @@ export async function runStageA (
         forceListScan = false,
         maxPages = 200,
         dryRun = false,
+        signal,
     } = options;
+
+    /** Check if graceful shutdown was requested */
+    const isAborted = () => signal?.aborted ?? false;
     /** Whether today is Sunday (0 = Sunday). Used to optionally force a deeper list scan. */
     const isSunday = new Date().getDay() === 0;
 
@@ -153,6 +159,10 @@ export async function runStageA (
             console.log("-".repeat(40));
 
                 for (const company of needDetails) {
+                if (isAborted()) {
+                    console.log('\n🛑 Shutdown requested — stopping Phase 1');
+                    break;
+                }
                 if (requestsUsed >= budget) {
                     console.log(`\n⚠️  Budget exhausted (${requestsUsed}/${budget})`);
                     break;
@@ -243,6 +253,10 @@ export async function runStageA (
                 console.log("-".repeat(40));
 
                 for (const company of stale) {
+                    if (isAborted()) {
+                        console.log('\n🛑 Shutdown requested — stopping Phase 2');
+                        break;
+                    }
                     if (requestsUsed >= budget) {
                         console.log(`\n⚠️  Budget exhausted (${requestsUsed}/${budget})`);
                         break;
@@ -340,6 +354,10 @@ export async function runStageA (
             let consecutiveEmptyPages = 0;
 
             for (let pageNum = 1; pageNum <= pagesAvailable; pageNum ++) {
+                if (isAborted()) {
+                    console.log('\n🛑 Shutdown requested — stopping Phase 3');
+                    break;
+                }
                 if (requestsUsed >= budget) {
                     console.log(`\n⚠️  Budget exhausted (${requestsUsed}/${budget})`);
                     break;
@@ -352,9 +370,9 @@ export async function runStageA (
 
                     if (companies.length === 0) {
                         consecutiveEmptyPages++;
-                        console.log(`      ⚠️  Empty page`);
-                        if (consecutiveEmptyPages >= 3) {
-                            console.log(`\n   🛑 3 consecutive empty pages — end of results`);
+                        console.log(`      ⚠️  Empty page (${consecutiveEmptyPages} consecutive)`);
+                        if (consecutiveEmptyPages >= 1) {
+                            console.log(`\n   🛑 Empty page detected — end of results (page ${pageNum})`);
                             break;
                         }
                         continue;
@@ -428,29 +446,6 @@ export async function runStageA (
         // ─── Summary ─────────────────────────────────────────────────────────
         stats.endTime = new Date();
 
-        const reportingService = new ReportingService(db);
-
-        try {
-            await reportingService.saveIngestionRun({
-                startedAt: stats.startTime,
-                finishedAt: stats.endTime,
-                budget,
-                requestsUsed,
-                detailsFetched,
-                listPagesScanned,
-                companiesCreated: stats.newRecords,
-                companiesUpdated: stats.updatedRecords,
-                companiesFailed: stats.failedRecords,
-                careersUrlsFound,
-                rateLimited,
-                errors: stats.errors,
-            });
-
-            await reportingService.captureDailySnapshot();
-        } catch (reportErr: any) {
-            console.error(`⚠️  Failed to save reporting data: ${reportErr.message}`);
-        }
-
         const durationSec = (
             (stats.endTime.getTime() - stats.startTime.getTime()) / 1000
         ).toFixed(0);
@@ -492,6 +487,29 @@ export async function runStageA (
         console.error('\n❌ Fatal error:', error.message);
         throw error;
     } finally {
+        // Always save reporting data, even on crash or Ctrl+C
+        try {
+            stats.endTime = stats.endTime || new Date();
+            const reportingService = new ReportingService(db);
+            await reportingService.saveIngestionRun({
+                startedAt: stats.startTime,
+                finishedAt: stats.endTime,
+                budget,
+                requestsUsed,
+                detailsFetched,
+                listPagesScanned,
+                companiesCreated: stats.newRecords,
+                companiesUpdated: stats.updatedRecords,
+                companiesFailed: stats.failedRecords,
+                careersUrlsFound,
+                rateLimited,
+                errors: stats.errors,
+            });
+            await reportingService.captureDailySnapshot();
+            console.log('📊 Reporting data saved (finally block).');
+        } catch (reportErr: any) {
+            console.error(`⚠️  Failed to save reporting data in finally: ${reportErr.message}`);
+        }
         await playwrightClient.close();
     }
 }
