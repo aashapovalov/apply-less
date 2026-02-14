@@ -138,4 +138,29 @@ export class JobService {
       throw error;
     }
   }
+
+  /**
+   * Mark jobs as 'expired' if they were not seen during the current ingestion run.
+   *
+   * Called after Stage D/E finishes processing all companies for a given source_type.
+   * Jobs that still exist in the ATS API get their last_seen_at updated by upsertJob().
+   * Jobs that disappeared from the API will have an older last_seen_at.
+   *
+   * @param sourcePrefix - External ID prefix to scope deactivation (e.g. 'greenhouse_', 'comeet_')
+   * @param runStartedAt - Timestamp when the current run began. Jobs not seen since before this are expired.
+   * @returns Number of jobs deactivated
+   */
+  async deactivateStaleJobs(sourcePrefix: string, runStartedAt: Date): Promise<number> {
+    const result = await this.db.query(
+      `UPDATE jobs
+       SET status = 'expired', updated_at = NOW()
+       WHERE external_id LIKE $1
+         AND status = 'active'
+         AND last_seen_at < $2
+       RETURNING id`,
+      [`${sourcePrefix}%`, runStartedAt]
+    );
+
+    return result.rowCount ?? 0;
+  }
 }
