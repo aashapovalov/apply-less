@@ -14,7 +14,7 @@ set -uo pipefail
 # ── Config ──────────────────────────────────────────
 HETZNER_HOST="89.167.50.54"
 HETZNER_USER="root"
-SSH_KEY="$HOME/.ssh/hetzner_applyles"
+SSH_KEY="$HOME/.ssh/hetzner_headless"
 LOCAL_PG_PORT=5432
 REMOTE_PG_PORT=5432
 PROJECT_DIR="$HOME/_projects/apply-less/packages/ingestion"
