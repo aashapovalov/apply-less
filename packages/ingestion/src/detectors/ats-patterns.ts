@@ -7,6 +7,7 @@ export const ATS_PATTERNS: ATSPattern[] = [
         urlPatterns: [
             /boards\.greenhouse\.io\/([^/?]+)/,
             /job-boards\.greenhouse\.io\/([^/?]+)/,
+            /job-boards\.[a-z]+\.greenhouse\.io\/([^/?]+)/,  // EU/regional: job-boards.eu.greenhouse.io
             /greenhouse\.io\/embed\/job_board\?for=([^&]+)/,
         ],
         htmlPatterns: [
@@ -14,6 +15,7 @@ export const ATS_PATTERNS: ATSPattern[] = [
             /data-gh-/i,
             /greenhouse_job_id/i,  // Custom career pages with GH backend
             /job-boards\.greenhouse\.io/i,  // Direct job-boards URL
+            /job-boards\.[a-z]+\.greenhouse\.io/i,  // EU/regional: job-boards.eu.greenhouse.io
             /job-boards\\\.greenhouse\\\.io/i,  // Escaped in JSON
         ],
         selectors: ['iframe[src*="greenhouse.io"]', '[data-gh-src]', '#grnhse_app'],
@@ -44,8 +46,11 @@ export const ATS_PATTERNS: ATSPattern[] = [
             
             // job-boards.greenhouse.io pattern (custom career pages)
             // Handle both normal slashes and escaped slashes (\/) in JSON
+            // Also handle regional subdomains: job-boards.eu.greenhouse.io
             match = url.match(/job-boards\.greenhouse\.io\/([^/?]+)/) ||
+                url.match(/job-boards\.[a-z]+\.greenhouse\.io\/([^/?]+)/) ||
                 html.match(/job-boards\.greenhouse\.io\/([^/?'"]+)/) ||
+                html.match(/job-boards\.[a-z]+\.greenhouse\.io\/([^/?'"]+)/) ||
                 html.match(/job-boards\.greenhouse\.io\\\/([^\\/]+)\\\//);  // escaped: \/
             if (match && match[1] !== 'embed') return { slug: match[1] };
             
@@ -63,7 +68,10 @@ export const ATS_PATTERNS: ATSPattern[] = [
     {
         type: 'comeet',
         urlPatterns: [/comeet\.com\/jobs\/([^/?]+)/, /comeet\.co\/jobs\/([^/?]+)/],
-        htmlPatterns: [/comeet\.com/i, /comeet\.co/i, /COMEET\.init/i, /comeet-position/i, /comeetvar/i, /comeet_uid/i],
+        htmlPatterns: [
+            /comeet\.com/i, /comeet\.co/i, /COMEET\.init/i, /comeet-position/i, /comeetvar/i, /comeet_uid/i,
+            /\/co\/[a-z-]+\/[A-Z0-9]+\.[A-Z0-9]+\//i,  // Comeet URL pattern on custom domains: /co/dept/UID/
+        ],
         selectors: ['iframe[src*="comeet"]', '.comeet-positions-list', '.comeet-position', '#comeet_script-js-extra'],
         scriptPatterns: [/COMEET\.init\s*\(/, /comeetvar\s*=\s*\{/],
         slugExtractor: (html, url) => {
@@ -144,6 +152,7 @@ export const ATS_DOMAINS = [
     'jobs.lever.co',
     'boards.greenhouse.io',
     'job-boards.greenhouse.io',
+    'job-boards.eu.greenhouse.io',
     'boards-api.greenhouse.io',
     'apply.workable.com',
     'www.comeet.co',

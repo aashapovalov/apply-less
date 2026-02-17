@@ -26,7 +26,21 @@ export class JobSourceService {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 ON CONFLICT (company_id, source_type, base_url) 
                 DO UPDATE SET
-                    ats_identifier = COALESCE(EXCLUDED.ats_identifier, job_sources.ats_identifier),
+                    ats_identifier = CASE
+                        -- Never overwrite a working identifier with null/empty
+                        WHEN EXCLUDED.ats_identifier IS NULL OR EXCLUDED.ats_identifier = '' THEN job_sources.ats_identifier
+                        -- Keep existing if it has associated active jobs (proven to work)
+                        WHEN job_sources.ats_identifier IS NOT NULL 
+                             AND job_sources.ats_identifier != ''
+                             AND EXISTS (
+                                 SELECT 1 FROM jobs j 
+                                 WHERE j.source_id = job_sources.id 
+                                 AND j.status = 'active'
+                             )
+                        THEN job_sources.ats_identifier
+                        -- Otherwise use the new value
+                        ELSE COALESCE(EXCLUDED.ats_identifier, job_sources.ats_identifier)
+                    END,
                     api_token = COALESCE(EXCLUDED.api_token, job_sources.api_token),
                     detection_method = COALESCE(EXCLUDED.detection_method, job_sources.detection_method),
                     confidence = COALESCE(EXCLUDED.confidence, job_sources.confidence),
