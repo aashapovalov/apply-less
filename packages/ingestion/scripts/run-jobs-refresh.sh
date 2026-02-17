@@ -60,7 +60,13 @@ else
         -o ExitOnForwardFailure=yes \
         -o ServerAliveInterval=60 \
         -o ServerAliveCountMax=3 \
+        -o BatchMode=yes \
         "$HETZNER_USER@$HETZNER_HOST"
+
+    if [ $? -ne 0 ]; then
+        echo "❌ SSH tunnel FAILED — aborting pipeline"
+        exit 1
+    fi
     echo "✅ SSH tunnel open (PG + ML)"
 fi
 
